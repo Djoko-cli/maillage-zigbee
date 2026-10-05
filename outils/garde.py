@@ -42,7 +42,7 @@ def trouver(depot, identifiants):
         if not os.path.isfile(chemin):
             continue
         with open(chemin, "rb") as g:
-            texte = normaliser(g.read().decode("latin-1"))
+            texte = normaliser(g.read().decode("utf-8", "replace"))
         trouves += [(f, i) for i in identifiants if i in texte]
     return trouves
 

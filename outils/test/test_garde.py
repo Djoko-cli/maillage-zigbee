@@ -68,6 +68,12 @@ class TestGarde(unittest.TestCase):
         self.assertIn("b.cpp", sortie)
         self.assertNotIn("A000000000000099", sortie)  # jamais l'identifiant entier a l'ecran
 
+    def test_nom_accentue(self):
+        d = depot({"a.md": "La lampe du Salon à côté"}, "Salon à côté\n")
+        code, sortie = lancer(d)
+        self.assertEqual(code, 1)
+        self.assertIn("a.md", sortie)
+
     def test_depuis_un_worktree(self):
         d = depot({"a.txt": "adresse A000000000000099"}, "A000000000000099\n")
         subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "x"],
