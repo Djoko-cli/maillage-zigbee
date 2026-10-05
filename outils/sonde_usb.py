@@ -89,12 +89,18 @@ class Sonde:
 
     def envoyer(self, texte):
         self._noter("envoi", texte)
-        os.write(self.fd, (texte + "\n").encode("ascii"))
+        try:
+            os.write(self.fd, (texte + "\n").encode("ascii"))
+        except OSError as e:
+            raise PortPerdu(str(e)) from e
 
     def _recevoir(self, attente_s):
         """Une lecture, attente_s secondes au plus. True si des octets sont arrives ; PortPerdu si le port ne
         repond plus (erreur, ou fin de flux apres un select qui dit « lisible »)."""
-        r, _, _ = select.select([self.fd], [], [], attente_s)
+        try:
+            r, _, _ = select.select([self.fd], [], [], attente_s)
+        except (OSError, ValueError) as e:  # descripteur ferme ou invalide
+            raise PortPerdu(str(e)) from e
         if not r:
             return False
         try:

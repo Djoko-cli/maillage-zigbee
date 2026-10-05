@@ -172,12 +172,17 @@ def main(argv):
     sonde = sonde_usb.Sonde(sonde_usb.ouvrir(port), journal_vers(journal))
 
     def reconnecter():
+        nouvelle = sonde_usb.Sonde(sonde_usb.ouvrir(port), journal_vers(journal))
+        try:
+            nouvelle.verifier()
+        except (ValueError, sonde_usb.PortPerdu):
+            os.close(nouvelle.fd)
+            raise
         try:
             os.close(essai.sonde.fd)
         except OSError:
             pass
-        essai.sonde = sonde_usb.Sonde(sonde_usb.ouvrir(port), journal_vers(journal))
-        essai.sonde.verifier()
+        essai.sonde = nouvelle
 
     if commande == "ecoute":
         for e in sonde.lire(time.time() + float(args[0] if args else 10)):

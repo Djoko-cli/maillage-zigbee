@@ -120,6 +120,17 @@ class TestSonde(unittest.TestCase):
         with self.assertRaises(sonde_usb.PortPerdu):
             self.sonde.commande("etat", ("etat",), delai=2.0)
 
+    def test_descripteur_ferme(self):
+        self.mac.close()  # le descripteur de la sonde n'existe plus
+        with self.assertRaises(sonde_usb.PortPerdu):
+            self.sonde.commande("etat", ("etat",), delai=2.0)
+
+    def test_envoi_sur_port_perdu(self):
+        self.carte.close()
+        with self.assertRaises(sonde_usb.PortPerdu):
+            for _ in range(50):  # la premiere ecriture peut encore passer dans le tampon
+                self.sonde.envoyer("etat")
+
     def test_verifier(self):
         Carte(self.carte, b"bonjour\n", ligne({"v": 1, "t": "bonjour", "produit": "sonde-zigbee", "nom": "SONDE-Z1"}))
         self.assertEqual(self.sonde.verifier()["nom"], "SONDE-Z1")
