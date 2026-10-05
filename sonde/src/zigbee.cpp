@@ -133,11 +133,13 @@ uint8_t sTsn = 0x80;
 
 // Mgmt_Rtg_rsp (cluster 0x8032) de la cible : lue dans la trame brute.
 bool surIndicationAps(esp_zb_apsde_data_ind_t ind) {
-  if (ind.profile_id != 0 || ind.cluster_id != (0x8000 | kZdoMgmtRtg) || !sAttenteRoutes.actif ||
-      ind.src_short_addr != sAttenteRoutes.cible || !ind.asdu)
-    return false;
+  if (ind.profile_id != 0 || ind.cluster_id != (0x8000 | kZdoMgmtRtg)) return false;
+  // Toute Mgmt_Rtg_rsp est a la sonde (la pile n'envoie jamais de
+  // Mgmt_Rtg_req) : gardee meme tardive, pour que la pile ne la prenne pas
+  // pour la reponse d'une de ses requetes au meme numero de transaction.
+  if (!sAttenteRoutes.actif || ind.src_short_addr != sAttenteRoutes.cible || !ind.asdu) return true;
   PageRoutes p;
-  if (!lirePageRoutes(ind.asdu, ind.asdu_length, &p) || p.tsn != sAttenteRoutes.tsn) return false;
+  if (!lirePageRoutes(ind.asdu, ind.asdu_length, &p) || p.tsn != sAttenteRoutes.tsn) return true;
   sAttenteRoutes.actif = false;
   // Rendue a l'appelant seulement : la pile ne doit pas la confondre avec la
   // reponse d'une de ses requetes (meme numero de transaction).
@@ -360,13 +362,14 @@ bool envoyerRoutes(uint16_t cible, uint8_t index, uint32_t numero) {
 bool envoyerEchecs(uint16_t cible, uint32_t numero) {
 #if SONDE_ECHECS
   const uint8_t c = esp_zb_get_current_channel();
+  if (c < 11 || c > 26) return false;
   esp_zb_zdo_mgmt_nwk_update_req_param_t req = {};
   req.scan_channels = 1u << c;
   req.scan_duration = 0;
   req.scan_count = 1;
   req.nwk_manager_addr = 0;
   req.dst_addr = cible;
-  if (c < 11 || c > 26 || !requetePermise(kZdoMgmtNwkUpdate, cible) ||
+  if (!requetePermise(kZdoMgmtNwkUpdate, cible) ||
       !balayagePermis(req.scan_channels, req.scan_duration, c))
     return false;
   esp_zb_zdo_mgmt_nwk_update_req(&req, surEchecs, (void *)(uintptr_t)numero);

@@ -447,11 +447,13 @@ static void cmdOubli(uint32_t maintenant) {
   sLigne.ajoute(",\"ok\":true");
   finir();
   Serial.flush();
-  const bool membre = sAdhesion.membre();
   sAdhesion.oubli(maintenant);
   if (!zigbee::verrou(1000)) return;  // le filet d'Adhesion oubliera dans 15 s
-  if (membre) zigbee::quitter();      // signal de depart a la fin, puis oublier
-  else zigbee::oublier();             // redemarre
+  // D'apres la pile, pas d'apres Adhesion : apres des rattachements echoues,
+  // la sonde n'est plus membre mais la pile garde le reseau, et le depart
+  // local garde le compteur de trames.
+  if (zigbee::rattachee()) zigbee::quitter();  // signal de depart a la fin, puis redemarrer
+  else zigbee::oublier();                       // redemarre
   zigbee::libere();
 }
 
