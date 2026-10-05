@@ -41,6 +41,8 @@ class TestGarde(unittest.TestCase):
         self.assertEqual(garde.normaliser("a0:00:00:00:00:00:00:99"), "A000000000000099")
         self.assertEqual(garde.normaliser("0x1a2b"), "1A2B")
         self.assertEqual(garde.normaliser("0X1A2B"), "1A2B")
+        self.assertEqual(garde.normaliser("a0-00-00-00-00-00-00-99"), "A000000000000099")
+        self.assertEqual(garde.normaliser("a000 0000 0000 0099"), "A000000000000099")
 
     def test_lire_identifiants(self):
         d = tempfile.mkdtemp()
@@ -67,6 +69,14 @@ class TestGarde(unittest.TestCase):
         self.assertIn("a.txt", sortie)
         self.assertIn("b.cpp", sortie)
         self.assertNotIn("A000000000000099", sortie)  # jamais l'identifiant entier a l'ecran
+
+    def test_separateurs_tirets_et_espaces(self):
+        d = depot({"a.txt": "mac A0-00-00-00-00-00-00-99", "b.txt": "mac a000 0000 0000 0099"},
+                  "A000000000000099\n")
+        code, sortie = lancer(d)
+        self.assertEqual(code, 1)
+        self.assertIn("a.txt", sortie)
+        self.assertIn("b.txt", sortie)
 
     def test_nom_accentue(self):
         d = depot({"a.md": "La lampe du Salon à côté"}, "Salon à côté\n")

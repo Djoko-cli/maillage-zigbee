@@ -7,7 +7,7 @@ Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifian
 par ligne (adresses longues et courtes, PAN, EPID, identifiant du pont, MAC des cartes, noms) ; les lignes
 vides et celles qui commencent par « # » sont ignorees. Depuis un worktree git, ou ce fichier ignore n'est
 pas, la garde prend celui du depot principal. Echoue (code 1) si l'un des identifiants apparait dans un
-fichier suivi par git, sans tenir compte de la casse ni des separateurs « : » et « 0x ». Sans aucun de ces
+fichier suivi par git, sans tenir compte de la casse ni des separateurs « : », « - », « . », espace et « 0x ». Sans aucun de ces
 fichiers, la garde le dit et passe.
 """
 import os
@@ -20,7 +20,7 @@ DEPOT = os.path.normpath(os.path.join(ICI, ".."))
 
 
 def normaliser(texte):
-    return re.sub(r"0x|:", "", texte, flags=re.IGNORECASE).upper()
+    return re.sub(r"0x|[:.\- ]", "", texte, flags=re.IGNORECASE).upper()
 
 
 def lire_identifiants(chemin):

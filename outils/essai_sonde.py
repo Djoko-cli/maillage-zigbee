@@ -8,7 +8,8 @@ Commandes :
   nom <texte>
   table <cible> [<delai ms>]      table des voisins d'un routeur (E2)
   routes <cible> [<delai ms>]     table de routage (E4)
-  echecs <cible> [<delai ms>]     emissions et echecs (E5 : seulement avec l'accord de Majid)
+  echecs <cible> [<delai ms>] --accord   emissions et echecs (E5 : la lampe interrogee devient sourde
+                                  ~31 ms ; exige --accord, donc l'accord explicite de Majid)
   tournee [<delai ms>]            parcours en largeur depuis le pont (E3)
   nuit <heures> [<periode s>]     etat et tournee toutes les <periode> s, 900 par defaut (E6)
   ecoute <secondes>               lit sans rien envoyer
@@ -18,7 +19,8 @@ l'outil verifie par bonjour que c'est une sonde Zigbee. Aucun agent ne lance cet
 serie (plan, contraintes globales).
 
 Journal : tout ce qui passe va dans essais/<AAAA-MM-JJ>/sonde.jsonl, et le resume de chaque tournee dans
-essais/<AAAA-MM-JJ>/tournee-<HHMMSS>.json. essais/ est ignore par git : identifiants reels.
+essais/<AAAA-MM-JJ>/tournee-<HHMMSS>.json, dans le dossier du jour de lancement (un seul par execution,
+meme si la nuit passe minuit). essais/ est ignore par git : identifiants reels.
 """
 import collections
 import json
@@ -127,8 +129,9 @@ def afficher(m):
 
 
 class Essai:
-    def __init__(self, sonde):
+    def __init__(self, sonde, dossier=None):
         self.sonde = sonde
+        self.dossier = dossier
         self.id = int(time.time()) % 1000000
 
     def prochain_id(self):
@@ -150,7 +153,7 @@ class Essai:
         debut = time.time()
         resultats = parcourir(lambda c: self.requete("table", c, delai_ms))
         resume = resumer(resultats, time.time() - debut)
-        chemin = os.path.join(dossier_du_jour(), time.strftime("tournee-%H%M%S.json"))
+        chemin = os.path.join(self.dossier or dossier_du_jour(), time.strftime("tournee-%H%M%S.json"))
         with open(chemin, "w") as f:
             json.dump({"resume": resume, "tables": resultats}, f, indent=1)
         return resume, chemin
@@ -168,7 +171,14 @@ def main(argv):
         print("Port inconnu : --port, ou \"port\" dans outils/sonde.local.json")
         return 2
     commande, args = argv[0], argv[1:]
-    journal = os.path.join(dossier_du_jour(), "sonde.jsonl")
+    accord = "--accord" in args
+    args = [a for a in args if a != "--accord"]
+    if commande == "echecs" and not accord:
+        print("echecs rend la lampe interrogee sourde ~31 ms (E5) : a n'utiliser qu'avec l'accord explicite de "
+              "Majid, en ajoutant --accord")
+        return 2
+    dossier = dossier_du_jour()
+    journal = os.path.join(dossier, "sonde.jsonl")
     sonde = sonde_usb.Sonde(sonde_usb.ouvrir(port), journal_vers(journal))
 
     def reconnecter():
@@ -193,7 +203,7 @@ def main(argv):
     except ValueError as e:
         print(e)
         return 1
-    essai = Essai(sonde)
+    essai = Essai(sonde, dossier)
     simples = {"bonjour": ("bonjour",), "etat": ("etat",), "voisins": ("voisins",), "suspendre": ("etat",),
                "reprendre": ("etat",), "oubli": ("oubli",)}
     if commande in simples and not args:
@@ -212,8 +222,11 @@ def main(argv):
             debut = time.time()
             try:
                 etat = essai.sonde.commande("etat", ("etat",))
-                print(time.strftime("%H:%M:%S"), "membre" if etat and etat.get("membre") else "NON MEMBRE",
-                      (etat or {}).get("parent"))
+                if etat and "erreur" in etat:
+                    statut = f"etat {etat['erreur']}"
+                else:
+                    statut = "membre" if etat and etat.get("membre") else "NON MEMBRE"
+                print(time.strftime("%H:%M:%S"), statut, (etat or {}).get("parent"))
                 resume, chemin = essai.tournee()
                 print(time.strftime("%H:%M:%S"), json.dumps(resume, ensure_ascii=False), "->", chemin, flush=True)
             except sonde_usb.PortPerdu as e:

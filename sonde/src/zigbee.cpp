@@ -278,6 +278,9 @@ void demarrer() {
   esp_zb_aps_data_indication_handler_register(surIndicationAps);
 #endif
   ESP_ERROR_CHECK(esp_zb_set_primary_network_channel_set(kCanauxHue));
+  // Le jeu secondaire vaut par defaut les autres canaux (BDB) : sans cela, le rattachement pourrait
+  // rejoindre un reseau ouvert etranger hors des canaux Hue.
+  ESP_ERROR_CHECK(esp_zb_set_secondary_network_channel_set(kCanauxHue));
   // Adhesion au pont Hue : la cle de liaison de Signify (ZLL).
   esp_zb_enable_joining_to_distributed(true);
   esp_zb_secur_TC_standard_distributed_key_set((uint8_t *)kCleHue);
@@ -441,5 +444,7 @@ extern "C" void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal) {
   }
   // Tout signal, pour le journal de l'essai : on y verra ce que la pile fait
   // a la perte du parent, au depart, au rattachement.
+#if SONDE_SIGNAUX
   zigbee::pousserBrut((uint8_t)type, ok, detail, esp_zb_zdo_signal_to_string(type));
+#endif
 }
