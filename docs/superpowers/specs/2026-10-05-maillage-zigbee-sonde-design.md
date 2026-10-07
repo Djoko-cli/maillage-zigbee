@@ -265,9 +265,9 @@ série USB, et refuse un port qui ne répond pas `"produit":"sonde-zigbee"` à
 
 **Liste blanche.** Le firmware n'émet, de lui-même ou sur commande, que :
 - `Mgmt_Lqi_req` (ZDO `0x0031`) ;
-- `Mgmt_Rtg_req` (ZDO `0x0032`), si l'essai E4 la valide ;
-- `Mgmt_NWK_Update_req` (ZDO `0x0038`) **en balayage d'énergie seulement**,
-  si l'essai E5 la valide (ci-dessous) ;
+- `Mgmt_Rtg_req` (ZDO `0x0032`), validée par l'essai E4 ;
+- `Mgmt_NWK_Update_req` (ZDO `0x0038`) **en balayage d'énergie seulement** :
+  retirée de la sonde 1.0.0 après l'essai E5 (ci-dessous) ;
 - ce que la pile émet d'elle-même pour rester membre : adhésion,
   rattachement, maintien auprès du parent, réponses aux lectures du pont sur
   ses propres grappes.
@@ -276,7 +276,7 @@ Jamais de commande ZCL vers un autre appareil (ni on/off, ni scène, ni
 groupe), jamais de `Mgmt_Leave_req`, de `Mgmt_Permit_Joining_req`, de
 liaison (*bind*), ni de changement de canal ou de gestionnaire du réseau, et
 jamais vers une adresse de diffusion : chaque requête vise un seul appareil.
-La voie APS brute, si on la garde, passe par la même liste blanche, vérifiée
+La voie APS brute, gardée pour `routes`, passe par la même liste blanche, vérifiée
 avant chaque envoi.
 
 **Jamais de recherche une fois rattachée.** Selon la norme BDB, un nœud déjà
@@ -370,7 +370,7 @@ vérifications : d'abord le numéro de série USB de l'appareil derrière le por
 (`ioreg`, sans toucher la carte ; pour un C6, c'est sa MAC), puis, après la
 compilation, la MAC lue par esptool. Les deux doivent être celle de
 `outils/sonde.local.json` : l'outil refuse toute autre carte (pont Halo,
-sonde Thread, carte témoin de benq : ce sont aussi des C6). Le premier flash
+sonde Thread, pont amaran : ce sont aussi des C6). Le premier flash
 se fait avec effacement ; les suivants, sans, pour garder le réseau.
 
 **Données personnelles, dès le premier commit.**
@@ -439,12 +439,12 @@ bureau de Majid. Ordres de grandeur, sans identifiant (section 5).
 
 | # | Résultat |
 |---|---|
-| E1 | **Réussi** du premier coup en appareil final, On/Off Light : canal et PAN du réseau Hue de l'essai d'écoute ; la lampe « On/off light 1 » apparaît dans l'app Hue et la LED de la carte la suit ; 30 min sans départ ; débranchée puis rebranchée, elle revient seule, sans recherche. E1 bis inutile |
+| E1 | **Réussi** du premier coup en appareil final, On/Off Light : canal et PAN du réseau Hue de l'essai d'écoute ; la sonde apparaît dans l'app Hue sous le nom par défaut d'une lampe on/off et la LED de la carte la suit ; 30 min sans départ ; débranchée puis rebranchée, elle revient seule, sans recherche. E1 bis inutile |
 | E2 | **Réussi** : la table du pont arrive entière, 25 voisins en 13 pages (2 par page), en 1,8 s. Le pont range chaque voisin en « frère », profondeur 15, sans « admission » : l'app s'en passe. LQI de 74 à 255 |
 | E3 | **Réussi** : 36 routeurs interrogés, 36 réponses en 50 à 110 s ; 56 à 57 nœuds vus, dont 20 à 21 appareils finaux (34 nœuds connus après l'écoute passive) ; environ 450 pages par tournée ; aucun refus `cadence` |
 | E4 | **Réussi** : `Mgmt_Rtg_req` en APS brute. La table du pont fait 254 entrées en 22 pages (2,6 s), dont une cinquantaine de routes actives vers une vingtaine de relais. Une lampe montre une route « plusieurs vers un » vers le pont |
 | E5 | **Échoué, retiré** : la lampe interrogée (une seule, accord de Majid) n'a pas répondu dans les 5 s, deux fois. Sans doute réservé au gestionnaire du réseau. `echecs` est retirée |
-| E6 | **Réussi** : 35 tournées, une toutes les 15 min, sur 8 h 30 (l'outil s'est arrêté à 2 h 36, sans doute avec l'app) ; 32 tournées complètes, 3 tables perdues sur environ 1260 (corrigé depuis côté outil) ; aucun redémarrage ; toujours membre au matin |
+| E6 | **Réussi** : 35 tournées, une toutes les 15 min, sur 8 h 30 (l'outil s'est arrêté à 2 h 36, sans doute avec l'app) ; 32 tournées complètes, 3 tables perdues sur environ 1260 (corrigé depuis côté outil) ; aucun redémarrage ; toujours membre au matin ; Majid n'a rien vu d'anormal sur ses lampes ni dans l'app Hue |
 | E7 | **Vu sans le provoquer** : la pile déclare le parent perdu (statut NWK 9) pendant les tournées, environ une fois par tournée (43 en E6), toujours dans les 2 s suivant une requête, jamais au repos, sur une vingtaine de cibles différentes, alors que le lien avec le parent est bon (environ -46 dBm). La sonde se rattache seule au même parent en 10 s |
 
 **Défauts trouvés et corrigés pendant l'essai.**

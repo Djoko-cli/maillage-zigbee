@@ -83,8 +83,8 @@ int main() {
   CHECK(est("table 0000 1 5000 9", TypeCommande::kSyntaxe), "argument en trop");
   CHECK(est("table 0000 1 5000 9 9", TypeCommande::kSyntaxe), "deux arguments en trop");
 
-  // routes et echecs : actives par defaut ; coupes (SONDE_ROUTES=0,
-  // SONDE_ECHECS=0), ils n'existent pas et repondent « inconnue ».
+  // routes et echecs : selon SONDE_ROUTES et SONDE_ECHECS (options.h) ;
+  // coupes, ils n'existent pas et repondent « inconnue ».
 #if SONDE_ROUTES
   Commande r = lireCommande("routes 3C4D 8 1000");
   CHECK(r.type == TypeCommande::kRoutes && r.cible == 0x3C4D && r.id == 8 && r.delaiMs == 1000, "routes");

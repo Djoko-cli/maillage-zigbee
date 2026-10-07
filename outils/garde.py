@@ -7,8 +7,10 @@ Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifian
 par ligne (adresses longues et courtes, PAN, EPID, identifiant du pont, MAC des cartes, noms) ; les lignes
 vides et celles qui commencent par « # » sont ignorees. Depuis un worktree git, ou ce fichier ignore n'est
 pas, la garde prend celui du depot principal. Echoue (code 1) si l'un des identifiants apparait dans un
-fichier suivi par git, sans tenir compte de la casse ni des separateurs « : », « - », « . », espace et « 0x ». Sans aucun de ces
-fichiers, la garde le dit et passe.
+fichier suivi par git, sans tenir compte de la casse ni des separateurs « : », « - », « . », espace et « 0x ». Un identifiant
+hexadecimal long (16 chiffres ou plus : adresse longue, EPID, cle) est aussi cherche dans les seuls chiffres hexadecimaux du
+fichier, pour le trouver ecrit en tableau C (« 0x81, 0x42, ... », sur plusieurs lignes). Sans aucun de ces fichiers, la garde
+le dit et passe.
 """
 import os
 import re
@@ -21,6 +23,15 @@ DEPOT = os.path.normpath(os.path.join(ICI, ".."))
 
 def normaliser(texte):
     return re.sub(r"0x|[:.\- ]", "", texte, flags=re.IGNORECASE).upper()
+
+
+def chiffres_hexa(texte):
+    """Les seuls chiffres hexadecimaux du texte, en majuscules, sans les prefixes 0x."""
+    return re.sub(r"[^0-9A-F]", "", re.sub(r"0X", "", texte.upper()))
+
+
+def hexa_long(identifiant):
+    return len(identifiant) >= 16 and re.fullmatch(r"[0-9A-F]+", identifiant) is not None
 
 
 def lire_identifiants(chemin):
@@ -42,8 +53,9 @@ def trouver(depot, identifiants):
         if not os.path.isfile(chemin):
             continue
         with open(chemin, "rb") as g:
-            texte = normaliser(g.read().decode("utf-8", "replace"))
-        trouves += [(f, i) for i in identifiants if i in texte]
+            brut = g.read().decode("utf-8", "replace")
+        texte, hexa = normaliser(brut), chiffres_hexa(brut)
+        trouves += [(f, i) for i in identifiants if i in texte or (hexa_long(i) and i in hexa)]
     return trouves
 
 

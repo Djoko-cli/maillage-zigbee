@@ -1,6 +1,6 @@
 // Tests hote de sonde/src/cadence.{h,cpp} (garde-fou de cadence) et de
-// sonde/src/liste_blanche.h. Compile deux fois par lancer.sh : options par
-// defaut, puis SONDE_ROUTES=0 et SONDE_ECHECS=0.
+// sonde/src/liste_blanche.h. Compile trois fois par lancer.sh : options par
+// defaut (routes oui, echecs non), SONDE_ECHECS=1, puis les deux a 0.
 // Lancer : sh sonde/test/lancer.sh
 #include "cadence.h"
 #include "liste_blanche.h"

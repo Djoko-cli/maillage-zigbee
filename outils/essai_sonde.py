@@ -36,7 +36,7 @@ import sonde_usb  # noqa: E402
 
 ATTENTE_TABLE_S = 125  # la sonde borne une table a 120 s
 ATTENTES_MAX = 2  # attentes de rattachement par table
-ATTENTE_MEMBRE_S = 120  # rattachement apres perte du parent ou depart avec retour (essai : ~30 s)
+ATTENTE_MEMBRE_S = 120  # rattachement apres perte du parent ou depart avec retour (essai : 10 a 30 s)
 TYPES_INTERROGES = ("coordinateur", "routeur")
 
 
@@ -135,21 +135,24 @@ class Essai:
     def __init__(self, sonde, dossier=None):
         self.sonde = sonde
         self.dossier = dossier
+        self.hors_reseau = False  # une attente a echoue : les cibles suivantes n'attendent plus
         self.id = int(time.time()) % 1000000
 
     def prochain_id(self):
         self.id += 1
         return self.id
 
-    def attendre_membre(self, limite=ATTENTE_MEMBRE_S, pas=5.0, dormir=time.sleep):
-        """Interroge l'etat toutes les <pas> s jusqu'a ce que la sonde soit de nouveau membre ; False au bout
-        de <limite> s."""
-        for _ in range(max(1, int(limite / pas))):
+    def attendre_membre(self, limite=ATTENTE_MEMBRE_S, pas=5.0, dormir=time.sleep, horloge=time.monotonic):
+        """Interroge l'etat toutes les <pas> s jusqu'a ce que la sonde soit de nouveau membre ; False une fois
+        <limite> s passees (le temps des reponses compris)."""
+        fin = horloge() + limite
+        while True:
             m = self.sonde.commande("etat", ("etat",))
             if m and m.get("membre"):
                 return True
+            if horloge() + pas > fin:
+                return False
             dormir(pas)
-        return False
 
     def requete(self, genre, cible, delai_ms=None):
         """Une table incomplete sans « partielle » est redemandee une fois, puis rendue marquee incoherente.
@@ -160,10 +163,14 @@ class Essai:
             i = self.prochain_id()
             texte = f"{genre} {cible} {i}" + (f" {delai_ms}" if delai_ms else "")
             m = self.sonde.commande(texte, (genre,), id=i, delai=ATTENTE_TABLE_S)
-            if m and m.get("erreur") == "non_membre" and attentes < ATTENTES_MAX:
+            hors = bool(m) and m.get("erreur") == "non_membre"
+            if hors and attentes < ATTENTES_MAX and not self.hors_reseau:
                 attentes += 1
                 if self.attendre_membre():
                     continue
+                self.hors_reseau = True
+            elif m and not hors:
+                self.hors_reseau = False
             if complete(m):
                 return m
             m["incoherente"] = True

@@ -94,11 +94,21 @@ class TestTournee(unittest.TestCase):
         essai.attendre_membre = lambda f=essai.attendre_membre: f(pas=1, dormir=lambda s: None)
         self.assertEqual(essai.requete("table", "1A2B")["liste"], [1])
         self.assertEqual(essai.sonde.textes, ["table", "etat", "table", "etat", "table"])
-        # Jamais revenue : une seule attente, puis la reponse non_membre est rendue sans redemander.
-        essai = essai_sonde.Essai(Fausse([hors] + [dehors] * 3))
-        essai.attendre_membre = lambda f=essai.attendre_membre: f(limite=3, pas=1, dormir=lambda s: None)
+        # Troisieme decrochage apres deux attentes : rendu tel quel, sans troisieme attente.
+        essai = essai_sonde.Essai(Fausse([hors, dedans, hors, dedans, hors]))
+        essai.attendre_membre = lambda f=essai.attendre_membre: f(pas=1, dormir=lambda s: None)
         self.assertEqual(essai.requete("table", "1A2B")["erreur"], "non_membre")
-        self.assertEqual(essai.sonde.textes, ["table", "etat", "etat", "etat"])
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "table", "etat", "table"])
+        # Jamais revenue : une seule attente, puis la reponse non_membre est rendue sans redemander.
+        horloge = iter(range(100)).__next__  # une seconde par lecture
+        essai = essai_sonde.Essai(Fausse([hors] + [dehors] * 3 + [hors]))
+        essai.attendre_membre = lambda f=essai.attendre_membre: f(limite=3, pas=1, dormir=lambda s: None,
+                                                                  horloge=horloge)
+        self.assertEqual(essai.requete("table", "1A2B")["erreur"], "non_membre")
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "etat", "etat"])  # a 0, 1 et 2 s, limite 3 s
+        # Les cibles suivantes de la tournee n'attendent plus.
+        self.assertEqual(essai.requete("table", "3C4D")["erreur"], "non_membre")
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "etat", "etat", "table"])
 
     def test_resume_sans_reponse(self):
         self.assertEqual(essai_sonde.resumer({"0000": None}, 0)["erreurs"], {"sans_reponse": 1})

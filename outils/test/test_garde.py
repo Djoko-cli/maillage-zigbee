@@ -78,6 +78,16 @@ class TestGarde(unittest.TestCase):
         self.assertIn("a.txt", sortie)
         self.assertIn("b.txt", sortie)
 
+    def test_cle_en_tableau_c(self):
+        cle = ("static constexpr uint8_t kCle[16] = {\n    0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78,\n"
+               "    0x87, 0x96, 0xA5, 0xB4, 0xC3, 0xD2, 0xE1, 0xF0,\n};\n")
+        d = depot({"cle.h": cle, "court.txt": "0x1E, 0x2D"}, "0F:1E:2D:3C:4B:5A:69:78:87:96:A5:B4:C3:D2:E1:F0\n1E2D3C\n")
+        code, sortie = lancer(d)
+        self.assertEqual(code, 1)
+        self.assertIn("cle.h", sortie)
+        # Un identifiant court ne se cherche pas dans les seuls chiffres : pas de faux positif.
+        self.assertNotIn("court.txt", sortie)
+
     def test_nom_accentue(self):
         d = depot({"a.md": "La lampe du Salon à côté"}, "Salon à côté\n")
         code, sortie = lancer(d)

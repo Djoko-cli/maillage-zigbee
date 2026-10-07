@@ -491,6 +491,7 @@ static void executer(const char *ligne, uint32_t maintenant) {
 // quoi la ligne signal qui explique le redemarrage (depart...) se perd.
 static void redemarrer() {
   Serial.flush();
+  delay(20);  // la FIFO materielle de l'USB se vide aussi
   esp_restart();
 }
 

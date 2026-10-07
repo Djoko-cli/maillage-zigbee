@@ -5,7 +5,7 @@
   python3 outils/flasher.py --ecoute [--effacer]      firmware d'ecoute passive (outils/ecoute/firmware)
 
 Lit outils/sonde.local.json (ignore par git) : {"port": "/dev/cu.usbmodem...", "mac": "AA:BB:CC:DD:EE:FF"}.
-Le pont Halo, la sonde Thread et la carte temoin de benq sont aussi des C6, et le nom d'un port suit la prise
+Le pont Halo, la sonde Thread et le pont amaran sont aussi des C6, et le nom d'un port suit la prise
 USB, pas la carte. Avant d'ecrire, dans cet ordre :
   1. le numero de serie USB de l'appareil derriere le port (ioreg, sans toucher la carte) : c'est la MAC
      d'un C6, elle doit etre celle du fichier ;
