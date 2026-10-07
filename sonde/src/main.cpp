@@ -1,10 +1,10 @@
 // ===========================================================================
-//  Sonde de maillage Zigbee, firmware 0.9.0 (spec :
+//  Sonde de maillage Zigbee, firmware 1.0.0 (spec :
 //  docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md)
 //
-//  ESP32-C6 membre du reseau Hue : appareil final non endormi (ou routeur,
-//  repli de l'essai E1 bis), point d'acces « lampe » (endpoint 11). Il ne
-//  relaie rien en appareil final, n'envoie aucune commande aux lampes, et
+//  ESP32-C6 membre du reseau Hue : appareil final non endormi, jamais
+//  routeur, point d'acces « lampe » (endpoint 11). Il ne relaie rien,
+//  n'envoie aucune commande aux lampes, et
 //  n'emet que les requetes ZDO de lecture de la liste blanche
 //  (liste_blanche.h) : il donne par l'USB la table des voisins de n'importe
 //  quel routeur, et la sienne. L'app (Maillage Zigbee) orchestre la tournee,
@@ -27,7 +27,8 @@
 //                                     brute ; si SONDE_ROUTES, essai E4)
 //    echecs <cible> <id> [<delai ms>] emissions et echecs d'un routeur
 //                                     (Mgmt_NWK_Update_req ; si
-//                                     SONDE_ECHECS, essai E5)
+//                                     SONDE_ECHECS, retiree de la 1.0.0 :
+//                                     les lampes Hue ne repondent pas, E5)
 //    suspendre | reprendre            garde l'etat ; repond par etat
 //    oubli                            quitter le reseau et l'oublier ; la
 //                                     sonde redemarre, et son bonjour de
@@ -36,7 +37,7 @@
 //  cadence (cadence.h), une seule nouvelle tentative par page ; une requete
 //  en cours s'arrete en « non_membre » si la sonde quitte le reseau.
 //  Si SONDE_SIGNAUX : une ligne « signal » pour chaque signal de la pile
-//  (type, nom, statut, detail), pour comprendre l'essai.
+//  (type, nom, statut, detail), gardee pour le journal de l'app.
 //
 //  Dans l'app Hue, la sonde est une lampe : on/off et identification ne
 //  pilotent que la LED, jamais la suspension (« Tout eteindre » ne doit pas
@@ -90,7 +91,10 @@ static uint32_t sId = 0;
 static constexpr size_t kEntreesMax = 64;
 static Pagination<EntreeVoisin, kEntreesMax> sTable;
 #if SONDE_ROUTES
-static Pagination<EntreeRoute, kEntreesMax> sRoutes;
+// Une table de routage annonce sa place (254 au pont Hue) et en remplit plus
+// de 64 (essai E4) : la sonde en garde 255, le plus grand total possible.
+static constexpr size_t kRoutesMax = 255;
+static Pagination<EntreeRoute, kRoutesMax> sRoutes;
 #endif
 #if SONDE_ECHECS
 struct ResultatEchecs {
@@ -135,7 +139,7 @@ static void lireIeee(uint32_t attenteMs) {
 
 static const char *texteRole() {
   if (!sAdhesion.membre()) return nullptr;
-  return zigbee::routeur() ? "routeur" : "final";
+  return "final";  // jamais routeur
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +182,7 @@ static void cmdEtat() {
   const uint8_t canal = zigbee::canal();
   VoisinSonde parent;
   bool parentConnu = false;
-  if (membre && !zigbee::routeur()) {
+  if (membre) {
     uint16_t it = 0;
     VoisinSonde v;
     while (!parentConnu && zigbee::voisinSuivant(&it, &v)) {
@@ -483,6 +487,13 @@ static void executer(const char *ligne, uint32_t maintenant) {
 //  Adhesion et signaux de la pile
 // ---------------------------------------------------------------------------
 
+// Redemarrage voulu : la sortie USB est tamponnee, on la vide d'abord, sans
+// quoi la ligne signal qui explique le redemarrage (depart...) se perd.
+static void redemarrer() {
+  Serial.flush();
+  esp_restart();
+}
+
 static void evenements(uint32_t maintenant) {
   zigbee::Evenement e;
   while (zigbee::evenement(&e)) {
@@ -527,7 +538,7 @@ static void evenements(uint32_t maintenant) {
 
   const Adhesion::Action a = sAdhesion.tour(maintenant);
   if (a == Adhesion::Action::kRien) return;
-  if (a == Adhesion::Action::kRedemarrer) esp_restart();
+  if (a == Adhesion::Action::kRedemarrer) redemarrer();
   // Le verrou, 1 s au plus : une action perdue repart par les filets
   // d'Adhesion (sauf oublier, que le depart ne refait pas : on insiste).
   for (int essai = 0; essai < 5; essai++) {
@@ -542,7 +553,7 @@ static void evenements(uint32_t maintenant) {
     zigbee::libere();
     return;
   }
-  if (a == Adhesion::Action::kOublier) esp_restart();
+  if (a == Adhesion::Action::kOublier) redemarrer();
 }
 
 // ---------------------------------------------------------------------------

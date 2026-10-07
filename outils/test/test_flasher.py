@@ -112,7 +112,7 @@ class TestFlasher(unittest.TestCase):
     def test_bonne_carte(self):
         faux = Faux()
         self.assertEqual(flasher_avec(faux), 0)
-        self.assertEqual(faux.etapes(), ["ioreg", "build", "read-mac", "-t nobuild -t upload"])
+        self.assertEqual(faux.etapes(), ["ioreg", "build", "read-mac", "-t upload"])
         televersement = faux.commandes[-1]
         self.assertEqual(televersement[televersement.index("-d") + 1], "/depot/sonde")
         self.assertEqual(televersement[-2:], ["--upload-port", PORT])
@@ -120,7 +120,7 @@ class TestFlasher(unittest.TestCase):
     def test_effacer_d_abord(self):
         faux = Faux()
         self.assertEqual(flasher_avec(faux, effacer=True), 0)
-        self.assertEqual(faux.etapes(), ["ioreg", "build", "read-mac", "-t erase", "-t nobuild -t upload"])
+        self.assertEqual(faux.etapes(), ["ioreg", "build", "read-mac", "-t erase", "-t upload"])
 
     def test_autre_carte_refusee_sans_la_toucher(self):
         faux = Faux()
@@ -168,7 +168,7 @@ class TestFlasher(unittest.TestCase):
         self.assertEqual(c[c.index("-e") + 1], "ecoute")
 
     def test_variantes_de_verification_refusees(self):
-        for env in ("verif", "verif_routeur", "autre"):
+        for env in ("verif", "sonde_routeur", "autre"):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(flasher.main(["--env", env]), 2)
 

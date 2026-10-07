@@ -73,6 +73,33 @@ class TestTournee(unittest.TestCase):
         self.assertTrue(essai.requete("table", "1A2B")["incoherente"])
         self.assertEqual(len(essai.sonde.textes), 2)
 
+    def test_non_membre_attend_le_rattachement(self):
+        class Fausse:
+            def __init__(self, reponses):
+                self.reponses, self.textes = list(reponses), []
+
+            def commande(self, texte, types, id=None, delai=10.0):
+                self.textes.append(texte.split()[0])
+                return dict(self.reponses.pop(0), id=id)
+
+        hors = {"t": "table", "ok": False, "erreur": "non_membre"}
+        bonne = {"t": "table", "ok": True, "partielle": False, "total": 1, "liste": [1]}
+        dehors, dedans = {"t": "etat", "membre": False}, {"t": "etat", "membre": True}
+        essai = essai_sonde.Essai(Fausse([hors, dehors, dedans, bonne]))
+        essai.attendre_membre = lambda f=essai.attendre_membre: f(pas=1, dormir=lambda s: None)
+        self.assertEqual(essai.requete("table", "1A2B")["liste"], [1])
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "etat", "table"])
+        # Deux decrochages pour la meme table : deux attentes, puis la table.
+        essai = essai_sonde.Essai(Fausse([hors, dedans, hors, dedans, bonne]))
+        essai.attendre_membre = lambda f=essai.attendre_membre: f(pas=1, dormir=lambda s: None)
+        self.assertEqual(essai.requete("table", "1A2B")["liste"], [1])
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "table", "etat", "table"])
+        # Jamais revenue : une seule attente, puis la reponse non_membre est rendue sans redemander.
+        essai = essai_sonde.Essai(Fausse([hors] + [dehors] * 3))
+        essai.attendre_membre = lambda f=essai.attendre_membre: f(limite=3, pas=1, dormir=lambda s: None)
+        self.assertEqual(essai.requete("table", "1A2B")["erreur"], "non_membre")
+        self.assertEqual(essai.sonde.textes, ["table", "etat", "etat", "etat"])
+
     def test_resume_sans_reponse(self):
         self.assertEqual(essai_sonde.resumer({"0000": None}, 0)["erreurs"], {"sans_reponse": 1})
 

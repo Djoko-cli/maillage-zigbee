@@ -2,10 +2,11 @@
 
 Un ESP32-C6 SuperMini (flash de 4 Mo), branché au Mac en USB. La sonde
 entre dans le réseau Hue comme **appareil final non endormi** : elle reçoit
-en permanence, ne relaie rien, et n'envoie aucune commande aux lampes. Sur
-demande, elle donne la table complète des voisins de n'importe quel routeur
-(`Mgmt_Lqi_req`, page par page) et sa propre table de voisins. C'est l'app
-qui orchestre la tournée et décode.
+en permanence, ne relaie rien, et n'envoie aucune commande aux lampes. Elle
+n'est jamais routeur : c'est une sonde. Sur demande, elle donne la table
+complète des voisins de n'importe quel routeur (`Mgmt_Lqi_req`, page par
+page), sa table de routage (`Mgmt_Rtg_req`) et sa propre table de voisins.
+C'est l'app qui orchestre la tournée et décode.
 
 Spec : `docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md`.
 
@@ -19,8 +20,8 @@ cp sonde/cle_hue.exemple.h sonde/cle_hue.local.h
 ```
 
 puis remplacer les zéros de `sonde/cle_hue.local.h` par les 16 octets de la
-clé. C'est Majid qui la pose. Sans ce fichier, ou avec une clé à zéro, la
-compilation s'arrête avec un message clair.
+clé, et l'ajouter à `garde.local.txt`. Sans ce fichier, ou avec une clé à
+zéro, la compilation s'arrête avec un message clair.
 
 ## Compiler
 
@@ -29,38 +30,27 @@ Chaîne calée sur la sonde Thread : pioarduino `55.03.312-1` (Arduino-ESP32
 
 ```sh
 cd sonde
-pio run                     # variante par defaut : sonde
-pio run -e sonde_routeur    # une autre variante
+pio run              # la sonde
+pio run -e verif     # la meme, avec une cle factice
 ```
 
 `~/.platformio/penv/bin/pio` si `pio` n'est pas dans le `PATH`.
 
-| Variante | Rôle | Point d'accès | Quand |
-|---|---|---|---|
-| `sonde` | appareil final | On/Off Light (`0x0100`) | essai E1 |
-| `sonde_variable` | appareil final | Dimmable Light (`0x0101`) | si le pont exige une lampe variable |
-| `sonde_routeur` | routeur, sans enfant | On/Off Light | repli E1 bis |
-| `sonde_routeur_variable` | routeur, sans enfant | Dimmable Light | repli E1 bis |
+La variante `sonde` est un appareil final, point d'accès On/Off Light
+(`0x0100`) : c'est celle que le pont Hue a acceptée à l'essai E1 (spec,
+section 8). La commande `routes` et les lignes `signal` (chaque signal de la
+pile, gardé pour le journal de l'app) sont compilées ; `echecs` ne l'est
+pas, les lampes Hue n'y répondent pas (E5). Ces choix sont dans
+`platformio.ini` (`SONDE_ROUTES`, `SONDE_ECHECS`, `SONDE_SIGNAUX`).
 
-Les commandes `routes` (E4) et `echecs` (E5), et les lignes `signal` (chaque
-signal de la pile, pour comprendre l'essai), dépendent de `SONDE_ROUTES`,
-`SONDE_ECHECS` et `SONDE_SIGNAUX` dans `platformio.ini` : à 1 pendant
-l'essai, puis gardées ou retirées.
-
-Deux variantes de vérification, `verif` (appareil final, On/Off) et
-`verif_routeur` (routeur, lampe variable), compilent avec une clé factice :
-c'est ainsi qu'on vérifie le code sans la vraie clé. Elles ne rejoindraient
-aucun pont, et l'outil de flash refuse de les écrire.
-
-```sh
-cd sonde
-pio run -e verif -e verif_routeur
-```
+La variante de vérification `verif` compile la même sonde avec une clé
+factice : c'est ainsi qu'on vérifie le code sans la vraie clé. Elle ne
+rejoindrait aucun pont, et l'outil de flash refuse de l'écrire.
 
 ## Flasher
 
 **Toujours par l'outil, jamais par un `pio run -t upload` à la main** : le
-pont Halo, la sonde Thread et la carte témoin de benq sont aussi des C6, et
+pont Halo, la sonde Thread et le pont amaran sont aussi des C6, et
 le nom d'un port suit la prise USB, pas la carte. `outils/sonde.local.json`
 (ignoré par git) désigne la carte :
 
@@ -69,9 +59,8 @@ le nom d'un port suit la prise USB, pas la carte. `outils/sonde.local.json`
 ```
 
 ```sh
-python3 outils/flasher.py --effacer          # premier flash, ou changement de variante
+python3 outils/flasher.py --effacer          # premier flash : la sonde quitte le reseau
 python3 outils/flasher.py                    # mise a jour : le reseau est garde
-python3 outils/flasher.py --env sonde_routeur --effacer
 ```
 
 Avant d'écrire, l'outil vérifie la carte deux fois. D'abord le numéro de
@@ -110,6 +99,12 @@ lampe Hue (blanc très faible si elle est allumée).
 Le délai par page va de 500 à 5000 ms : la pile Zigbee borne elle-même une
 requête ZDO à 5 s. Une cible est toujours une adresse d'appareil, jamais une
 adresse de diffusion (`FFF8` à `FFFF`).
+
+Pendant une tournée, la pile déclare parfois le parent perdu (statut NWK 9)
+alors que le lien radio est bon : à l'essai, environ une fois par tournée,
+jamais au repos. La sonde se rattache seule en 10 s ; entre-temps elle
+répond `non_membre`, et `essai_sonde.py` attend son retour (deux fois par
+table au plus) avant de redemander.
 
 ## Tests hôte
 

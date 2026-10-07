@@ -20,9 +20,9 @@
 #include "zdo/esp_zigbee_zdo_command.h"
 
 // Cle de liaison du centre de confiance Hue : fichier local, jamais dans le
-// depot (spec, section 1 ; sonde/README.md). Les variantes de verification
-// (verif, verif_routeur) compilent avec une cle factice : elles ne
-// rejoindraient aucun pont, et outils/flasher.py refuse de les flasher.
+// depot (spec, section 1 ; sonde/README.md). La variante de verification
+// (verif) compile avec une cle factice : elle ne rejoindrait aucun pont, et
+// outils/flasher.py refuse de la flasher.
 #if defined(SONDE_CLE_FACTICE)
 static constexpr uint8_t kCleHue[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                                         0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
@@ -36,10 +36,6 @@ static constexpr bool cleRemplie(const uint8_t (&c)[16], int i = 0) {
   return i < 16 && (c[i] != 0 || cleRemplie(c, i + 1));
 }
 static_assert(cleRemplie(kCleHue), "sonde/cle_hue.local.h : la cle est encore a zero (sonde/README.md)");
-
-#ifndef SONDE_LAMPE_VARIABLE
-#define SONDE_LAMPE_VARIABLE 0  // 1 : Dimmable Light (0x0101) au lieu d'On/Off Light (0x0100)
-#endif
 
 namespace zigbee {
 namespace {
@@ -222,17 +218,11 @@ void creerPointAcces() {
   esp_zb_on_off_cluster_add_attr(marche, ESP_ZB_ZCL_ATTR_ON_OFF_GLOBAL_SCENE_CONTROL, &sScenesGlobales);
   esp_zb_on_off_cluster_add_attr(marche, ESP_ZB_ZCL_ATTR_ON_OFF_ON_TIME, &sDureeAllumage);
   esp_zb_on_off_cluster_add_attr(marche, ESP_ZB_ZCL_ATTR_ON_OFF_OFF_WAIT_TIME, &sAttenteExtinction);
-#if SONDE_LAMPE_VARIABLE
-  esp_zb_level_cluster_cfg_t niveau = {};
-  niveau.current_level = 254;
-  esp_zb_cluster_list_add_level_cluster(grappes, esp_zb_level_cluster_create(&niveau),
-                                        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-#endif
 
   esp_zb_endpoint_config_t pa = {};
   pa.endpoint = kPointAcces;
   pa.app_profile_id = ESP_ZB_AF_HA_PROFILE_ID;
-  pa.app_device_id = SONDE_LAMPE_VARIABLE ? ESP_ZB_HA_DIMMABLE_LIGHT_DEVICE_ID : ESP_ZB_HA_ON_OFF_LIGHT_DEVICE_ID;
+  pa.app_device_id = ESP_ZB_HA_ON_OFF_LIGHT_DEVICE_ID;  // On/Off Light (0x0100), acceptee par le pont (E1)
   pa.app_device_version = 1;  // exige par le pont Hue
   esp_zb_ep_list_t *liste = esp_zb_ep_list_create();
   esp_zb_ep_list_add_ep(liste, grappes, pa);
@@ -241,13 +231,6 @@ void creerPointAcces() {
 
 }  // namespace
 
-bool routeur() {
-#if defined(ZIGBEE_MODE_ZCZR)
-  return true;
-#else
-  return false;
-#endif
-}
 
 void demarrer() {
   sEvenements = xQueueCreate(32, sizeof(Evenement));
@@ -260,15 +243,11 @@ void demarrer() {
 
   esp_zb_cfg_t config = {};
   config.install_code_policy = false;
-#if defined(ZIGBEE_MODE_ZCZR)
-  // Repli en routeur (essai E1 bis) : jamais le parent de personne.
-  config.esp_zb_role = ESP_ZB_DEVICE_TYPE_ROUTER;
-  config.nwk_cfg.zczr_cfg.max_children = 0;
-#else
+  // Appareil final, jamais routeur : la sonde ne relaie le trafic de
+  // personne (decision de Majid, 07/10).
   config.esp_zb_role = ESP_ZB_DEVICE_TYPE_ED;
   config.nwk_cfg.zed_cfg.ed_timeout = ESP_ZB_ED_AGING_TIMEOUT_64MIN;
   config.nwk_cfg.zed_cfg.keep_alive = kMaintienMs;
-#endif
   esp_zb_init(&config);
 
   creerPointAcces();
@@ -284,9 +263,7 @@ void demarrer() {
   // Adhesion au pont Hue : la cle de liaison de Signify (ZLL).
   esp_zb_enable_joining_to_distributed(true);
   esp_zb_secur_TC_standard_distributed_key_set((uint8_t *)kCleHue);
-#if !defined(ZIGBEE_MODE_ZCZR)
   esp_zb_set_rx_on_when_idle(true);  // appareil final non endormi
-#endif
 
   xTaskCreate(tacheZigbee, "zigbee", 8192, nullptr, 5, nullptr);
 }

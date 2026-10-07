@@ -63,9 +63,6 @@ struct Reponse {
 
 // Cree la pile, le point d'acces lampe et la tache Zigbee (dans setup()).
 void demarrer();
-// Role fixe a la compilation : routeur si ZIGBEE_MODE_ZCZR (repli de
-// l'essai E1 bis), appareil final sinon.
-bool routeur();
 
 // La pile a demarre (premier signal recu) : avant, aucun verrou n'est pris.
 bool prete();

@@ -4,7 +4,17 @@
 > section (1 à 6). Un essai sur la carte ouvre le plan d'implémentation
 > (section 4) ; ses résultats iront dans la section 8.
 >
-> **Plan :** `docs/superpowers/plans/2026-10-05-maillage-zigbee-plan1-sonde.md`.
+> **Plan :** `docs/superpowers/plans/2026-10-05-maillage-zigbee-plan1-sonde.md`,
+> exécuté ; sonde 1.0.0 (variante et commandes retenues : section 8).
+>
+> **Révision du 07/10 après l'essai (section 8).**
+> - la sonde reste **appareil final, point d'accès On/Off Light** ; le repli
+>   en routeur et la lampe variable sont retirés : la sonde ne sera jamais
+>   routeur, elle ne relaie le trafic de personne (décision de Majid) ;
+> - `routes` est gardée (E4), avec 255 places par table (section 2) ;
+> - `echecs` est retirée (E5 : les lampes Hue ne répondent pas) ;
+> - les lignes `signal` sont gardées, pour le journal de l'app ;
+> - la perte du parent pendant une tournée est un fait connu (section 8).
 >
 > **Révision du 05/10 en écrivant le plan.** Le code a été écrit, compilé et
 > relu (modèle le plus fort) avant le plan ; la relecture a changé :
@@ -69,7 +79,8 @@ rien : l'app (morceau 2) orchestre la tournée, décode et affiche.
   Thread : on n'écrit rien dans son dépôt, et on ne copie qu'après la fin de
   cette anonymisation ;
 - la sonde **peut rejoindre le réseau Hue** ; si le pont refuse un appareil
-  final, **repli accepté en lampe routeur** ;
+  final, **repli accepté en lampe routeur** (inutile : E1 a réussi ; retiré
+  le 07/10, la sonde ne sera jamais routeur) ;
 - **une seule carte, membre** (voie A). L'écoute passive (voie B) pourra
   venir plus tard avec une deuxième carte ;
 - **la sonde pagine, l'app orchestre** : l'app demande la table complète d'un
@@ -88,16 +99,15 @@ portée.
 - **Appareil final non endormi** (`rx_on_when_idle`) : il reçoit en
   permanence et ne relaie rien.
 - Un point d'accès « lampe » (endpoint 11, profil Home Automation), la
-  condition pour que le pont l'accepte : On/Off Light (`0x0100`) au départ,
-  Dimmable Light (`0x0101`) si le pont l'exige (tranché à l'essai).
-- Grappes serveur : Basic, Identify, Groups, Scenes, On/Off (plus Level
-  Control en Dimmable Light).
+  condition pour que le pont l'accepte : On/Off Light (`0x0100`), acceptée
+  par le pont à l'essai E1.
+- Grappes serveur : Basic, Identify, Groups, Scenes, On/Off.
 - Basic : fabricant « Maillage », modèle « sonde-zigbee », alimentation
   secteur. Version d'appareil du point d'accès `app_device_version = 1`
   (exigée par le pont Hue, constatée par d'autres avant nous).
-- **Repli** si l'essai montre que le pont refuse ou renvoie un appareil
-  final : la même identité en **routeur** (accord de Majid). Elle relaie
-  alors du trafic, comme une lampe de plus.
+- **Jamais routeur** : le repli en routeur prévu si le pont refusait un
+  appareil final n'a pas servi (E1), et il est retiré (Majid, 07/10). La
+  sonde ne relaie le trafic de personne.
 
 **L'adhésion.**
 - La clé de liaison du centre de confiance de Hue (clé ZLL de Signify) est
@@ -165,8 +175,9 @@ repartent de 1 à chaque connexion. Tout argument mal formé donne l'erreur
   appareil, jamais une adresse de diffusion (`FFF8` à `FFFF` : `syntaxe`) ;
   le délai, par page, va de 500 à 5000 ms, 5000 par défaut (la pile Zigbee
   borne elle-même une requête ZDO à 5 s : révision du 05/10) ;
-- `routes <cible> <id> [<délai ms>]` : **seulement si l'essai E4 réussit**
-  (section 4) ; sinon la commande n'existe pas et répond `inconnue` ;
+- `routes <cible> <id> [<délai ms>]` : table de routage d'un routeur
+  (`Mgmt_Rtg_req` en trame APS brute ; E4 réussi), mêmes règles que
+  `table` ;
 - `suspendre`, `reprendre` : réponse, un `etat` à jour ;
 - `oubli` : la sonde répond `{"v":1,"t":"oubli","ok":true}`, quitte le
   réseau (*leave* sans rejoindre), efface sa mémoire Zigbee (la pile garde
@@ -180,13 +191,11 @@ Une commande inconnue reçoit `{"v":1,"t":"erreur","erreur":"inconnue"}`.
 
 - `bonjour` :
   `{"v":1,"t":"bonjour","produit":"sonde-zigbee","version":"1.0.0","nom":"SONDE-Z1","ieee":"A000000000000001","membre":true,"role":"final","suspendue":false}`.
-  `role` vaut `final` ou `routeur` (repli) ; `null` si elle n'est pas
-  membre. Au démarrage, `ieee` vaut `null` si la pile n'a pas démarré dans
+  `role` vaut `final` ; `null` si elle n'est pas membre. Au démarrage, `ieee` vaut `null` si la pile n'a pas démarré dans
   les 2 s ; le `bonjour` suivant le donne.
 - `etat` :
   `{"v":1,"t":"etat","membre":true,"recherche":false,"court":"5E6F","ieee":"A000000000000001","role":"final","parent":{"court":"1A2B","ieee":"A000000000000002","lqi":180,"rssi":-71},"pan":"1234","epid":"A0000000000000FF","canal":25,"suspendue":false,"refus_cadence":0,"rattachements_echoues":0,"pile":"1.6.8"}`.
-  `parent` vaut `null` hors adhésion ou pendant un rattachement (et en
-  routeur). Hors adhésion, `court`, `pan`, `epid` et `canal` valent aussi
+  `parent` vaut `null` hors adhésion ou pendant un rattachement. Hors adhésion, `court`, `pan`, `epid` et `canal` valent aussi
   `null`. `refus_cadence` compte les refus `cadence` depuis le démarrage
   (section 3) ; `rattachements_echoues`, les rattachements échoués depuis
   la dernière fois que la sonde était membre (section 6).
@@ -212,13 +221,16 @@ Une commande inconnue reçoit `{"v":1,"t":"erreur","erreur":"inconnue"}`.
   entrées : sinon, une ligne s'est perdue en route, et l'app la redemande.
   Une table en cours s'arrête en `non_membre` si la sonde quitte le réseau
   (perte du parent, départ, `oubli`).
-- `routes` (si E4 réussit) : même enveloppe que `table` ; format des
-  entrées fixé après l'essai.
+- `routes` : même enveloppe que `table` ; une entrée :
+  `{"destination":"3C4D","etat":"active","prochain":"1A2B","memoire_limitee":false,"plusieurs_vers_un":false,"enregistrement":false}`.
+  Une table de routage donne toutes ses places, utilisées ou non : le pont
+  Hue en annonce 254, dont une cinquantaine actives (`etat` dit lesquelles).
+  La sonde garde jusqu'à 255 routes par table (64 voisins pour `table`).
 - `etat`, `voisins` : si la sonde n'a pas pu prendre le verrou de la pile
   Zigbee (200 ms), `{"v":1,"t":"etat","erreur":"occupee"}` (de même pour
   `voisins`).
-- `signal` (pendant l'essai, `SONDE_SIGNAUX` ; gardé ou retiré ensuite), de
-  lui-même, pour chaque signal de la pile :
+- `signal` (`SONDE_SIGNAUX`, gardé après l'essai pour le journal de l'app),
+  de lui-même, pour chaque signal de la pile :
   `{"v":1,"t":"signal","signal":"0x32","nom":"NLME_STATUS_INDICATION","ok":true,"detail":9}`.
   `detail` : le statut NLME (`9`, parent perdu) ou le type de départ ; `0`
   sinon. L'app ignore les types qu'elle ne connaît pas.
@@ -270,9 +282,7 @@ avant chaque envoi.
 **Jamais de recherche une fois rattachée.** Selon la norme BDB, un nœud déjà
 membre qui lance une recherche diffuse un `Mgmt_Permit_Joining_req`, ce qui
 ouvrirait le réseau Hue pendant 180 s : la sonde ne la lance jamais quand la
-pile se dit rattachée. En repli routeur (E1 bis), la pile pourrait aussi
-ouvrir le réseau juste après l'adhésion ; la sonde n'accepte de toute façon
-aucun enfant.
+pile se dit rattachée.
 
 **Volume attendu.** Une tournée complète : environ 30 routeurs × 10 pages,
 soit près de 300 paires requête-réponse relayées sur un ou deux sauts, de
@@ -297,9 +307,9 @@ tournée complète toutes les 15 minutes et au bouton rafraîchir.
   échecs d'émission du routeur interrogé.
 - Prix : le routeur reste sourd environ 31 ms pendant le balayage ; une
   trame qui lui arrive à ce moment est réémise, au pire perdue.
-- Testé à l'essai E5 sur **une seule lampe, avec l'accord de Majid**. S'il
-  est gardé, une commande `echecs <cible> <id>` est ajoutée (format et
-  cadence décidés après l'essai, par exemple une fois par heure).
+- Testé à l'essai E5 sur **une seule lampe, avec l'accord de Majid** : la
+  lampe n'a pas répondu. **Retiré** de la sonde 1.0.0 (`SONDE_ECHECS=0`) ;
+  le code reste, hors compilation.
 - Les valeurs `scan_duration` `0xFE` (changement de canal) et `0xFF`
   (changement du gestionnaire) sont interdites par la liste blanche ; le
   masque de canaux est toujours le seul canal courant.
@@ -424,8 +434,42 @@ se fait avec effacement ; les suivants, sans, pour garder le réseau.
 
 ## 8. Résultats de l'essai
 
-À remplir pendant l'exécution du plan (section 4), avec des valeurs
-inventées.
+Essai du 06/10/2026 au 07/10/2026, sonde 0.9.0 puis correctifs, depuis le
+bureau de Majid. Ordres de grandeur, sans identifiant (section 5).
+
+| # | Résultat |
+|---|---|
+| E1 | **Réussi** du premier coup en appareil final, On/Off Light : canal et PAN du réseau Hue de l'essai d'écoute ; la lampe « On/off light 1 » apparaît dans l'app Hue et la LED de la carte la suit ; 30 min sans départ ; débranchée puis rebranchée, elle revient seule, sans recherche. E1 bis inutile |
+| E2 | **Réussi** : la table du pont arrive entière, 25 voisins en 13 pages (2 par page), en 1,8 s. Le pont range chaque voisin en « frère », profondeur 15, sans « admission » : l'app s'en passe. LQI de 74 à 255 |
+| E3 | **Réussi** : 36 routeurs interrogés, 36 réponses en 50 à 110 s ; 56 à 57 nœuds vus, dont 20 à 21 appareils finaux (34 nœuds connus après l'écoute passive) ; environ 450 pages par tournée ; aucun refus `cadence` |
+| E4 | **Réussi** : `Mgmt_Rtg_req` en APS brute. La table du pont fait 254 entrées en 22 pages (2,6 s), dont une cinquantaine de routes actives vers une vingtaine de relais. Une lampe montre une route « plusieurs vers un » vers le pont |
+| E5 | **Échoué, retiré** : la lampe interrogée (une seule, accord de Majid) n'a pas répondu dans les 5 s, deux fois. Sans doute réservé au gestionnaire du réseau. `echecs` est retirée |
+| E6 | **Réussi** : 35 tournées, une toutes les 15 min, sur 8 h 30 (l'outil s'est arrêté à 2 h 36, sans doute avec l'app) ; 32 tournées complètes, 3 tables perdues sur environ 1260 (corrigé depuis côté outil) ; aucun redémarrage ; toujours membre au matin |
+| E7 | **Vu sans le provoquer** : la pile déclare le parent perdu (statut NWK 9) pendant les tournées, environ une fois par tournée (43 en E6), toujours dans les 2 s suivant une requête, jamais au repos, sur une vingtaine de cibles différentes, alors que le lien avec le parent est bon (environ -46 dBm). La sonde se rattache seule au même parent en 10 s |
+
+**Défauts trouvés et corrigés pendant l'essai.**
+- `outils/flasher.py` téléversait avec `-t nobuild -t upload`, que
+  pioarduino ne sait pas faire (aucune image transmise à esptool) :
+  `-t upload`, sans recompiler puisque la compilation précède.
+- La sortie USB est tamponnée : un redémarrage voulu (départ avec retour)
+  perdait la ligne `signal` qui l'expliquait. La sonde la vide avant de
+  redémarrer.
+- Pendant un rattachement, la tournée enchaînait toutes les cibles en
+  `non_membre` : `essai_sonde.py` attend le retour de la sonde, deux fois
+  par table au plus.
+- La sonde gardait 64 entrées par table : celle de routage du pont (254)
+  sortait `partielle`. Les routes ont maintenant 255 places (section 2).
+
+**La perte du parent.** Hypothèse : la petite table des voisins de la pile
+« appareil final » se remplit des cibles de la tournée et finit par écraser
+l'entrée du parent (on y a vu une entrée marquée parent, LQI 0, qui n'était
+pas le parent). La pile « appareil final » refuse
+`esp_zb_overall_network_size_set` (`ESP_FAIL`). Acceptée en 1.0.0 : elle
+coûte environ 10 s par tournée, et la sonde revient toujours seule. Le
+passage en routeur, qui la supprimerait, est exclu (section 1).
+
+**Décisions pour la sonde 1.0.0.** Variante `sonde` seule (appareil final,
+On/Off Light) ; `routes` et lignes `signal` gardées ; `echecs` retirée.
 
 ## Annexe A. Essai d'écoute passive du 05/10/2026
 

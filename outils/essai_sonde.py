@@ -9,7 +9,8 @@ Commandes :
   table <cible> [<delai ms>]      table des voisins d'un routeur (E2)
   routes <cible> [<delai ms>]     table de routage (E4)
   echecs <cible> [<delai ms>] --accord   emissions et echecs (E5 : la lampe interrogee devient sourde
-                                  ~31 ms ; exige --accord, donc l'accord explicite de Majid)
+                                  ~31 ms ; exige --accord, donc l'accord explicite de Majid ; retiree
+                                  du firmware 1.0.0, qui repond inconnue)
   tournee [<delai ms>]            parcours en largeur depuis le pont (E3)
   nuit <heures> [<periode s>]     etat et tournee toutes les <periode> s, 900 par defaut (E6)
   ecoute <secondes>               lit sans rien envoyer
@@ -34,6 +35,8 @@ sys.path.insert(0, ICI)
 import sonde_usb  # noqa: E402
 
 ATTENTE_TABLE_S = 125  # la sonde borne une table a 120 s
+ATTENTES_MAX = 2  # attentes de rattachement par table
+ATTENTE_MEMBRE_S = 120  # rattachement apres perte du parent ou depart avec retour (essai : ~30 s)
 TYPES_INTERROGES = ("coordinateur", "routeur")
 
 
@@ -138,15 +141,33 @@ class Essai:
         self.id += 1
         return self.id
 
+    def attendre_membre(self, limite=ATTENTE_MEMBRE_S, pas=5.0, dormir=time.sleep):
+        """Interroge l'etat toutes les <pas> s jusqu'a ce que la sonde soit de nouveau membre ; False au bout
+        de <limite> s."""
+        for _ in range(max(1, int(limite / pas))):
+            m = self.sonde.commande("etat", ("etat",))
+            if m and m.get("membre"):
+                return True
+            dormir(pas)
+        return False
+
     def requete(self, genre, cible, delai_ms=None):
-        """Une table incomplete sans « partielle » est redemandee une fois, puis rendue marquee incoherente."""
-        for _ in range(2):
+        """Une table incomplete sans « partielle » est redemandee une fois, puis rendue marquee incoherente.
+        Sonde hors du reseau (non_membre) : on attend qu'elle s'y rattache, puis on redemande, deux fois au
+        plus (nuit E6 du 06/10 : une seule attente laissait perdre ~1 table sur 400)."""
+        essais, attentes = 2, 0
+        while essais:
             i = self.prochain_id()
             texte = f"{genre} {cible} {i}" + (f" {delai_ms}" if delai_ms else "")
             m = self.sonde.commande(texte, (genre,), id=i, delai=ATTENTE_TABLE_S)
+            if m and m.get("erreur") == "non_membre" and attentes < ATTENTES_MAX:
+                attentes += 1
+                if self.attendre_membre():
+                    continue
             if complete(m):
                 return m
             m["incoherente"] = True
+            essais -= 1
         return m
 
     def tournee(self, delai_ms=None):
@@ -245,4 +266,8 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        print("\ninterrompu")
+        sys.exit(130)
