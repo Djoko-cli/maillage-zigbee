@@ -99,12 +99,26 @@ revenu (pont et tournée), routeur apparu ou disparu, changement de parent,
 appareil sans parent. Retirés : partitions, préfixes, routeurs de bordure,
 chef et BBR. Les notifications regroupent les pertes, comme Thread.
 
+« Disparu » et « revenu » du pont (relecture finale, I3) : l'état de connexion
+de chaque appareil (`zigbee_connectivity.status`), comparé d'une lecture
+réussie du pont à la suivante. `connected` puis `disconnected`,
+`connectivity_issue` ou `unidirectional_incoming` **à deux lectures de suite**
+(choix de Majid, 09/10 : un décrochage d'une seule lecture n'alerte pas) :
+disparu, daté de la première ; le retour à `connected` : revenu. La première lecture (et celle d'un autre pont) est un
+état initial, sans événement ; le cache relu au lancement n'en est pas une, et
+une lecture échouée (pont injoignable) ne change aucun état. « Nouveau » vient
+des tournées ; « revenu » aussi, après « sans parent ». Seul un routeur
+d'adresse longue connue est « apparu » ou « disparu », jamais une clé
+provisoire (vu en route).
+
 ## 8. Identité
 
 - Nom « Maillage Zigbee », identifiants d'app propres
   (`fr.djoko.maillage.zigbee`…), dossier `Application Support/Maillage Zigbee`.
-- **Nouvelle paire de clés Sparkle** et flux `appcast.xml` dans ce dépôt
-  (sinon les deux apps se mettraient à jour l'une avec l'autre).
+- Flux `appcast.xml` dans ce dépôt. Clés Sparkle : **la paire de Maillage
+  Thread, réutilisée** (décision de Majid du 08/10, à l'étape 4, au lieu
+  d'une nouvelle paire) ; chaque app lit son propre flux, aucune ne reçoit
+  les versions de l'autre.
 - Démo refaite sur un faux réseau Hue.
 - README et notes de version bilingues, anglais d'abord.
 - Icône : maquette à part, choisie par Majid.
