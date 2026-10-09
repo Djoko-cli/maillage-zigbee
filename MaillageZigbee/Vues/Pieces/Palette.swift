@@ -17,29 +17,19 @@ struct Palette {
     var batterieFaible: Color { Color(red: 1.0, green: 0.62, blue: 0.1) }
     var texteBatterieFaible: Color { Color(red: 0.25, green: 0.12, blue: 0.0) }
 
-    /// Qualite d'un lien vu par la sonde (`QualiteLien`) : 3 bon, 2 moyen, 1 et 0 faible ; inconnue. Thread n'avait pas
-    /// de 0 mesure (il valait « pas de lien » et se dessinait gris) ; en Zigbee, 0 est un LQI sous 50, un lien tres
-    /// faible mais reel : il se dessine comme un lien faible.
-    enum NiveauLien: Equatable {
-        case bon, moyen, faible, inconnu
+    /// Lien de la sonde, par sa qualite (`QualiteLien`, 0 a 3) : vert, jaune, orange ; gris si elle est inconnue (aucun
+    /// des deux sens mesure). Le niveau est celui du coeur (`NiveauQualite`, une seule source avec la fiche) : Thread
+    /// n'avait pas de 0 mesure (il valait « pas de lien » et se dessinait gris) ; en Zigbee, 0 est un LQI sous 50, un
+    /// lien tres faible mais reel, qui se dessine comme un lien faible.
+    func lienSonde(_ qualite: Int?) -> Color { couleur(NiveauQualite(qualite)) }
 
-        init(_ qualite: Int?) {
-            switch qualite {
-            case 3?: self = .bon
-            case 2?: self = .moyen
-            case 1?, 0?: self = .faible
-            default: self = .inconnu
-            }
-        }
-    }
-
-    /// Lien de la sonde : vert, jaune, orange ; gris si la qualite est inconnue (aucun des deux sens mesure).
-    func lienSonde(_ qualite: Int?) -> Color {
-        switch NiveauLien(qualite) {
-        case .bon: Color(red: 0.29, green: 0.87, blue: 0.5)
-        case .moyen: Color(red: 0.98, green: 0.8, blue: 0.2)
+    /// La couleur d'un niveau de qualite, celle de la legende.
+    func couleur(_ n: NiveauQualite) -> Color {
+        switch n {
+        case .bonne: Color(red: 0.29, green: 0.87, blue: 0.5)
+        case .moyenne: Color(red: 0.98, green: 0.8, blue: 0.2)
         case .faible: .orange
-        case .inconnu: sombre ? Color(white: 0.6) : Color(white: 0.5)
+        case .inconnue: sombre ? Color(white: 0.6) : Color(white: 0.5)
         }
     }
 

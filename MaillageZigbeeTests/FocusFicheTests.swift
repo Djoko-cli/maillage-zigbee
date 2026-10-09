@@ -78,6 +78,17 @@ struct FocusFicheTests {
         #expect(!m.focusEnRoute, "arrive en 3 s au plus")
     }
 
+    /// Les couleurs des qualites viennent du niveau du coeur : `lienSonde` et `couleur(_:)` disent la meme chose.
+    @Test func couleursDesNiveaux() {
+        let p = Palette(sombre: true)
+        let qualites: [Int?] = [3, 2, 1, 0, nil]
+        for q in qualites {
+            #expect(p.lienSonde(q) == p.couleur(NiveauQualite(q)))
+        }
+        #expect(p.lienSonde(0) == p.lienSonde(1), "0 est un lien faible")
+        #expect(Set([3, 2, 1].map { p.lienSonde($0) }).count == 3 && p.lienSonde(nil) != p.lienSonde(1))
+    }
+
     // MARK: Fiche
 
     /// Les colonnes de la fiche : quatre, puis deux, puis une, selon la place ; la grille des voisins, autant de colonnes
@@ -158,12 +169,12 @@ struct FocusFicheTests {
         #expect(CourbesFiche.reperes(c).count == 11 && CourbesFiche.reperes(c).last?.parent == I.lampadaireSalon)
         let cles = ChoixCourbes.montrees(cles: c.liens.map(\.id), prioritaires: c.prioritaires, tous: false)
         let heure = MaillageDemo.fin.addingTimeInterval(-3600)
-        let tous = GrapheQualite.releves(c, cles: cles, enAvant: nil, heure: heure, periode: .jour)
+        let tous = GrapheQualite.releves(c.liens, cles: cles, enAvant: nil, heure: heure, periode: .jour)
         #expect(tous.map(\.cle) == cles && tous.allSatisfy { $0.point.date == heure })
-        let un = GrapheQualite.releves(c, cles: cles, enAvant: I.pont, heure: heure, periode: .jour)
+        let un = GrapheQualite.releves(c.liens, cles: cles, enAvant: I.pont, heure: heure, periode: .jour)
         #expect(un.map(\.cle) == [I.pont])
-        #expect(GrapheQualite.releves(c, cles: cles, enAvant: nil, heure: nil, periode: .jour).isEmpty)
-        #expect(GrapheQualite.releves(c, cles: cles, enAvant: nil, heure: MaillageDemo.fin.addingTimeInterval(-16 * 3600 - 300),
+        #expect(GrapheQualite.releves(c.liens, cles: cles, enAvant: nil, heure: nil, periode: .jour).isEmpty)
+        #expect(GrapheQualite.releves(c.liens, cles: cles, enAvant: nil, heure: MaillageDemo.fin.addingTimeInterval(-16 * 3600 - 300),
                                       periode: .jour).isEmpty, "dans le trou d'une heure")
         let p = try #require(un.first?.point)
         #expect(GrapheQualite.ligneSurvol("Pont Hue", p) == String(localized: "\("Pont Hue") : LQI \(Int(try #require(p.lqi).rounded()))"))

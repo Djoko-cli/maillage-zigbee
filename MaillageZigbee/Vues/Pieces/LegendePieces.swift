@@ -225,11 +225,11 @@ extension LegendePieces {
         if !l.endormis.isEmpty { r.insert(.endormi) }
         if !l.piles.isEmpty { r.insert(.pile) }
         func qualite(_ q: Int?) {
-            switch Palette.NiveauLien(q) {
-            case .bon: r.insert(.bonne)
-            case .moyen: r.insert(.moyenne)
+            switch NiveauQualite(q) {
+            case .bonne: r.insert(.bonne)
+            case .moyenne: r.insert(.moyenne)
             case .faible: r.insert(.faible)
-            case .inconnu: r.insert(.inconnue)
+            case .inconnue: r.insert(.inconnue)
             }
         }
         for lien in l.liens {

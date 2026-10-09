@@ -75,11 +75,30 @@ struct ReperesFicheTests {
         let semaine = ReperesFiche.regrouper(c7.chemins, debut: c7.debut, fin: c7.fin, largeur: 700)
         #expect(jour.count > semaine.count && semaine.first?.nombre == 10)
         for (c, periode) in [(c24, PeriodeCourbes.jour), (c7, .semaine)] {
-            let vue = GrapheQualite(c: c, cles: c.prioritaires, noms: [:], periode: periode, enAvant: .constant(nil))
+            let vue = GrapheQualite(courbes: c.liens, debut: c.debut, fin: c.fin, reperes: CourbesFiche.reperes(c),
+                                    titre: CourbesFiche.titreQualite(c), cles: c.prioritaires, noms: [:],
+                                    nomCourbe: { $0 }, periode: periode, enAvant: .constant(nil))
                 .frame(width: 800, height: 260)
                 .environment(\.capturePieces, true)
             let rendu = ImageRenderer(content: vue)
             #expect(rendu.cgImage != nil)
         }
+    }
+
+    /// Le graphe de qualite est generique : il se rend avec des courbes, des reperes et des noms de n'importe quel
+    /// protocole, sans `CourbesNoeud` (reprise par Maillage Thread).
+    @Test func grapheSansCourbesNoeud() {
+        let fin = MaillageDemo.fin, debut = fin.addingTimeInterval(-PeriodeCourbes.jour.duree)
+        let points = (0..<4).map { PointCourbe(date: debut.addingTimeInterval(Double($0) * 3600), valeur: Double($0 % 4), troncon: 0) }
+        let vue = GrapheQualite(courbes: [CourbeLien(id: "x", points: points)], debut: debut, fin: fin,
+                                reperes: [ChangementParent(date: debut.addingTimeInterval(7200), parent: "p")],
+                                titre: "Qualité", cles: ["x"], noms: ["p": "Parent"], nomCourbe: { _ in "Courbe" },
+                                periode: .jour, enAvant: .constant("x"))
+            .frame(width: 800, height: 260)
+            .environment(\.capturePieces, true)
+        #expect(ImageRenderer(content: vue).cgImage != nil)
+        let survol = GrapheQualite.releves([CourbeLien(id: "x", points: points)], cles: ["x"], enAvant: nil,
+                                           heure: points[2].date, periode: .jour)
+        #expect(survol.map(\.cle) == ["x"] && survol.first?.point.valeur == 2)
     }
 }

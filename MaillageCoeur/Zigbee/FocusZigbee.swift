@@ -21,16 +21,10 @@ public enum FocusZigbee {
             guard vus.insert(p).inserted else { break }
             x = p
         }
-        // Les dependants, et les voisins entendus.
-        for l in g.liens {
-            switch l.genre {
-            case .parent where l.vers == id, .chemin where l.vers == id:
-                m.ajouter(lien: l.de, id)
-            case .radio where voisins && (l.de == id || l.vers == id):
-                m.ajouter(lien: l.de, l.vers)
-            default:
-                break
-            }
+        // Les dependants (une seule source : `dependants`), et les voisins entendus.
+        for l in dependants(de: id, graphe: g) { m.ajouter(lien: l.de, id) }
+        if voisins {
+            for l in g.liens where l.genre == .radio && (l.de == id || l.vers == id) { m.ajouter(lien: l.de, l.vers) }
         }
         return m
     }

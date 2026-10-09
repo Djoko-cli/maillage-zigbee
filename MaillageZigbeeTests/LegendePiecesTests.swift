@@ -17,7 +17,7 @@ struct LegendePiecesTests {
 
     /// Une scene inventee par signe : chacune ne contient que lui, et la legende n'a que son entree. Un noeud que le
     /// pont ne connait pas, routeur ou appareil, est « inconnu du pont » ; un appareil d'etat inconnu, gris lui aussi,
-    /// n'a pas d'entree. Une qualite de 0 (un LQI sous 50) est un lien faible : Zigbee le mesure (`Palette.NiveauLien`).
+    /// n'a pas d'entree. Une qualite de 0 (un LQI sous 50) est un lien faible : Zigbee le mesure (`NiveauQualite`).
     @Test func uneEntreeParSigne() {
         let cas: [(Lecture, Set<Entree>)] = [
             (Lecture(couleurs: ["A000000000000001": .routeur]), [.routeur]),

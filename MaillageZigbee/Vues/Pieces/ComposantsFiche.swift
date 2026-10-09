@@ -192,15 +192,3 @@ struct BarreRepartition: View {
         .accessibilityHidden(true)
     }
 }
-
-extension Palette {
-    /// La couleur d'un niveau de qualite, celle de la legende (`lienSonde`).
-    func couleur(_ n: NiveauQualite) -> Color {
-        switch n {
-        case .bonne: lienSonde(3)
-        case .moyenne: lienSonde(2)
-        case .faible: lienSonde(1)
-        case .inconnue: lienSonde(nil)
-        }
-    }
-}

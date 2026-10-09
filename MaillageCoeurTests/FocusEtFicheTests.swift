@@ -78,8 +78,12 @@ struct FocusEtFicheTests {
                                Self.paire(I.lampeSalleDeBain, I.lampeChambre), Self.paire(I.interrupteurSalon, I.lampeChambre),
                                Self.paire(I.telecommandeChambre, I.lampeChambre)],
                 "ses voisins entendus sont aussi ses dependants ou son prochain saut")
+        // Les dependants du focus sont ceux de `dependants` (une seule source), voisins ou non.
+        let sansVoisins = try #require(FocusZigbee.miseEnAvant(de: I.lampeChambre, graphe: g, voisins: false))
+        let siens = FocusZigbee.dependants(de: I.lampeChambre, graphe: g)
+        #expect(siens.count == 4 && siens.allSatisfy { sansVoisins.contient(lien: $0) && avec.contient(lien: $0) })
         // Sans les voisins : le meme ici ; pour la lampe du bureau, son voisin le pont s'efface.
-        #expect(FocusZigbee.miseEnAvant(de: I.lampeChambre, graphe: g, voisins: false) == avec)
+        #expect(sansVoisins == avec)
         let bureau = try #require(FocusZigbee.miseEnAvant(de: I.lampeBureau, graphe: g, voisins: true))
         let bureauSans = try #require(FocusZigbee.miseEnAvant(de: I.lampeBureau, graphe: g, voisins: false))
         #expect(bureau.liens.contains(Self.paire(I.lampeBureau, I.pont)) && bureau.noeuds.contains(I.sonde))
@@ -106,7 +110,14 @@ struct FocusEtFicheTests {
                                            .init(id: "B", genre: .routeur, routeur: true, inconnu: false)],
                                   liens: [.init(de: "A", vers: "B", genre: .chemin), .init(de: "B", vers: "A", genre: .chemin)])
         #expect(FocusZigbee.miseEnAvant(de: "A", graphe: boucle, voisins: true)?.noeuds == ["A", "B"])
-        #expect(FocusZigbee.dependants(de: I.lampeChambre, graphe: g).count == 4)
+    }
+
+    /// Le niveau d'une qualite de lien (0 a 3), une seule source pour la fiche et la legende : 3 bonne, 2 moyenne, 1 et 0
+    /// faible (un LQI sous 50 est un lien reel, tres faible) ; inconnue sans mesure ou hors echelle.
+    @Test func niveauDeQualite() {
+        #expect(NiveauQualite(3) == .bonne && NiveauQualite(2) == .moyenne)
+        #expect(NiveauQualite(1) == .faible && NiveauQualite(0) == .faible)
+        #expect(NiveauQualite(nil) == .inconnue && NiveauQualite(4) == .inconnue && NiveauQualite(-1) == .inconnue)
     }
 
     // MARK: Fiche
