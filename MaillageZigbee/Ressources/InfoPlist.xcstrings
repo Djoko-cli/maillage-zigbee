@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Autorisation reseau local (recherche Bonjour du pont Hue, puis lecture de ses noms et pieces).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee looks for the Hue bridge on the local network to read the names and rooms of your devices."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee cherche le pont Hue sur le réseau local pour lire les noms et les pièces de vos appareils."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

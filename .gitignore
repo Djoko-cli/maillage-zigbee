@@ -5,8 +5,37 @@ outils/sonde.local.json
 essais/
 garde.local.txt
 
-# Construction
+# Espace de travail des outils de conception et controle d'anonymisation prive
+# (publication.py le lit dans .superpowers/anonymisation)
+.superpowers/
+
+# Firmware de la sonde (PlatformIO) et outils Python
 .pio/
+.vscode/
 __pycache__/
 .pytest_cache/
+
+# App : projet genere par XcodeGen (project.yml fait foi), Info.plist genere
+MaillageZigbee.xcodeproj/
+*.xcworkspace/
+MaillageZigbee/Info.plist
+
+# Signature propre au poste (equipe Apple Development), jamais commitee
+Local.xcconfig
+
+# Produits de compilation et de publication
+build/
+DerivedData/
+.build/
+*.xcresult
+*.dmg
+
+# Fichiers propres a l'utilisateur
+xcuserdata/
+*.xcuserstate
+.swiftpm/
 .DS_Store
+
+# Cache des noms du pont et du releve de Maison (Application Support, jamais dans le depot)
+noms-pont.json
+releve-maison.json

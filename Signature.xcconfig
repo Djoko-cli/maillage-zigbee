@@ -1,0 +1,15 @@
+// Signature de l'app et des tests.
+// Par defaut : ad hoc (le depot compile partout, sans compte Apple), mais
+// l'autorisation "reseau local" ne tient pas d'une compilation a l'autre. Pour
+// signer l'app avec son equipe : creer Local.xcconfig (ignore par git) avec
+//   DEVELOPMENT_TEAM = <equipe, 10 caracteres>
+//   CODE_SIGN_IDENTITY = Apple Development
+// L'equipe : champ OU d'un certificat « Apple Development » encore valide
+// (security find-certificate -c "Apple Development" la montre dans le trousseau).
+// Si une installation ad hoc existe deja, passer a la signature d'equipe fait
+// dire une fois a macOS « L'app differe des versions precedemment ouvertes »,
+// et l'autorisation "reseau local" est redemandee.
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+#include? "Local.xcconfig"

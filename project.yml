@@ -1,0 +1,149 @@
+name: MaillageZigbee
+options:
+  bundleIdPrefix: fr.djoko.maillage.zigbee
+  deploymentTarget:
+    macOS: "26.0"
+  developmentLanguage: fr
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+configFiles:
+  Debug: Signature.xcconfig
+  Release: Signature.xcconfig
+# Sparkle 2 : les mises a jour de l'app, a une version figee (gestionnaire de paquets Swift).
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    # Textes : catalogues .xcstrings (francais, langue de developpement, et
+    # anglais), cles extraites par le compilateur.
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: NO
+targets:
+  MaillageCoeur:
+    type: framework
+    platform: macOS
+    sources:
+      - path: MaillageCoeur
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.djoko.maillage.zigbee.coeur
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: YES
+      configs:
+        # Le coeur est optimise aussi en Debug : non optimisee, la disposition des pieces prend
+        # quelques secondes (80 a 100 fois plus). Il n'a ni assert ni code propre au Debug.
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: "-O"
+  MaillageZigbee:
+    type: application
+    platform: macOS
+    sources:
+      - path: MaillageZigbee
+    dependencies:
+      - target: MaillageCoeur
+      - package: Sparkle
+    info:
+      path: MaillageZigbee/Info.plist
+      properties:
+        CFBundleDisplayName: Maillage Zigbee
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Mises a jour (Sparkle 2) : le flux des versions publiees et la cle publique Ed25519 (reglages ci-dessous) ;
+        # recherche au demarrage puis toutes les 24 h, telechargement et installation automatiques ; installation
+        # par le service de Sparkle, l'app restant dans le bac a sable.
+        SUFeedURL: $(FLUX_MISES_A_JOUR)
+        SUPublicEDKey: $(CLE_MISES_A_JOUR)
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
+        SUAutomaticallyUpdate: true
+        SUEnableInstallerLauncherService: true
+        LSApplicationCategoryType: public.app-category.utilities
+        LSUIElement: true
+        NSHumanReadableCopyright: ""
+        NSLocalNetworkUsageDescription: "Maillage Zigbee cherche le pont Hue sur le réseau local pour lire les noms et les pièces de vos appareils."
+        NSBonjourServices:
+          - _hue._tcp
+    settings:
+      base:
+        PRODUCT_NAME: Maillage Zigbee
+        PRODUCT_MODULE_NAME: MaillageZigbee
+        PRODUCT_BUNDLE_IDENTIFIER: fr.djoko.maillage.zigbee
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # La version publiee (outils/publier.sh) ; le numero de compilation, que compare Sparkle, est donne a la
+        # publication : le nombre de commits de main.
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # Le flux des mises a jour (appcast.xml du depot, que publier.sh tient a jour, a son adresse brute) et la cle
+        # publique ; la repetition les remplace en ligne de commande.
+        FLUX_MISES_A_JOUR: https://raw.githubusercontent.com/Djoko-cli/maillage-zigbee/main/appcast.xml
+        # La cle publique de la paire de Maillage Thread, reutilisee (decision de Djoko du 08/10) : la cle privee
+        # reste dans le trousseau, au compte par defaut de generate_keys, que lit publication.py. Chaque app a son
+        # propre flux (FLUX_MISES_A_JOUR) et son identifiant : aucune ne recoit les versions de l'autre.
+        CLE_MISES_A_JOUR: nRIVHOXbEktqGduJ4ukxhjZzlUaiE/yqR3sgbW9Ie6E=
+        CODE_SIGN_ENTITLEMENTS: MaillageZigbee/Droits.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+  MaillageCoeurTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: MaillageCoeurTests
+    dependencies:
+      - target: MaillageCoeur
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.djoko.maillage.zigbee.coeur.tests
+        GENERATE_INFOPLIST_FILE: YES
+  MaillageZigbeeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: MaillageZigbeeTests
+    dependencies:
+      - target: MaillageZigbee
+      - target: MaillageCoeur
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.djoko.maillage.zigbee.tests
+        GENERATE_INFOPLIST_FILE: YES
+        # Le produit s'appelle "Maillage Zigbee" (avec une espace), pas comme la cible.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Maillage Zigbee.app/Contents/MacOS/Maillage Zigbee"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  MaillageZigbee:
+    build:
+      targets:
+        MaillageZigbee: all
+        MaillageCoeur: all
+        MaillageCoeurTests: [test]
+        MaillageZigbeeTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MaillageCoeurTests
+        - MaillageZigbeeTests
+    archive:
+      config: Release
+  # Le coeur seul : les temps de calcul de la vue par pieces, en Release (outils/mesurer.sh).
+  MaillageCoeur:
+    build:
+      targets:
+        MaillageCoeur: all
+        MaillageCoeurTests: [test]
+    test:
+      config: Release
+      targets:
+        - MaillageCoeurTests
