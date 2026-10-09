@@ -87,11 +87,16 @@ public struct AccessoireMaison: Codable, Hashable, Sendable {
     /// D'ou viennent le nom et la piece : de Maison (l'accessoire y a ete retrouve) ou du pont Hue ; nil sans releve de
     /// Maison (`FusionNoms`).
     public var origine: OrigineNom?
+    /// Identifiant du device de l'appareil sur le pont Hue (`device.id` de l'API v2, un UUID) : ce que « Identifier »
+    /// vise. nil pour un appareil qui ne vient pas du pont (demo, releve garde par une version plus ancienne de l'app,
+    /// avant la prochaine lecture). Il suit l'appareil dans le cache (`noms-pont.json`) et dans la fusion avec Maison
+    /// (`FusionNoms` ne touche qu'au nom, a la piece et a l'origine).
+    public var idHue: String?
 
     public init(nom: String, piece: String? = nil, fabricant: String? = nil, modele: String? = nil,
                 firmware: String? = nil, categorie: String? = nil, ieee: String? = nil,
                 batterie: BatterieMaison? = nil, connexion: ConnexionZigbee? = nil, idModele: String? = nil,
-                origine: OrigineNom? = nil) {
+                origine: OrigineNom? = nil, idHue: String? = nil) {
         self.nom = nom
         self.piece = piece
         self.fabricant = fabricant
@@ -103,6 +108,7 @@ public struct AccessoireMaison: Codable, Hashable, Sendable {
         self.connexion = connexion
         self.idModele = idModele
         self.origine = origine
+        self.idHue = idHue
     }
 }
 

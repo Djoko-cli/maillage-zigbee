@@ -112,6 +112,20 @@ final class NomsPont {
     nonisolated static let pasLiaison = 2
     /// Relecture du pont.
     nonisolated static let periodeLecture: Duration = .seconds(5 * 60)
+    /// Un clic sur « Identifier » envoie ce nombre d'identifications, espacees de `intervalleIdentification` : une seule
+    /// (un cycle de « respiration » de la lampe) se repere mal.
+    nonisolated static let nombreIdentifications = 3
+    nonisolated static let intervalleIdentification: Duration = .seconds(2)
+
+    /// Ou en est « Identifier » pour un appareil.
+    enum Identification: Equatable, Sendable {
+        /// Les identifications partent.
+        case enCours
+        /// Les identifications sont parties (le pont les a acceptees).
+        case fait
+        /// Refusee ou echouee : le message pour la fiche.
+        case erreur(String)
+    }
 
     private(set) var etat: Etat = .introuvable
     /// Le pont retenu (trouve ou saisi), lie ou non ; nil sans pont.
@@ -122,6 +136,8 @@ final class NomsPont {
     private(set) var lie = false
     /// Une lecture est en cours.
     private(set) var lectureEnCours = false
+    /// « Identifier », par appareil (adresse longue, majuscules) : la derniere demande ; absent si aucune.
+    private(set) var identifications: [String: Identification] = [:]
     /// Bonjour est refuse (Reglages Systeme › Confidentialite › Reseau local).
     var reseauLocalRefuse = false
     /// Appele a chaque nouveau releve (nil : le pont est oublie).
@@ -141,6 +157,9 @@ final class NomsPont {
     @ObservationIgnored private var numeroLiaison = 0
     @ObservationIgnored private(set) var tacheLecture: Task<Void, Never>?
     @ObservationIgnored private var tachePeriodique: Task<Void, Never>?
+    /// Les identifications en cours, par appareil ; annulees avec les autres taches (oubli du pont, autre adresse).
+    @ObservationIgnored private var tachesIdentification: [String: (numero: Int, tache: Task<Void, Never>)] = [:]
+    @ObservationIgnored private var numeroIdentification = 0
 
     /// Inerte : les noms donnes (demo) ou aucun (tests des vues) ; ni reseau, ni trousseau, ni fichier.
     init(noms: NomsMaison? = nil) {
@@ -459,6 +478,108 @@ final class NomsPont {
         }
     }
 
+    // MARK: - Identifier
+
+    /// L'appareil `ieee` peut etre identifie : l'app est branchee a un vrai pont (ni demo, ni vues de test) qui connait
+    /// l'appareil (son device Hue). La fiche n'offre « Identifier » que dans ce cas.
+    func peutIdentifier(ieee: String) -> Bool {
+        dependances != nil && noms?.accessoire(ieee: ieee)?.idHue != nil
+    }
+
+    /// L'identification de l'appareil `ieee` (nil : aucune demande).
+    func identification(ieee: String) -> Identification? {
+        identifications[ieee.uppercased()]
+    }
+
+    /// « Identifier » : fait clignoter l'appareil par le pont, `nombreIdentifications` fois a `intervalleIdentification`
+    /// d'intervalle (jamais par la sonde, qui n'envoie rien aux lampes). Refuse sans pont lie, ou sans identifiant de
+    /// device connu pour l'appareil (etat `erreur`, rien n'est envoye) ; ignore un clic pendant une identification de
+    /// ce meme appareil. La cle refusee retire la cle du trousseau et remet le pont « a lier », comme une lecture. Rend
+    /// la tache (les tests l'attendent) ; nil sans rien a faire (demo, ou deja en cours).
+    @discardableResult
+    func identifier(ieee: String) -> Task<Void, Never>? {
+        guard let d = dependances else { return nil }
+        let cle = ieee.uppercased()
+        guard identifications[cle] != .enCours else { return nil }
+        guard lie, let p = pont else {
+            identifications[cle] = .erreur(String(localized: "Pont non lié : liez-le d'abord dans les Réglages."))
+            return nil
+        }
+        guard let device = noms?.accessoire(ieee: ieee)?.idHue else {
+            identifications[cle] = .erreur(String(localized: "Cet appareil n'est pas connu du pont."))
+            return nil
+        }
+        identifications[cle] = .enCours
+        numeroIdentification += 1
+        let n = numeroIdentification
+        let t = Task { [weak self] () -> Void in
+            await self?.identifier(cle: cle, device: device, pont: p, dependances: d, numero: n)
+        }
+        tachesIdentification[cle] = (n, t)
+        return t
+    }
+
+    /// Les identifications de `ieee`, demande numero `n`. Une demande qui n'est plus la courante (pont oublie ou change,
+    /// autre adresse : `annulerTaches` ; cle refusee ; nouvelle demande) ne touche plus a rien.
+    private func identifier(cle ieee: String, device: String, pont p: PontRetenu, dependances d: DependancesPont,
+                            numero n: Int) async {
+        func courante() -> Bool {
+            tachesIdentification[ieee]?.numero == n && pont?.identifiant == p.identifiant && lie && !Task.isCancelled
+        }
+        defer {
+            if tachesIdentification[ieee]?.numero == n {
+                tachesIdentification[ieee] = nil
+                if identifications[ieee] == .enCours { identifications[ieee] = nil }
+            }
+        }
+        let cle: String
+        do {
+            cle = try d.trousseau.lire(identifiant: p.identifiant)
+        } catch .absente {
+            guard courante() else { return }
+            lie = false
+            etat = .aLier
+            identifications[ieee] = .erreur(Self.message(PontHue.Erreur.cleRefusee))
+            return
+        } catch {
+            guard courante() else { return }
+            identifications[ieee] = .erreur(error.localizedDescription)
+            return
+        }
+        let client = PontHue(transport: d.transport, adresse: p.adresse, attendu: p.identifiant)
+        for i in 0..<Self.nombreIdentifications {
+            if i > 0 {
+                do {
+                    try await d.attendre(Self.intervalleIdentification)
+                } catch {
+                    return
+                }
+            }
+            guard courante() else { return }
+            do {
+                try await client.identifier(device: device, cle: cle)
+            } catch .cleRefusee {
+                // Comme une lecture : seule la cle refusee sort du trousseau (une liaison a pu en ranger une autre).
+                guard tachesIdentification[ieee]?.numero == n, pont?.identifiant == p.identifiant,
+                      (try? d.trousseau.lire(identifiant: p.identifiant)) == cle else {
+                    return
+                }
+                try? d.trousseau.oublier(identifiant: p.identifiant)
+                lie = false
+                tachePeriodique?.cancel()
+                etat = .aLier
+                identifications[ieee] = .erreur(Self.message(PontHue.Erreur.cleRefusee))
+                return
+            } catch {
+                guard courante() else { return }
+                identifications[ieee] = .erreur(Self.message(error))
+                return
+            }
+        }
+        guard courante() else { return }
+        identifications[ieee] = .fait
+    }
+
     // MARK: - Oubli
 
     /// « Oublier le pont » : la cle sort du trousseau, le pont des preferences, ses noms du disque. Un pont encore vu
@@ -488,6 +609,9 @@ final class NomsPont {
         tacheLecture = nil
         tachePeriodique?.cancel()
         tachePeriodique = nil
+        for t in tachesIdentification.values { t.tache.cancel() }
+        tachesIdentification = [:]
+        identifications = [:]
     }
 
     private func retenir(_ p: PontRetenu?) {

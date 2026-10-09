@@ -1521,6 +1521,22 @@
         }
       }
     },
+    "Cet appareil n'est pas connu du pont." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bridge does not know this device."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet appareil n'est pas connu du pont."
+          }
+        }
+      }
+    },
     "Chemin" : {
       "localizations" : {
         "en" : {
@@ -1857,6 +1873,22 @@
         }
       }
     },
+    "Fait clignoter l'appareil, par le pont Hue, pour le repérer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makes the device blink, through the Hue bridge, so you can spot it"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fait clignoter l'appareil, par le pont Hue, pour le repérer"
+          }
+        }
+      }
+    },
     "Famille" : {
       "localizations" : {
         "en" : {
@@ -1997,6 +2029,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Identifiant"
+          }
+        }
+      }
+    },
+    "Identification…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifying…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification…"
+          }
+        }
+      }
+    },
+    "Identifier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifier"
           }
         }
       }
@@ -2973,6 +3037,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pont injoignable : %@"
+          }
+        }
+      }
+    },
+    "Pont non lié : liez-le d'abord dans les Réglages." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bridge not linked: link it first in Settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pont non lié : liez-le d'abord dans les Réglages."
           }
         }
       }

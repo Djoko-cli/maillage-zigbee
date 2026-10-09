@@ -30,6 +30,8 @@ final class PontSimule: TransportHue {
         /// Un certificat refuse a chaque connexion.
         var refus: VerdictCertificat?
         var reseauCoupe = false
+        /// Le statut d'une cle refusee : 403, ou 401.
+        var statutCleRefusee = 403
     }
 
     let etat = Mutex(Etat())
@@ -85,9 +87,17 @@ final class PontSimule: TransportHue {
             return reponse(200, #"[{"success":{"username":"\#(Self.cle)","clientkey":"CLIENTINVENTE"}}]"#)
         }
         guard requete.cle == Self.cle, e.cleValide else {
-            return reponse(403, #"{"errors":[{"description":"unauthorized user"}],"data":[]}"#)
+            return reponse(e.statutCleRefusee, #"{"errors":[{"description":"unauthorized user"}],"data":[]}"#)
         }
         let ressource = requete.chemin.replacingOccurrences(of: "/clip/v2/resource/", with: "")
+        // « Identifier » : le pont accepte un device qu'il connait, et repond 404 pour un autre.
+        if requete.methode == "PUT", ressource.hasPrefix("device/") {
+            let device = String(ressource.dropFirst("device/".count))
+            guard [Self.appareilPont, "d2", "d3"].contains(device) else {
+                return reponse(404, #"{"errors":[{"description":"resource not found"}],"data":[]}"#)
+            }
+            return reponse(200, #"{"errors":[],"data":[{"rid":"\#(device)","rtype":"device"}]}"#)
+        }
         switch ressource {
         case "bridge":
             return reponse(200, #"{"errors":[],"data":[{"id":"b1","owner":{"rid":"\#(Self.appareilPont)","rtype":"device"},"bridge_id":"\#(e.identifiantApi.lowercased())","type":"bridge"}]}"#)
@@ -121,6 +131,8 @@ final class PontSimule: TransportHue {
 @MainActor
 final class ReleveAttentes {
     var attentes: [Duration] = []
+    /// Combien de requetes le pont avait recues quand chaque attente a commence (meme ordre que `attentes`).
+    var appelsAvantAttente: [Int] = []
     var etats: [NomsPont.Etat] = []
     weak var pont: NomsPont?
 }
@@ -159,6 +171,7 @@ struct NomsPontTests {
         let d = DependancesPont(transport: simule, trousseau: trousseau, memoire: m, cache: fichier, attendre: { duree in
             await MainActor.run {
                 releve.attentes.append(duree)
+                releve.appelsAvantAttente.append(simule.appels.count)
                 if let p = releve.pont { releve.etats.append(p.etat) }
             }
             if duree > .seconds(NomsPont.pasLiaison) { try await Task.sleep(for: .seconds(3600)) }

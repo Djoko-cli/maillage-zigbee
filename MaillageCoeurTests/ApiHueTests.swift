@@ -139,7 +139,10 @@ struct ApiHueTests {
         let pont = try #require(n.accessoire(ieee: "A000000000000001"))
         #expect(pont == AccessoireMaison(nom: "Pont du salon", piece: "Bureau", fabricant: "Signify Netherlands B.V.",
                                          modele: "Hue Bridge", firmware: "1.70.1970000000", categorie: "bridge_v2",
-                                         ieee: "A000000000000001", connexion: .connecte, idModele: "BSB002"))
+                                         ieee: "A000000000000001", connexion: .connecte, idModele: "BSB002",
+                                         idHue: "d0000000-0000-4000-8000-000000000001"))
+        #expect(n.accessoires.allSatisfy { $0.idHue != nil }, "l'identifiant du device de chaque appareil, Zigbee ou non")
+        #expect(n.accessoire(ieee: "A000000000000015")?.idHue == "d0000000-0000-4000-8000-000000000002")
         #expect(n.accessoire(ieee: "a000000000000015")?.piece == "Bureau")
         let prise = try #require(n.accessoire(ieee: "A000000000000018"))
         #expect(prise.connexion == .problemeConnexion && prise.piece == nil && prise.batterie == nil)

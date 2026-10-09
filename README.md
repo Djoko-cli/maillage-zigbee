@@ -164,6 +164,12 @@ direction, its path to the bridge, its log, and the curve of its signal over
 time. A device the bridge doesn't place (the probe included) is placed by
 hand ("Place in a room…").
 
+The "Identify" button of a card makes the device blink so you can spot it: the
+app asks the Hue bridge (never the probe), three times, 2 seconds apart; a
+lamp does a "breathe" cycle, the bridge flashes its LED, a sensor too. It
+shows for the devices the bridge knows, and it is the only thing the app sends
+to the bridge besides the linking: everything else is a reading.
+
 ### Log, history, notifications
 
 - **Log** (menu, "Log…"): surveillance started, Mac asleep, device new (from

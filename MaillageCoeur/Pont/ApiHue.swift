@@ -288,8 +288,8 @@ public struct LectureHue: Hashable, Sendable {
     /// Les noms de la maison : `domicile` = l'identifiant du pont, en majuscules ; un appareil par device, le pont
     /// compris (son adresse longue est celle du coordinateur), avec sa piece, son fabricant, son modele (le nom du
     /// produit, sinon son code ; avec un nom de produit, le code a part, dans `idModele`), son logiciel, son archetype,
-    /// son adresse longue, sa pile et son etat de connexion. Pas de zones : Hue n'a pas d'etages (elles viennent de
-    /// Maison, `FusionNoms`). Appareils ranges par nom, puis par adresse longue.
+    /// son adresse longue, sa pile, son etat de connexion et l'identifiant de son device (`idHue`, pour « Identifier »). Pas de zones : Hue n'a
+    /// pas d'etages (elles viennent de Maison, `FusionNoms`). Appareils ranges par nom, puis par adresse longue.
     public func noms(date: Date) -> NomsMaison {
         var pieceDe: [String: String] = [:]
         for p in pieces.sorted(by: { $0.nom < $1.nom }) {
@@ -307,7 +307,7 @@ public struct LectureHue: Hashable, Sendable {
                                     modele: a.produit ?? a.modeleId, firmware: a.logiciel, categorie: a.archetype,
                                     ieee: c?.adresse.flatMap(ApiHue.adresseLongue), batterie: batterieDe[a.id],
                                     connexion: ConnexionZigbee.depuis(api: c?.etat),
-                                    idModele: a.produit == nil ? nil : a.modeleId)
+                                    idModele: a.produit == nil ? nil : a.modeleId, idHue: a.id)
         }.sorted { ($0.nom, $0.ieee ?? "") < ($1.nom, $1.ieee ?? "") }
         let reseau = connectiviteDe[pont.appareil].flatMap { c -> ReseauZigbee? in
             c.canal == nil && c.epid == nil ? nil : ReseauZigbee(canal: c.canal, epid: c.epid)

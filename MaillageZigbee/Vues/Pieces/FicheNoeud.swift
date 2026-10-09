@@ -4,7 +4,8 @@ import SwiftUI
 /// Fiche du noeud choisi : carte de verre en bas de la fenetre, sur toute sa largeur (etape 5, section 2), en quatre
 /// colonnes cote a cote (`ColonnesFiche`, moins dans une fenetre etroite) :
 /// 1. identite : le nom, la piece, la marque, le modele, le firmware, l'origine du nom, l'etat, le role (endormi d'apres
-///    `ecoute`), la pile, les adresses, et les boutons « Renommer… » et « Placer dans une pièce… » ;
+///    `ecoute`), la pile, les adresses, et les boutons « Renommer… », « Identifier » (l'appareil clignote, par le pont
+///    Hue : seulement pour un appareil que le pont connait) et « Placer dans une pièce… » ;
 /// 2. chemin : vers le pont (direct, ou via son prochain saut, en sauts ; suppose ; l'age de la route), le parent d'un
 ///    appareil final (ou son parent d'avant), le nombre de routeurs qui parlent directement au pont ; puis le journal
 ///    du noeud (ses changements de parent ou de chemin d'une meme heure en une ligne, a deplier) ;
@@ -20,6 +21,8 @@ struct FicheNoeud: View {
     @Environment(\.capturePieces) private var capture
     /// Pieces choisies pour les noeuds que le pont ne place pas : la vue par pieces seule les donne.
     @Environment(PiecesChoisies.self) private var piecesChoisies: PiecesChoisies?
+    /// Le pont Hue : « Identifier » passe par lui. nil dans les vues de test sans pont.
+    @Environment(NomsPont.self) private var nomsPont: NomsPont?
     let id: String
     /// La scene du meme rendu (`EntreeScene`), avec ce dont elle est faite : la fiche y lit le maillage, et « Placer
     /// dans une piece… » le graphe, sans rien reconstruire ; nil sans reseau.
@@ -148,6 +151,11 @@ struct FicheNoeud: View {
                     Button("Renommer…") { aRenommer = NoeudChoisi(id: id) }
                         .boutonDeFiche()
                 }
+                if let nomsPont, nomsPont.peutIdentifier(ieee: id) {
+                    BoutonIdentifier(enCours: nomsPont.identification(ieee: id) == .enCours) {
+                        nomsPont.identifier(ieee: id)
+                    }
+                }
                 if let piecesChoisies, let entree,
                    let placement = PiecesChoisies.placement(id, dans: surveillance, entree: entree) {
                     MenuPlacer(placement: placement, domicile: surveillance.noms.maison?.domicile ?? "",
@@ -155,6 +163,9 @@ struct FicheNoeud: View {
                 }
             }
             .padding(.top, 4)
+            if let nomsPont, case .erreur(let message)? = nomsPont.identification(ieee: id) {
+                Text(message).font(.caption).foregroundStyle(orange).fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .colonneDuChef(Self.couronne(id, entree: entree))
@@ -525,6 +536,25 @@ struct FicheNoeud: View {
         // recente, d'un releve fait depuis, se lirait « dans 20 secondes ». Jamais dans le futur :
         // « maintenant » jusqu'a la minute suivante (la spec admet une minute de retard).
         return f.localizedString(for: d, relativeTo: max(d, reference))
+    }
+}
+
+/// « Identifier » : fait clignoter l'appareil par le pont Hue. Grise pendant l'envoi des identifications.
+struct BoutonIdentifier: View {
+    let enCours: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            if enCours {
+                Label("Identification…", systemImage: "light.beacon.max")
+            } else {
+                Label("Identifier", systemImage: "light.beacon.max")
+            }
+        }
+        .boutonDeFiche()
+        .disabled(enCours)
+        .help("Fait clignoter l'appareil, par le pont Hue, pour le repérer")
     }
 }
 

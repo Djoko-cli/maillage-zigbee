@@ -69,6 +69,40 @@ struct PontHue: Sendable {
                           alimentations: try await ressource(ApiHue.Alimentation.self, "device_power", cle: cle))
     }
 
+    /// Le corps d'une identification : `{"identify":{"action":"identify"}}`.
+    static let corpsIdentification = Data(#"{"identify":{"action":"identify"}}"#.utf8)
+
+    /// Un identifiant de device sain pour un chemin : lettres ASCII, chiffres et tirets seulement (un UUID). Il vient du
+    /// pont, par un releve que le cache a pu garder sur disque : jamais un `/`, un `?` ou un `..` dans le chemin.
+    static func identifiantDeviceValide(_ id: String) -> Bool {
+        guard !id.isEmpty, id.utf8.count <= 64 else { return false }
+        return id.utf8.allSatisfy { c in
+            (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 45  // 0-9, A-Z, a-z, tiret
+        }
+    }
+
+    /// `PUT /clip/v2/resource/device/<id>` avec la cle dans l'en-tete `hue-application-key`.
+    static func requeteIdentification(device: String, cle: String) -> RequeteHue {
+        RequeteHue(methode: "PUT", chemin: "/clip/v2/resource/device/\(device)", corps: corpsIdentification, cle: cle)
+    }
+
+    /// Fait signaler l'appareil `device` (son id de device Hue) : une lampe fait un cycle de « respiration », le pont
+    /// fait clignoter sa LED, un capteur aussi. Une seule demande ; la cle refusee (401, 403) est `cleRefusee`, comme
+    /// pour une lecture.
+    func identifier(device: String, cle: String) async throws(Erreur) {
+        guard Self.identifiantDeviceValide(device) else { throw .illisible("device") }
+        let requete = Self.requeteIdentification(device: device, cle: cle)
+        let r = try await envoyer(requete)
+        if r.statut == 401 || r.statut == 403 { throw .cleRefusee }
+        guard r.statut == 200 else { throw .http(r.statut, requete.chemin) }
+        // Un 200 sans element et avec une erreur (l'API le fait pour une demande refusee) n'a rien identifie.
+        do {
+            _ = try ApiHue.lire(ApiHue.Ref.self, r.corps)
+        } catch {
+            if case .erreurs(let d) = error { throw .illisible("\(requete.chemin) : \(d)") }
+        }
+    }
+
     private func ressource<T: Decodable>(_ type: T.Type, _ nom: String, cle: String) async throws(Erreur) -> [T] {
         let chemin = "/clip/v2/resource/\(nom)"
         let r = try await envoyer(.lire(chemin, cle: cle))

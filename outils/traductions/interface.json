@@ -377,5 +377,10 @@
   "très faible": "very low",
   "Trait vertical : la sonde change de parent.": "Vertical line: the probe changes parent.",
   "et %lld autres": "and %lld more",
-  "et 1 autre": "and 1 more"
+  "et 1 autre": "and 1 more",
+  "Identifier": "Identify",
+  "Identification…": "Identifying…",
+  "Fait clignoter l'appareil, par le pont Hue, pour le repérer": "Makes the device blink, through the Hue bridge, so you can spot it",
+  "Cet appareil n'est pas connu du pont.": "The bridge does not know this device.",
+  "Pont non lié : liez-le d'abord dans les Réglages.": "Bridge not linked: link it first in Settings."
 }
