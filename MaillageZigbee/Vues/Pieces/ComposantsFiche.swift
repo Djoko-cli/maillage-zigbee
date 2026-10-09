@@ -28,11 +28,18 @@ struct ColonnesFiche: Layout {
         return 1
     }
 
-    /// Le nombre de colonnes et leur largeur, dans `largeur` pt.
-    private func grille(_ largeur: CGFloat?, _ n: Int) -> (colonnes: Int, largeur: CGFloat) {
-        let c = Self.colonnes(largeur: largeur, nombre: n, minimum: minimum, espacement: espacement)
+    /// Le nombre de colonnes et leur largeur, pour `nombre` colonnes dans `largeur` pt. Sans largeur utilisable (nil, ou
+    /// infinie), toutes les colonnes, a leur largeur minimale.
+    static func grille(largeur proposee: CGFloat?, nombre n: Int, minimum: CGFloat = largeurMinimale,
+                       espacement: CGFloat = 24) -> (colonnes: Int, largeur: CGFloat) {
+        let largeur = RangeesFluides.largeurFinie(proposee)
+        let c = colonnes(largeur: largeur, nombre: n, minimum: minimum, espacement: espacement)
         let l = largeur.map { max(0, ($0 - CGFloat(c - 1) * espacement) / CGFloat(c)) } ?? minimum
         return (c, l)
+    }
+
+    private func grille(_ largeur: CGFloat?, _ n: Int) -> (colonnes: Int, largeur: CGFloat) {
+        Self.grille(largeur: largeur, nombre: n, minimum: minimum, espacement: espacement)
     }
 
     /// La hauteur de chaque rangee.
@@ -47,7 +54,7 @@ struct ColonnesFiche: Layout {
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let (c, l) = grille(proposal.width, subviews.count)
         let h = rangees(subviews, colonnes: c, largeur: l)
-        let largeur = proposal.width ?? CGFloat(c) * l + CGFloat(c - 1) * espacement
+        let largeur = RangeesFluides.largeurFinie(proposal.width) ?? CGFloat(c) * l + CGFloat(c - 1) * espacement
         return CGSize(width: largeur, height: h.reduce(0, +) + CGFloat(max(0, h.count - 1)) * interligne)
     }
 
@@ -74,38 +81,58 @@ struct TitreColonne: View {
 }
 
 /// Des elements poses en rangees qui passent a la ligne (les pastilles des dependants, celles de la legende des courbes).
+/// Un element plus large que la rangee est borne a sa largeur : une pastille au nom tres long se tronque, elle ne deborde
+/// pas sur la colonne voisine.
 struct RangeesFluides: Layout {
     var espacement: CGFloat = 5
     var interligne: CGFloat = 5
 
-    /// La place de chaque element dans `largeur` pt (a gauche, en haut) et la taille de l'ensemble.
-    private func poser(_ vues: Subviews, largeur: CGFloat?) -> (places: [CGPoint], taille: CGSize) {
-        let max = largeur ?? .infinity
+    /// Une largeur proposee utilisable : nil si elle manque ou n'est pas finie.
+    static func largeurFinie(_ l: CGFloat?) -> CGFloat? { l.flatMap { $0.isFinite ? $0 : nil } }
+
+    /// La place et la taille de chaque element de taille voulue `tailles`, dans `largeur` pt (nil : sans limite), et la
+    /// taille de l'ensemble. Les elements vont de gauche a droite, a la ligne quand il n'y a plus de place, et un
+    /// element plus large que `largeur` est ramene a `largeur`.
+    static func disposer(_ tailles: [CGSize], largeur: CGFloat?, espacement: CGFloat = 5, interligne: CGFloat = 5)
+        -> (places: [CGPoint], tailles: [CGSize], total: CGSize) {
+        let max = largeurFinie(largeur) ?? .infinity
         var places: [CGPoint] = []
+        var bornees: [CGSize] = []
         var x: CGFloat = 0, y: CGFloat = 0, hauteur: CGFloat = 0, largeurUtile: CGFloat = 0
-        for v in vues {
-            let t = v.sizeThatFits(.unspecified)
+        for voulue in tailles {
+            let t = CGSize(width: Swift.min(voulue.width, max), height: voulue.height)
             if x > 0 && x + t.width > max {
                 x = 0
                 y += hauteur + interligne
                 hauteur = 0
             }
             places.append(CGPoint(x: x, y: y))
+            bornees.append(t)
             x += t.width + espacement
             hauteur = Swift.max(hauteur, t.height)
             largeurUtile = Swift.max(largeurUtile, x - espacement)
         }
-        return (places, CGSize(width: largeur ?? largeurUtile, height: vues.isEmpty ? 0 : y + hauteur))
+        return (places, bornees, CGSize(width: largeurFinie(largeur) ?? largeurUtile, height: tailles.isEmpty ? 0 : y + hauteur))
+    }
+
+    /// Les tailles voulues des elements dans `largeur` pt : un element qui se tronque (une ligne de texte) prend au plus
+    /// cette largeur.
+    private func mesurer(_ vues: Subviews, largeur: CGFloat?) -> [CGSize] {
+        let proposition = ProposedViewSize(width: Self.largeurFinie(largeur), height: nil)
+        return vues.map { $0.sizeThatFits(proposition) }
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        poser(subviews, largeur: proposal.width).taille
+        Self.disposer(mesurer(subviews, largeur: proposal.width), largeur: proposal.width,
+                      espacement: espacement, interligne: interligne).total
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let p = poser(subviews, largeur: bounds.width).places
-        for (v, q) in zip(subviews, p) {
-            v.place(at: CGPoint(x: bounds.minX + q.x, y: bounds.minY + q.y), anchor: .topLeading, proposal: .unspecified)
+        let d = Self.disposer(mesurer(subviews, largeur: bounds.width), largeur: bounds.width,
+                              espacement: espacement, interligne: interligne)
+        for (i, v) in subviews.enumerated() {
+            v.place(at: CGPoint(x: bounds.minX + d.places[i].x, y: bounds.minY + d.places[i].y), anchor: .topLeading,
+                    proposal: ProposedViewSize(width: d.tailles[i].width, height: d.tailles[i].height))
         }
     }
 }

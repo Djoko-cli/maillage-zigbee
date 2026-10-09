@@ -475,5 +475,15 @@ struct TransitionSceneTests {
         let modele = try #require(p.disques.first { $0.noeud == "HomePod" })
         #expect(p.centresNoeuds["E000000000000008"] == p.centresNoeuds["HomePod"] && jumeau.centre == modele.centre)
         #expect(jumeau.rayon == modele.rayon && p.fantomes == ["E000000000000009", "E000000000000008"])
+        // Sous le mode focus, un noeud qui s'efface s'estompe comme les autres (relecture de Maillage Thread).
+        #expect(jumeau.focus == 1 && disque.focus == 1)
+        let estompes = EtatAnime(t: 0, fk: Array(repeating: 0, count: s.pieces.count),
+                                 noeudsEstompes: ["E000000000000009": 1, "E000000000000008": 0.5])
+        let q = SceneProjetee(scene: s, cartes: c, positions: d.positions, geometrie: g, etat: estompes, orbite: o,
+                              cadre: SceneProjeteeTests.cadre, poses: f)
+        let flou = try #require(q.disques.first { $0.noeud == "E000000000000009" })
+        let flou2 = try #require(q.disques.first { $0.noeud == "E000000000000008" })
+        #expect(flou.focus == MiseEnAvant.opaciteEstompee && flou2.focus == MiseEnAvant.facteur(0.5))
+        #expect(flou.opacite == disque.opacite, "le focus ne change pas l'opacite du fondu")
     }
 }

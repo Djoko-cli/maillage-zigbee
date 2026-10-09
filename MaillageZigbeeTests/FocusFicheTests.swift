@@ -89,6 +89,20 @@ struct FocusFicheTests {
         #expect(Set([3, 2, 1].map { p.lienSonde($0) }).count == 3 && p.lienSonde(nil) != p.lienSonde(1))
     }
 
+    /// Les rangees fluides : a la ligne quand la place manque ; un element plus large que la rangee est ramene a sa
+    /// largeur (il ne deborde pas), avec ou sans largeur proposee, et une largeur infinie vaut aucune.
+    @Test func rangeesFluides() {
+        let t = [CGSize(width: 40, height: 10), CGSize(width: 50, height: 12), CGSize(width: 200, height: 10)]
+        let large = RangeesFluides.disposer(t, largeur: 100, espacement: 5, interligne: 4)
+        #expect(large.places == [CGPoint(x: 0, y: 0), CGPoint(x: 45, y: 0), CGPoint(x: 0, y: 16)])
+        #expect(large.tailles.map(\.width) == [40, 50, 100], "la pastille trop large est bornee a la rangee")
+        #expect(large.total == CGSize(width: 100, height: 26))
+        let libre = RangeesFluides.disposer(t, largeur: nil, espacement: 5, interligne: 4)
+        #expect(libre.places.map(\.y) == [0, 0, 0] && libre.total.width == 40 + 5 + 50 + 5 + 200)
+        #expect(RangeesFluides.disposer(t, largeur: .infinity).tailles.map(\.width) == [40, 50, 200])
+        #expect(RangeesFluides.disposer([], largeur: 100).total == CGSize(width: 100, height: 0))
+    }
+
     // MARK: Fiche
 
     /// Les colonnes de la fiche : quatre, puis deux, puis une, selon la place ; la grille des voisins, autant de colonnes
@@ -99,6 +113,11 @@ struct FocusFicheTests {
         #expect(ColonnesFiche.colonnes(largeur: 4 * 190 + 3 * 24 - 1, nombre: 4) == 2, "jamais trois : des rangees pleines")
         #expect(ColonnesFiche.colonnes(largeur: 300, nombre: 4) == 1)
         #expect(ColonnesFiche.colonnes(largeur: nil, nombre: 4) == 4)
+        #expect(ColonnesFiche.grille(largeur: 1000, nombre: 4).colonnes == 4)
+        let sansLimite = ColonnesFiche.grille(largeur: .infinity, nombre: 4)
+        #expect(sansLimite.colonnes == 4 && sansLimite.largeur == ColonnesFiche.largeurMinimale,
+                "une largeur infinie ne donne pas de colonne infinie")
+        #expect(ColonnesFiche.grille(largeur: nil, nombre: 4).largeur == ColonnesFiche.largeurMinimale)
         #expect(GrilleListe.colonnes(largeur: 1000) == 4)
         #expect(GrilleListe.colonnes(largeur: 100) == 1)
         #expect(GrapheQualite.decalage(0, sur: 1) == 0)

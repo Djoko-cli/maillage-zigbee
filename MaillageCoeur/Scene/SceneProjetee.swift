@@ -254,7 +254,8 @@ public struct SceneProjetee: Sendable {
     /// Noeuds qui s'effacent pendant une transition (polissage D, section 1) : absents de la scene, ils ne se cliquent
     /// pas et n'ont pas de nom.
     public var fantomes: Set<String> = []
-    /// Mode focus : le facteur d'opacite des noeuds estompes (et de leurs noms), par identifiant ; absent : 1.
+    /// Mode focus : le facteur d'opacite des noeuds estompes (et de leurs noms, et de ceux qui s'effacent), par identifiant ;
+    /// absent : 1.
     public var facteursNoeuds: [String: Double] = [:]
 
     /// Le facteur d'opacite du mode focus d'un noeud et de son nom : 1 net.
@@ -435,7 +436,7 @@ public struct SceneProjetee: Sendable {
             disques.append(Disque(noeud: id, centre: e, rayon: rayonPastille(n.rayon, en: p),
                                   opacite: min(1 - 0.8 * (pieceRestante(n).map { 1 - voiles[$0] } ?? es),
                                                voileAncres(n.ancres)) * n.opacite,
-                                  profondeur: proj.profondeur(p)))
+                                  profondeur: proj.profondeur(p), focus: facteur(noeud: id)))
         }
         disques.sort { $0.profondeur > $1.profondeur }
 
