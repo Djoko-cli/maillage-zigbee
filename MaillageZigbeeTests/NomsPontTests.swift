@@ -390,7 +390,8 @@ struct NomsPontTests {
         b.pont.demarrer()
         #expect(b.pont.noms == garde && recus == [garde])
         await b.pont.tacheLecture?.value
-        #expect(b.pont.etat == .erreur(String(localized: "Pont injoignable : coupé")))
+        let coupe = "coupé"
+        #expect(b.pont.etat == .erreur(String(localized: "Pont injoignable : \(coupe)")), "meme cle que l'app : traduite en anglais aussi")
         #expect(b.pont.lie && b.trousseau.identifiants == [S.identifiant] && relances == 1)
         #expect(lectures == 0, "ni le cache ni une lecture echouee ne vont au suivi des connexions")
         #expect(b.pont.noms == garde)
@@ -445,11 +446,12 @@ struct NomsPontTests {
         defer { b.pont.arreter() }
         b.pont.demarrer()
         await b.pont.utiliserAdresse("pont du salon")
-        #expect(b.pont.etat == .erreur(String(localized: "Adresse invalide : pont du salon")) && b.simule.appels.isEmpty)
+        let saisie = "pont du salon"
+        #expect(b.pont.etat == .erreur(String(localized: "Adresse invalide : \(saisie)")) && b.simule.appels.isEmpty)
         b.simule.modifier { $0.refus = .autoSigne }
         await b.pont.utiliserAdresse("192.0.2.30")
         #expect(b.pont.etat == .erreur(NomsPont.message(.autoSigne)) && b.pont.pont == nil)
-        #expect(NomsPont.message(.autoSigne).contains(String(localized: "Pont trop ancien")))
+        #expect(NomsPont.message(.autoSigne) == String(localized: "Pont trop ancien : son certificat est auto-signé, ce que l'app ne prend pas en charge."))
         b.simule.modifier { $0.refus = .nonSigne }
         await b.pont.utiliserAdresse("192.0.2.30")
         #expect(b.pont.etat == .erreur(NomsPont.message(.nonSigne)) && b.pont.pont == nil)
