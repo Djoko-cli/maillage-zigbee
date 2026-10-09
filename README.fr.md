@@ -174,9 +174,9 @@ temps. Un appareil que le pont ne place pas (la sonde comprise) se range à la
 main (« Placer dans une pièce… »).
 
 Le bouton « Identifier » d'une fiche fait clignoter l'appareil pour le repérer :
-l'app le demande au pont Hue (jamais à la sonde), trois fois, à 2 secondes
-d'intervalle ; une lampe fait un cycle de « respiration », le pont fait
-clignoter sa LED, un capteur aussi. Il s'affiche pour les appareils que le
+l'app le demande au pont Hue (jamais à la sonde), une fois par clic ; une
+lampe fait un cycle de « respiration », le pont fait clignoter sa LED, un
+capteur aussi, et la sonde, que le pont voit comme une lampe. Il s'affiche pour les appareils que le
 pont connaît, et c'est la seule chose que l'app envoie au pont en dehors de la
 liaison : tout le reste est une lecture.
 

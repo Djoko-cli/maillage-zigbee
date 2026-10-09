@@ -6,7 +6,7 @@ import Testing
 /// « Identifier » : fait clignoter un appareil par le pont Hue (`PUT /clip/v2/resource/device/<id>`). Pont simule
 /// (`PontSimule`), trousseau en memoire, attente instantanee : aucun reseau, jamais le vrai pont.
 @MainActor
-@Suite("Identifier : requete du pont, trois envois espaces, erreurs, id du device garde")
+@Suite("Identifier : requete du pont, un envoi par clic, erreurs, id du device garde")
 struct IdentifierTests {
     typealias S = PontSimule
     /// La lampe du bureau du pont simule : son device (`d2`) et son adresse longue.
@@ -83,10 +83,9 @@ struct IdentifierTests {
 
     // MARK: Trois envois
 
-    /// Un clic : trois PUT sur le device de l'appareil, espaces de 2 s (l'attente est injectee : deux attentes, la
-    /// premiere apres le premier envoi, la seconde apres le deuxieme, aucune apres le dernier) ; l'etat passe a
+    /// Un clic : un seul PUT sur le device de l'appareil (choix de Majid, 09/10), sans attente ; l'etat passe a
     /// « en cours » puis « fait ».
-    @Test func troisEnvoisEspaces() async throws {
+    @Test func unEnvoiParClic() async throws {
         let b = try await banc()
         defer { b.pont.arreter() }
         #expect(b.pont.peutIdentifier(ieee: Self.lampe))
@@ -103,17 +102,16 @@ struct IdentifierTests {
         #expect(b.pont.identification(ieee: Self.lampe) == .fait)
         #expect(b.pont.identification(ieee: Self.lampe.lowercased()) == .fait, "sans egard a la casse")
         let envois = Self.puts(b)
-        #expect(envois.count == NomsPont.nombreIdentifications && envois.count == 3)
+        #expect(envois.count == NomsPont.nombreIdentifications && envois.count == 1)
         #expect(envois.allSatisfy { $0.requete.chemin == "/clip/v2/resource/device/d2" && $0.requete.cle == S.cle
                 && $0.attendu == S.identifiant && $0.adresse == "192.0.2.10" })
         let attentes = zip(b.releve.attentes, b.releve.appelsAvantAttente).filter { $0.0 == NomsPont.intervalleIdentification }
-        #expect(NomsPont.intervalleIdentification == .seconds(2))
-        #expect(attentes.map(\.1) == [avant + 1, avant + 2], "une attente de 2 s apres le 1er et apres le 2e envoi")
-        // Rien d'autre que ces trois requetes depuis la lecture, et aucune ecriture ailleurs.
-        #expect(b.simule.appels.count == avant + 3)
+        #expect(attentes.isEmpty, "une seule identification : aucune attente")
+        // Rien d'autre que cette requete depuis la lecture, et aucune ecriture ailleurs.
+        #expect(b.simule.appels.count == avant + 1)
         // On peut recommencer.
         await b.pont.identifier(ieee: Self.lampe)?.value
-        #expect(Self.puts(b).count == 6)
+        #expect(Self.puts(b).count == 2)
     }
 
     /// Le pont lui-meme et un capteur ont un device : ils s'identifient aussi (le pont fait clignoter sa LED).

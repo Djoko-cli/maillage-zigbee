@@ -112,9 +112,9 @@ final class NomsPont {
     nonisolated static let pasLiaison = 2
     /// Relecture du pont.
     nonisolated static let periodeLecture: Duration = .seconds(5 * 60)
-    /// Un clic sur « Identifier » envoie ce nombre d'identifications, espacees de `intervalleIdentification` : une seule
-    /// (un cycle de « respiration » de la lampe) se repere mal.
-    nonisolated static let nombreIdentifications = 3
+    /// Un clic sur « Identifier » envoie ce nombre d'identifications, espacees de `intervalleIdentification` : une seule,
+    /// choix de Majid au banc (09/10) ; un autre clic en redemande une.
+    nonisolated static let nombreIdentifications = 1
     nonisolated static let intervalleIdentification: Duration = .seconds(2)
 
     /// Ou en est « Identifier » pour un appareil.

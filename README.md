@@ -165,8 +165,9 @@ time. A device the bridge doesn't place (the probe included) is placed by
 hand ("Place in a room…").
 
 The "Identify" button of a card makes the device blink so you can spot it: the
-app asks the Hue bridge (never the probe), three times, 2 seconds apart; a
-lamp does a "breathe" cycle, the bridge flashes its LED, a sensor too. It
+app asks the Hue bridge (never the probe) once per click; a lamp does a
+"breathe" cycle, the bridge flashes its LED, a sensor too, and so does the
+probe, which the bridge sees as a lamp. It
 shows for the devices the bridge knows, and it is the only thing the app sends
 to the bridge besides the linking: everything else is a reading.
 
