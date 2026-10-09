@@ -22,6 +22,11 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   one round out of four, the routes of every router at each round, and a follow-up pass for the routes left over.
 - The real paths to the bridge, read in the routing tables ("Links: paths"), and the heard neighbors of the
   selected node; a sleepy end device keeps its previous parent for 24 hours, drawn dotted.
+- Focus: click a node and its path to the bridge, the devices that depend on it and, if you wish, its heard
+  neighbors stay sharp while everything else fades. The node card lays out in four columns (identity, path,
+  dependents, a summary of the heard neighbors), its history shows the links that matter in a wide band, and the
+  log groups the path and parent changes of a device by hour, with the relays it went through.
+- "Identify" on a node card makes the device blink, through the Hue bridge (never the probe).
 - Automatic updates (Sparkle 2): a check at launch and then every 24 hours, download, and installation when the
   app quits, or right away with "Install and Relaunch". "Check for Updates…" is in the menu; Settings, General,
   "Updates", can turn them off.
@@ -42,6 +47,12 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   complémentaire pour les routes restées en attente.
 - Les vrais chemins vers le pont, lus dans les tables de routage (« Liens : chemins »), et les voisins entendus du
   nœud choisi ; un appareil final endormi garde son parent d'avant pendant 24 heures, tracé en pointillé.
+- Le focus : un clic sur un nœud garde nets son chemin jusqu'au pont, les appareils qui dépendent de lui et, au
+  choix, ses voisins entendus, et estompe tout le reste. La fiche d'un nœud se range en quatre colonnes
+  (identité, chemin, dépendants, résumé des voisins entendus), son historique montre les liens qui comptent dans
+  une large bande, et le journal regroupe par heure les changements de chemin et de parent d'un appareil, avec les
+  relais par lesquels il est passé.
+- « Identifier », dans la fiche d'un nœud, fait clignoter l'appareil, par le pont Hue (jamais par la sonde).
 - Mises à jour automatiques (Sparkle 2) : recherche au démarrage puis toutes les 24 heures, téléchargement et
   installation à la fermeture de l'app, ou tout de suite par « Installer et relancer ». « Rechercher les mises à
   jour… » est dans le menu ; Réglages, Général, « Mises à jour », permet de les arrêter.
