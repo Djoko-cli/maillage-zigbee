@@ -77,7 +77,7 @@ struct ReperesFicheTests {
         for (c, periode) in [(c24, PeriodeCourbes.jour), (c7, .semaine)] {
             let vue = GrapheQualite(courbes: c.liens, debut: c.debut, fin: c.fin, reperes: CourbesFiche.reperes(c),
                                     titre: CourbesFiche.titreQualite(c), cles: c.prioritaires, noms: [:],
-                                    nomCourbe: { $0 }, periode: periode, enAvant: .constant(nil))
+                                    nomCourbe: { $0 }, periode: periode)
                 .frame(width: 800, height: 260)
                 .environment(\.capturePieces, true)
             let rendu = ImageRenderer(content: vue)
@@ -93,7 +93,7 @@ struct ReperesFicheTests {
         let vue = GrapheQualite(courbes: [CourbeLien(id: "x", points: points)], debut: debut, fin: fin,
                                 reperes: [ChangementParent(date: debut.addingTimeInterval(7200), parent: "p")],
                                 titre: "Qualité", cles: ["x"], noms: ["p": "Parent"], nomCourbe: { _ in "Courbe" },
-                                periode: .jour, enAvant: .constant("x"))
+                                periode: .jour)
             .frame(width: 800, height: 260)
             .environment(\.capturePieces, true)
         #expect(ImageRenderer(content: vue).cgImage != nil)

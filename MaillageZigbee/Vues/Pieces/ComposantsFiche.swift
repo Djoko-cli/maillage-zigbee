@@ -177,24 +177,50 @@ struct GrilleListe: Layout {
     }
 }
 
-/// La pastille compacte d'un noeud : un point de couleur (la qualite de son lien) et son nom ; un clic le choisit.
+/// La pastille compacte d'un noeud : un point de couleur (la qualite de son lien, ou la couleur de sa courbe) et son nom ;
+/// un clic le choisit. La couleur ne porte jamais seule le sens : pour VoiceOver, le point est masque, `valeur` dit ce
+/// qu'il veut dire (la qualite du lien), `indice` ce que le clic fait, et une pastille `enAvant` est annoncee choisie.
 struct PastilleNoeud: View {
     let nom: String
     let couleur: Color
+    /// Ce que le point de couleur dit (« qualité du lien : bonne ») ; nil, rien.
+    var valeur: String?
+    /// Ce que le clic fait, lu par VoiceOver ; nil, rien.
+    var indice: String?
+    /// La pastille est mise en avant (la courbe de la legende, choisie) : annoncee comme selectionnee.
+    var enAvant = false
     var action: (() -> Void)?
 
     var body: some View {
         let contenu = HStack(spacing: 4) {
-            Circle().fill(couleur).frame(width: 7, height: 7)
+            Circle().fill(couleur).frame(width: 7, height: 7).accessibilityHidden(true)
             Text(verbatim: nom).font(.caption).lineLimit(1)
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
         .background(Capsule().fill(Color.primary.opacity(0.09)))
-        if let action {
-            Button(action: action) { contenu }.buttonStyle(.plain)
-        } else {
-            contenu
+        .accessibilityElement(children: .combine)
+        Group {
+            if let action {
+                Button(action: action) { contenu }.buttonStyle(.plain)
+            } else {
+                contenu
+            }
+        }
+        .accessibilityValue(valeur ?? "")
+        .accessibilityHint(indice ?? "")
+        .accessibilityAddTraits(enAvant ? .isSelected : [])
+    }
+}
+
+extension NiveauQualite {
+    /// Le nom du niveau, lu par VoiceOver (la couleur d'un lien ne le dit pas seule).
+    var nom: String {
+        switch self {
+        case .bonne: String(localized: "bonne")
+        case .moyenne: String(localized: "moyenne")
+        case .faible: String(localized: "faible")
+        case .inconnue: String(localized: "inconnue")
         }
     }
 }

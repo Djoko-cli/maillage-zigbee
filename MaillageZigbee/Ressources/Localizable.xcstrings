@@ -1,6 +1,22 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "%@ : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : %2$@"
+          }
+        }
+      }
+    },
     "%@ : %@ %lld/%lld…" : {
       "localizations" : {
         "en" : {
@@ -2525,6 +2541,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maison indisponible pour Passeur Noms."
+          }
+        }
+      }
+    },
+    "Met la courbe en avant ; un second clic rend les autres" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights this curve; click again to bring the others back"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Met la courbe en avant ; un second clic rend les autres"
           }
         }
       }
@@ -5489,6 +5521,22 @@
         }
       }
     },
+    "pas vu par la sonde" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not seen by the probe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pas vu par la sonde"
+          }
+        }
+      }
+    },
     "passe complémentaire" : {
       "localizations" : {
         "en" : {
@@ -5597,6 +5645,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "qualité %lld"
+          }
+        }
+      }
+    },
+    "qualité du lien : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "link quality: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "qualité du lien : %@"
           }
         }
       }

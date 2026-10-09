@@ -42,6 +42,16 @@ struct FocusFicheTests {
         #expect(m.selection == nil && m.miseEnAvant == nil && m.noeudsEstompes.isEmpty && m.liensEstompes.isEmpty)
     }
 
+    /// Le nom d'un noeud estompe se lit au survol : sous le focus, un nom fort (survole) reste a 80 % au moins ; les
+    /// autres suivent leur noeud.
+    @Test func nomSurvoleSousLeFocus() {
+        let estompe = MiseEnAvant.opaciteEstompee
+        #expect(RenduCanvas.facteurNom(estompe, fort: true) == RenduCanvas.opaciteNomFort)
+        #expect(RenduCanvas.facteurNom(estompe, fort: false) == estompe)
+        #expect(RenduCanvas.facteurNom(1, fort: true) == 1 && RenduCanvas.facteurNom(1, fort: false) == 1)
+        #expect(RenduCanvas.facteurNom(0.9, fort: true) == 0.9, "jamais plus estompe qu'avant, ni plus net que le noeud net")
+    }
+
     /// Un clic sur un noeud le choisit ; un second clic sur lui le relache (la vue normale) ; un clic sur un autre noeud
     /// change le focus ; un clic dans le vide le relache.
     @Test func secondClicEtVide() throws {
@@ -154,6 +164,27 @@ struct FocusFicheTests {
                 == String(localized: "1 routeur"))
     }
 
+    /// « pas vu par la sonde » (le noeud n'est pas dans le maillage qu'elle a releve) se distingue de « aucun » (vu, sans
+    /// dependant ni voisin) ; la pastille d'un dependant dit sa qualite a VoiceOver, et celle du coordinateur se reduit
+    /// dans une colonne etroite au lieu de deborder.
+    @Test func vuParLaSondeEtAccessibilite() {
+        let m = MaillageDemo.maillage
+        #expect(FicheNoeud.vuParLaSonde(I.lampeChambre, maillage: m) && FicheNoeud.vuParLaSonde(I.pont, maillage: m))
+        #expect(!FicheNoeud.vuParLaSonde("A0000000000000EE", maillage: m), "connu du pont ou de Maison seulement")
+        #expect(!FicheNoeud.vuParLaSonde(I.lampeChambre, maillage: nil))
+        #expect(String(localized: "pas vu par la sonde") != String(localized: "aucun"))
+        #expect(FicheNoeud.valeurPastille(qualite: 3) == String(localized: "qualité du lien : \(String(localized: "bonne"))"))
+        #expect(FicheNoeud.valeurPastille(qualite: 0) == String(localized: "qualité du lien : \(String(localized: "faible"))"))
+        #expect(FicheNoeud.valeurPastille(qualite: nil) == String(localized: "qualité du lien : \(String(localized: "inconnue"))"))
+        #expect(Set([NiveauQualite.bonne, .moyenne, .faible, .inconnue].map(\.nom)).count == 4)
+        let chef = NSHostingController(rootView: PastilleChef())
+        let naturelle = chef.sizeThatFits(in: CGSize(width: 1000, height: 100)).width
+        let etroite = chef.sizeThatFits(in: CGSize(width: 150, height: 100))
+        #expect(naturelle > 150 && etroite.width <= 150.5, "la pastille se reduit : \(etroite.width) pt pour \(naturelle) pt")
+        let haute = chef.sizeThatFits(in: CGSize(width: 1000, height: 100)).height
+        #expect(etroite.height <= haute, "toujours sur une ligne (le texte reduit est un peu moins haut) : \(etroite.height) pt")
+    }
+
     /// La fiche : sa liste de voisins depliee est plus haute que repliee (repliee par defaut) ; dans une fenetre etroite,
     /// les colonnes passent sur deux rangees, la fiche est plus haute.
     @Test func ficheRepliableEtEtroite() throws {
@@ -198,7 +229,17 @@ struct FocusFicheTests {
         let p = try #require(un.first?.point)
         #expect(GrapheQualite.ligneSurvol("Pont Hue", p) == String(localized: "\("Pont Hue") : LQI \(Int(try #require(p.lqi).rounded()))"))
         #expect(GrapheQualite.ligneSurvol("X", PointCourbe(date: heure, valeur: 2, troncon: 0))
-                == "X : " + String(localized: "moyenne"))
+                == String(localized: "\("X") : \(String(localized: "moyenne"))"), "sans LQI : par une cle du catalogue")
+        // Plus de huit courbes (« tous les liens ») : les couleurs se repetent, le trait change ; le graphe garde la
+        // courbe mise en avant dans son etat, refait par un autre noeud, une autre periode ou la case.
+        #expect(CourbesFiche.tirets(0).isEmpty && CourbesFiche.tirets(7).isEmpty)
+        #expect(!CourbesFiche.tirets(8).isEmpty && CourbesFiche.tirets(8) != CourbesFiche.tirets(16))
+        #expect(CourbesFiche.couleur(8) == CourbesFiche.couleur(0) && CourbesFiche.tirets(8) != CourbesFiche.tirets(0))
+        let base = CourbesFiche.identiteGraphe(id: I.lampeBureau, tous: false, periode: .jour)
+        #expect(base == CourbesFiche.identiteGraphe(id: I.lampeBureau, tous: false, periode: .jour))
+        #expect(base != CourbesFiche.identiteGraphe(id: I.lampeChambre, tous: false, periode: .jour))
+        #expect(base != CourbesFiche.identiteGraphe(id: I.lampeBureau, tous: true, periode: .jour))
+        #expect(base != CourbesFiche.identiteGraphe(id: I.lampeBureau, tous: false, periode: .semaine))
         // Un appareil final : une seule courbe, vers son parent, et son changement de parent en repere.
         let abri = CourbesNoeud(cle: I.detecteurAbri, releves: h, periode: .jour, fin: MaillageDemo.fin)
         #expect(ChoixCourbes.montrees(cles: abri.liens.map(\.id), prioritaires: abri.prioritaires, tous: false)

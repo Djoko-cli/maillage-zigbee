@@ -233,12 +233,13 @@ struct FicheNoeud: View {
         return VStack(alignment: .leading, spacing: 6) {
             TitreColonne(titre: "Dépendants")
             if dependants.isEmpty {
-                Text("aucun").font(.caption).foregroundStyle(.secondary)
+                texteAucun(vu: Self.vuParLaSonde(id, maillage: entree?.maillage))
             } else {
                 Text(Self.ligneDependants(dependants)).font(.caption).foregroundStyle(.secondary)
                 RangeesFluides {
                     ForEach(dependants) { d in
-                        PastilleNoeud(nom: surveillance.nom(d.id), couleur: Self.palette.lienSonde(d.qualite)) {
+                        PastilleNoeud(nom: surveillance.nom(d.id), couleur: Self.palette.lienSonde(d.qualite),
+                                      valeur: Self.valeurPastille(qualite: d.qualite)) {
                             choisir(d.id)
                         }
                     }
@@ -257,7 +258,7 @@ struct FicheNoeud: View {
         return VStack(alignment: .leading, spacing: 5) {
             TitreColonne(titre: "Voisins entendus")
             if voisins.isEmpty {
-                Text("aucun").font(.caption).foregroundStyle(.secondary)
+                texteAucun(vu: Self.vuParLaSonde(id, maillage: m))
             } else {
                 Text(Self.ligneResume(resume)).font(.caption)
                 BarreRepartition(parts: resume.parts.map { (Self.palette.couleur($0.niveau), $0.nombre) })
@@ -424,6 +425,26 @@ struct FicheNoeud: View {
     /// « qualite 3 » ; « qualite inconnue » sans mesure.
     static func texteQualite(_ q: Int?) -> String {
         q.map { String(localized: "qualité \($0)") } ?? String(localized: "qualité inconnue")
+    }
+
+    /// La sonde a vu le noeud : il est dans le maillage qu'elle a releve. Un appareil que seuls le pont ou Maison
+    /// connaissent n'y est pas : ses dependants et ses voisins ne sont pas « aucun », la sonde ne les connait pas.
+    static func vuParLaSonde(_ id: String, maillage: MaillageZigbee?) -> Bool { maillage?.noeud(id) != nil }
+
+    /// Une colonne vide : « aucun » si la sonde a vu le noeud (il n'a ni dependant ni voisin), « pas vu par la sonde »
+    /// sinon.
+    @ViewBuilder
+    private func texteAucun(vu: Bool) -> some View {
+        if vu {
+            Text("aucun").font(.caption).foregroundStyle(.secondary)
+        } else {
+            Text("pas vu par la sonde").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    /// Ce que le point de couleur d'une pastille de dependant dit a VoiceOver : « qualité du lien : bonne ».
+    static func valeurPastille(qualite: Int?) -> String {
+        String(localized: "qualité du lien : \(NiveauQualite(qualite).nom)")
     }
 
     /// Un LQI : « 182 » seul, « ? » inconnu ; sinon « (LQI 182) », rien d'inconnu.
@@ -607,13 +628,15 @@ private struct FondDeFiche: ViewModifier {
 
 /// « 👑 Coordinateur du réseau Zigbee », sous le nom du noeud couronne (polissage B, section 3 ; maquette de la
 /// fiche, `.chef`) : 10,5 pt, marges de 2 x 8 pt, en capsule, sur une ligne : les colonnes de la fiche, serrees dans
-/// une fenetre etroite, ne la font pas passer a la ligne.
+/// une fenetre etroite, ne la font pas passer a la ligne. La plus etroite des quatre colonnes fait environ 190 pt : le
+/// texte se reduit alors, jusqu'a 70 %, au lieu de deborder sur la colonne voisine.
 struct PastilleChef: View {
     var body: some View {
         Text("👑 Coordinateur du réseau Zigbee")
             .font(.system(size: 10.5))
             .foregroundStyle(Palette.texteChef)
-            .fixedSize(horizontal: true, vertical: false)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(Capsule().fill(Palette.jauneChef.opacity(0.16)))

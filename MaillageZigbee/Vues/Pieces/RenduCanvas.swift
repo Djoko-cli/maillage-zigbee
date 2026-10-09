@@ -244,7 +244,7 @@ enum RenduCanvas {
     private static func aligner(_ v: CGFloat, _ echelle: Double) -> CGFloat { (v * echelle).rounded() / echelle }
 
     /// Noms poses : immobiles, alignes sur les pixels ; en mouvement, a leur place fractionnaire. En mode focus, le nom
-    /// d'un noeud estompe s'estompe avec lui.
+    /// d'un noeud estompe s'estompe avec lui, sauf survole (`facteurNom`).
     private static func dessinerNoms(_ ctx: inout GraphicsContext, _ image: ImagePieces, _ palette: Palette,
                                      _ cache: CacheTextes) {
         let e = image.echelle
@@ -257,7 +257,7 @@ enum RenduCanvas {
             switch l.genre {
             case .noeud(let id):
                 guard let libelle = image.textes.noeuds[id] else { continue }
-                g.opacity *= image.projetee.facteur(noeud: id)
+                g.opacity *= Self.facteurNom(image.projetee.facteur(noeud: id), fort: l.fort)
                 let routeur = image.routeurs.contains(id)
                 let texte = cache.resolu(g, "n|\(routeur)|\(l.fort)|" + libelle.texte, echelle: e) {
                     texteNom(libelle.texte, routeur: routeur, fort: l.fort, palette: palette)
@@ -315,6 +315,15 @@ enum RenduCanvas {
 
     /// Le texte du nom d'un noeud : 12 points pour un routeur, 11 pour un appareil ; semi-gras et blanc au survol
     /// et a la selection. La legende le reprend (la couronne, la lune, des candidats).
+    /// Opacite minimale du nom survole ou choisi sous le mode focus : on survole un noeud estompe justement pour lire son
+    /// nom avant de cliquer.
+    static let opaciteNomFort = 0.8
+
+    /// Le facteur d'opacite du mode focus pour le nom d'un noeud : celui du noeud, mais un nom fort (survole) reste lisible.
+    static func facteurNom(_ facteur: Double, fort: Bool) -> Double {
+        fort ? max(facteur, opaciteNomFort) : facteur
+    }
+
     static func texteNom(_ texte: String, routeur: Bool, fort: Bool, palette: Palette) -> Text {
         StylesNoms.noeud(texte, routeur: routeur, fort: fort).foregroundStyle(fort ? .white : palette.texteNom)
     }

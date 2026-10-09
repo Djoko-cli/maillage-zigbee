@@ -22,9 +22,6 @@ struct CourbesFiche: View {
     @Environment(\.periodeCapture) private var periodeCapture
     /// La case « tous les liens » : toutes les courbes, et non les six du chemin et des dependants.
     @State private var tous = false
-    /// La courbe mise en avant par sa pastille ; nil, aucune.
-    @State private var enAvant: String?
-
     private var periode: PeriodeCourbes { periodeCapture ?? periodeChoisie }
 
     /// Hauteur des graphes de la bande (pt).
@@ -76,7 +73,8 @@ struct CourbesFiche: View {
                     if !montrees.isEmpty {
                         GrapheQualite(courbes: c.liens, debut: c.debut, fin: c.fin, reperes: Self.reperes(c),
                                       titre: Self.titreQualite(c), cles: montrees, noms: noms,
-                                      nomCourbe: { Self.nomLien($0, noms) }, periode: periode, enAvant: $enAvant)
+                                      nomCourbe: { Self.nomLien($0, noms) }, periode: periode)
+                            .id(Self.identiteGraphe(id: id, tous: tous, periode: periode))
                     }
                     if !c.signal.isEmpty {
                         GrapheSignal(c: c, noms: noms, periode: periode)
@@ -88,12 +86,14 @@ struct CourbesFiche: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .onChange(of: id) {
-            tous = false
-            enAvant = nil
-        }
-        .onChange(of: tous) { enAvant = nil }
-        .onChange(of: periodeChoisie) { enAvant = nil }
+        .onChange(of: id) { tous = false }
+    }
+
+    /// L'identite du graphe de qualite : un autre noeud, la case « tous les liens » ou une autre periode le refont, et la
+    /// courbe mise en avant (l'etat du graphe) s'efface. Cliquer une pastille ne change que cet etat : seul le graphe se
+    /// recalcule, non l'historique de la periode (relecture de l'etape 5, Mineur 4).
+    static func identiteGraphe(id: String, tous: Bool, periode: PeriodeCourbes) -> String {
+        "\(id)|\(tous)|\(periode.rawValue)"
     }
 
     static func titre(_ p: PeriodeCourbes) -> String {
@@ -140,6 +140,16 @@ struct CourbesFiche: View {
     ]
 
     static func couleur(_ rang: Int) -> Color { couleurs[rang % couleurs.count] }
+
+    /// Le motif du trait de la courbe de rang `rang` : plein pour les huit premieres, puis les couleurs se repetent
+    /// (« tous les liens ») avec un trait tirete, puis pointille, pour que deux courbes de meme couleur se distinguent.
+    static func tirets(_ rang: Int) -> [CGFloat] {
+        switch rang / couleurs.count {
+        case 0: []
+        case 1: [5, 3]
+        default: [1.5, 2.5]
+        }
+    }
 
     /// Troncons d'un seul point : une ligne a besoin de deux points, ceux-la sont dessines en point
     /// (juste apres la premiere tournee, ou un point isole entre deux trous ; ajout du controleur,
@@ -193,7 +203,9 @@ struct GrapheQualite: View {
     /// Le nom d'une courbe (sa pastille de legende et son etiquette de survol), par sa cle.
     let nomCourbe: (String) -> String
     let periode: PeriodeCourbes
-    @Binding var enAvant: String?
+    /// La courbe mise en avant par sa pastille ; nil, aucune. L'etat est celui du graphe : le parent le refait (`id`) a
+    /// un autre noeud, une autre periode ou un autre choix de courbes.
+    @State private var enAvant: String?
     /// L'heure du releve sous le pointeur ; nil, ailleurs.
     @State private var survole: Date?
     /// La date du repere dont la pointe est sous le pointeur ; nil, ailleurs. Jamais en meme temps que `survole`.
@@ -216,7 +228,7 @@ struct GrapheQualite: View {
     /// Une ligne du survol : « Lampe bureau : LQI 182 » ; sans LQI, le nom de sa qualite.
     static func ligneSurvol(_ nom: String, _ p: PointCourbe) -> String {
         if let lqi = p.lqi { return String(localized: "\(nom) : LQI \(Int(lqi.rounded()))") }
-        return "\(nom) : \(CourbesFiche.nomQualite(p.valeur))"
+        return String(localized: "\(nom) : \(CourbesFiche.nomQualite(p.valeur))")
     }
 
     /// La courbe mise en avant, si elle est montree (relecture de l'etape 5, I1) ; nil, aucune.
@@ -241,7 +253,9 @@ struct GrapheQualite: View {
             Text(verbatim: titre).font(.caption).foregroundStyle(.secondary)
             RangeesFluides {
                 ForEach(cles, id: \.self) { k in
-                    PastilleNoeud(nom: nomCourbe(k), couleur: CourbesFiche.couleur(rangs[k] ?? 0)) {
+                    PastilleNoeud(nom: nomCourbe(k), couleur: CourbesFiche.couleur(rangs[k] ?? 0),
+                                  indice: String(localized: "Met la courbe en avant ; un second clic rend les autres"),
+                                  enAvant: miseEnAvant == k) {
                         enAvant = ChoixCourbes.basculer(enAvant, k)
                     }
                     .opacity(opacite(k) < 1 ? 0.45 : 1)
@@ -256,7 +270,8 @@ struct GrapheQualite: View {
                         LineMark(x: .value("Heure", p.date), y: .value("Qualité", p.valeur + ecart),
                                  series: .value("Tronçon", "\(l.id)#\(p.troncon)"))
                             .foregroundStyle(couleur)
-                            .lineStyle(StrokeStyle(lineWidth: miseEnAvant == l.id ? 2.6 : 1.6))
+                            .lineStyle(StrokeStyle(lineWidth: miseEnAvant == l.id ? 2.6 : 1.6,
+                                                   dash: CourbesFiche.tirets(rangs[l.id] ?? 0)))
                             .interpolationMethod(.stepEnd)
                         if seuls.contains(p.troncon) {
                             PointMark(x: .value("Heure", p.date), y: .value("Qualité", p.valeur + ecart))

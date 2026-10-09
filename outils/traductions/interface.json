@@ -382,5 +382,9 @@
   "Identification…": "Identifying…",
   "Fait clignoter l'appareil, par le pont Hue, pour le repérer": "Makes the device blink, through the Hue bridge, so you can spot it",
   "Cet appareil n'est pas connu du pont.": "The bridge does not know this device.",
-  "Pont non lié : liez-le d'abord dans les Réglages.": "Bridge not linked: link it first in Settings."
+  "Pont non lié : liez-le d'abord dans les Réglages.": "Bridge not linked: link it first in Settings.",
+  "%@ : %@": "%1$@: %2$@",
+  "Met la courbe en avant ; un second clic rend les autres": "Highlights this curve; click again to bring the others back",
+  "pas vu par la sonde": "not seen by the probe",
+  "qualité du lien : %@": "link quality: %@"
 }
