@@ -139,7 +139,9 @@ extension MoteurPieces {
         }
     }
 
-    private func avancer(_ now: Double) {
+    /// Une image de l'horloge du moteur, a l'heure `now` (`MoteurPieces.maintenant()`) : avance la camera, les parts
+    /// propres et l'estompement du mode focus. Les tests l'appellent avec une heure choisie.
+    func avancer(_ now: Double) {
         dt = instant.map { min(0.1, max(0, now - $0)) } ?? 0
         instant = now
         let basculait = envol != nil || fondu != nil

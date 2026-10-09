@@ -119,7 +119,7 @@ struct ReperesCourbeTests {
 
     /// Sur l'historique de la demo : la lampe du bureau hesite onze fois (dix changements 15 min l'un de l'autre, puis le
     /// passage au lampadaire 10 h avant la fin). Sur 24 h, ils se fondent deux a deux ; sur 7 j, en un seul repere
-    /// dont la bulle liste six lignes et « 5 autres », puis un repere isole.
+    /// dont la bulle liste six lignes et « 4 autres » (dix changements moins six), puis un repere isole.
     @Test func demoDuBureau() {
         let c = CourbesNoeud(cle: I.lampeBureau, releves: MaillageDemo.historique, periode: .jour, fin: MaillageDemo.fin)
         #expect(c.chemins.count == 11 && c.chemins.last?.parent == I.lampadaireSalon)

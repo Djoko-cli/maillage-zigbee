@@ -72,20 +72,33 @@ struct FocusFicheTests {
         #expect(m.selection == nil && m.miseEnAvant == nil, "clic dans le vide")
     }
 
-    /// L'estompement va en douceur : l'horloge continue tant qu'il est en route, et il arrive a sa cible.
+    /// L'estompement va en douceur : l'horloge continue tant qu'il est en route (`doitContinuer`), chaque image du moteur
+    /// (`avancer`) l'approche de sa cible sans la depasser, et il arrive : l'horloge peut alors s'arreter.
     @Test func transitionDouce() throws {
         let (m, _) = try MoteurPiecesTests.moteur()
         m.selection = I.lampeChambre
-        #expect(m.focusEnRoute && m.doitContinuer(MoteurPieces.maintenant()))
-        m.dt = 0.05
-        m.noeudsEstompes = MiseEnAvant.tendre(m.noeudsEstompes, vers: m.ciblesFocus.noeuds, k: m.dt * MoteurPieces.vitesseFocus)
+        let debut = MoteurPieces.maintenant()
+        #expect(m.focusEnRoute && m.doitContinuer(debut), "la selection lance l'estompement")
+        #expect(m.noeudsEstompes.isEmpty, "rien n'a encore avance")
+        m.avancer(debut)
+        m.avancer(debut + 0.05)
         let mi = m.noeudsEstompes[I.lampeGrenier] ?? 0
         #expect(mi > 0 && mi < 1, "en route : \(mi)")
-        for _ in 0..<60 {
-            m.noeudsEstompes = MiseEnAvant.tendre(m.noeudsEstompes, vers: m.ciblesFocus.noeuds, k: 0.05 * MoteurPieces.vitesseFocus)
-            m.liensEstompes = MiseEnAvant.tendre(m.liensEstompes, vers: m.ciblesFocus.liens, k: 0.05 * MoteurPieces.vitesseFocus)
+        #expect(m.focusEnRoute && m.doitContinuer(debut + 0.05))
+        var avant = mi
+        for i in 2..<80 {
+            m.avancer(debut + 0.05 * Double(i))
+            let v = m.noeudsEstompes[I.lampeGrenier] ?? 0
+            #expect(v >= avant && v <= 1, "monte sans reculer ni depasser sa cible : \(avant) puis \(v)")
+            avant = v
         }
-        #expect(!m.focusEnRoute, "arrive en 3 s au plus")
+        #expect(!m.focusEnRoute, "arrive en 4 s au plus")
+        #expect(m.noeudsEstompes == m.ciblesFocus.noeuds && m.liensEstompes == m.ciblesFocus.liens)
+        #expect(m.noeudsEstompes[I.lampeGrenier] == 1)
+        // Le retour (Echap) est aussi doux, et ne garde aucun zero.
+        #expect(m.sortir() && m.focusEnRoute)
+        for i in 80..<160 { m.avancer(debut + 0.05 * Double(i)) }
+        #expect(!m.focusEnRoute && m.noeudsEstompes.isEmpty && m.liensEstompes.isEmpty)
     }
 
     /// Les couleurs des qualites viennent du niveau du coeur : `lienSonde` et `couleur(_:)` disent la meme chose.
