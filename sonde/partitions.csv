@@ -1,0 +1,12 @@
+# Sonde 1.1.0 (spec sonde Wi-Fi, 3.4) : une seule application, agrandie ; pas de
+# mise a jour a distance (flash par l'USB), donc ni app1 ni spiffs.
+# nvs, zb_storage et zb_fct gardent les adresses de zigbee_zczr.csv (sonde 1.0.0) :
+# la sonde reste membre du reseau Hue apres un flash sans effacement.
+# Name,     Type, SubType, Offset,  Size, Flags
+nvs,        data, nvs,     0x9000,  0x5000,
+otadata,    data, ota,     0xe000,  0x2000,
+app0,       app,  ota_0,   0x10000, 0x3DA000,
+zb_storage, data, fat,     0x3EA000,0x4000,
+zb_fct,     data, fat,     0x3EE000,0x1000,
+rcp_fw,     data, spiffs,  0x3EF000,0x1000,
+coredump,   data, coredump,0x3F0000,0x10000,
