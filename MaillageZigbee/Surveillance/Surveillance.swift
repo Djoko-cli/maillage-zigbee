@@ -61,6 +61,10 @@ final class Surveillance {
     /// La tournee qui a produit le maillage affiche a reporte des routes : une passe complementaire les lira
     /// (`SondeMaillage.passeComplementaire`). Relu au lancement avec le maillage garde.
     private(set) var maillageIncomplet = false
+    /// Le maillage affiche est celui relu au lancement (`chargerMaillageGarde`), pas encore remplace par une tournee :
+    /// il se montre quel que soit son age, avec la pastille « ancien » (la peremption de 45 min ne vaut que pour un
+    /// maillage recu pendant que l'app tourne).
+    private(set) var maillageRelu = false
     /// Une tournee de la sonde est en cours (`SondeMaillage.surTournee`) : le maillage affiche attend le suivant, il
     /// n'est pas « ancien ».
     var tourneeEnCours = false
@@ -189,6 +193,7 @@ final class Surveillance {
         maillage = garde.maillage
         maillageRecu = garde.recu
         maillageIncomplet = garde.incomplet
+        maillageRelu = true
     }
 
     /// Garde le maillage recu sur disque, d'un bloc. Un echec est consigne dans le journal du Mac ; le maillage reste
@@ -237,6 +242,7 @@ final class Surveillance {
         maillage = m
         maillageRecu = date
         maillageIncomplet = incomplet
+        maillageRelu = false
         ajouter(suiviMaillage.integrer(m) { [noms] ieee in Self.nom(ieee, noms: noms, sonde: m.sonde) })
         guard mode == .direct else { return }
         let r = ReleveMaillage(m)
@@ -297,6 +303,7 @@ final class Surveillance {
         maillage = nil
         maillageRecu = nil
         maillageIncomplet = false
+        maillageRelu = false
         if let fichierMaillage { try? FileManager.default.removeItem(at: fichierMaillage) }
         suiviMaillage = SuiviMaillage()
         parentsConnus = ParentsConnus()
@@ -410,12 +417,14 @@ final class Surveillance {
         return age <= ageFrais || tourneeEnCours ? .frais : .ancien
     }
 
-    /// Fraicheur du maillage de la sonde a `maintenant` ; nil sans maillage.
+    /// Fraicheur du maillage de la sonde a `maintenant` ; nil sans maillage. Un maillage relu au lancement n'est jamais
+    /// perime : au-dela de 45 min il reste « ancien » jusqu'a la premiere tournee qui le remplace.
     func fraicheurMaillage(a maintenant: Date) -> Fraicheur? {
-        maillageRecu.map { Self.fraicheur($0, maintenant: maintenant, tourneeEnCours: tourneeEnCours) }
+        let f = maillageRecu.map { Self.fraicheur($0, maintenant: maintenant, tourneeEnCours: tourneeEnCours) }
+        return maillageRelu && f == .perime ? .ancien : f
     }
 
-    /// Le maillage a montrer ; nil sans sonde ou s'il est perime.
+    /// Le maillage a montrer ; nil sans sonde ou s'il est perime (sauf celui relu au lancement).
     var maillageAffiche: MaillageZigbee? {
         guard let m = maillage, fraicheurMaillage(a: maintenant) != .perime else { return nil }
         return m

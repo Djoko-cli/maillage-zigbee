@@ -168,6 +168,28 @@ struct SurveillanceTests {
         #expect(suivant.maillageRecu == recu.addingTimeInterval(900) && !suivant.maillageIncomplet)
     }
 
+    /// Un maillage relu au lancement est montre quel que soit son age (apres une nuit, c'est le cas vise), avec la
+    /// pastille « ancien », jusqu'a la premiere tournee qui le remplace ; la peremption de 45 min reprend ensuite pour
+    /// un maillage recu pendant que l'app tourne.
+    @Test func maillageReluMontreQuelQueSoitSonAge() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let recu = Date(timeIntervalSince1970: 1_790_000_000)
+        Surveillance(mode: .direct, dossier: dossier).recevoir(MaillageDemo.maillage, a: recu)
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        s.demarrer()
+        defer { s.arreter() }
+        let nuit = recu.addingTimeInterval(10 * 3600)
+        #expect(s.fraicheurMaillage(a: nuit) == .ancien, "jamais perime tant qu'il est relu")
+        #expect(Surveillance.fraicheur(recu, maintenant: nuit) == .perime, "la regle normale, elle, ne change pas")
+        #expect(s.maillageRelu && s.maillageAffiche == MaillageDemo.maillage && s.aUnReseau)
+        // La premiere tournee le remplace : la regle des 45 min reprend.
+        s.recevoir(MaillageDemo.maillage, a: Date().addingTimeInterval(-50 * 60))
+        #expect(!s.maillageRelu && s.maillageAffiche == nil, "recu il y a 50 min : perime")
+        s.recevoir(MaillageDemo.maillage, a: Date())
+        #expect(s.maillageAffiche == MaillageDemo.maillage && !s.maillageAncien)
+    }
+
     /// Un fichier du dernier maillage illisible est ignore, sans erreur : comme s'il n'y en avait pas. Le maillage
     /// suivant le remplace.
     @Test func dernierMaillageIllisible() throws {
