@@ -67,6 +67,8 @@ class Portail {
   static constexpr uint8_t kFile = 4;
 
   void ligne(uint8_t c, const uint8_t *l, size_t n, uint32_t maintenant, h1::Table::Random rnd, Sortie &s);
+  // Retire de la file les requetes de l'emplacement slot (place liberee ou reprise), ordre conserve.
+  void purger(uint8_t slot);
 
   h1::Table table_;
   Connexion cx_[kConnexions];

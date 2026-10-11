@@ -75,6 +75,7 @@ struct Client {
 
 const char *kNa1 = "A0A1A2A3A4A5A6A7A8A9AAABACADAEAF";
 const char *kNa2 = "B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF";
+const char *kNa3 = "C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF";
 
 void recevoir(Portail &p, uint8_t c, const std::string &s, uint32_t now, Fausse &f) {
   p.recevoir(c, (const uint8_t *)s.data(), s.size(), now, aleatoire, f);
@@ -228,6 +229,105 @@ int main() {
     CHECK(p.aCle(), "nouvelle cle");
     p.cle(nullptr);
     CHECK(!p.aCle(), "cle effacee");
+  }
+
+  {  // requeteFermee : une requete en file ne survit pas a sa connexion
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    recevoir(p, 0, a.message("2 etat"), 1004, f);
+    p.fermee(0);
+    Portail::Requete r;
+    CHECK(!p.requete(&r), "requete de la connexion fermee purgee");
+  }
+
+  {  // mauvaiseConnexion : une session ne parle que sur la connexion ou elle a ete promue
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    p.ouverte(1);
+    const size_t n0 = f.lignes[0].size(), n1 = f.lignes[1].size();
+    const uint32_t avant = p.refus();
+    recevoir(p, 1, a.message("2 etat"), 1004, f);
+    Portail::Requete r;
+    CHECK(!p.requete(&r), "pas de requete de la mauvaise connexion");
+    CHECK(f.lignes[0].size() == n0 && f.lignes[1].size() == n1, "aucune sortie");
+    CHECK(p.refus() == avant + 1, "refus compte");
+    recevoir(p, 0, a.message("3 etat"), 1008, f);
+    CHECK(p.requete(&r) && r.rid == 3, "la session reste servie sur sa connexion");
+  }
+
+  {  // fermeePuisAutreConnexion : la session tombe avec sa connexion
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    p.fermee(0);
+    p.ouverte(1);
+    const size_t n1 = f.lignes[1].size();
+    const uint32_t avant = p.refus();
+    recevoir(p, 1, a.message("2 etat"), 1004, f);
+    Portail::Requete r;
+    CHECK(!p.requete(&r), "pas de requete apres fermeture");
+    CHECK(f.lignes[1].size() == n1, "aucune sortie");
+    CHECK(p.refus() == avant + 1, "refus compte");
+  }
+
+  {  // placeReprise : la requete d'une session terminee ne part pas avec la place reprise
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle}, b{gCle}, d{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    CHECK(etablir(p, f, b, 1, kNa2, 1100), "b");
+    recevoir(p, 0, a.message("2 etat"), 1200, f);
+    p.fermee(0);
+    p.ouverte(2);
+    const size_t avantD = f.lignes[2].size();
+    recevoir(p, 2, d.salut(kNa3), 2300, f);  // hors de la fenetre des DEFI de a et b
+    CHECK(f.lignes[2].size() == avantD + 1 && d.defi(f.lignes[2].back(), kNa3), "d etablit");
+    recevoir(p, 2, d.message("1 bonjour"), 2301, f);
+    Portail::Requete r;
+    CHECK(p.requete(&r) && r.rid == 1 && r.session == 0 && strcmp(r.commande, "bonjour") == 0,
+          "seule la requete de d");
+    CHECK(!p.requete(&r), "rien d'autre en file");
+  }
+
+  {  // evincee : la requete d'une session evincee ne part pas avec la place prise
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle}, b{gCle}, d{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    CHECK(etablir(p, f, b, 1, kNa2, 1100), "b");
+    recevoir(p, 0, a.message("2 etat"), 1004, f);
+    p.ouverte(2);
+    const size_t avantD = f.lignes[2].size();
+    recevoir(p, 2, d.salut(kNa3), 31010, f);
+    CHECK(f.lignes[2].size() == avantD + 1 && d.defi(f.lignes[2].back(), kNa3), "d etablit");
+    recevoir(p, 2, d.message("1 bonjour"), 31011, f);
+    Portail::Requete r;
+    CHECK(p.requete(&r) && r.rid == 1 && r.session == 0 && strcmp(r.commande, "bonjour") == 0,
+          "requete de d seulement");
+    CHECK(!p.requete(&r), "rien d'autre en file");
+  }
+
+  {  // oubliee : une session expiree ne laisse pas de requete en file
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    recevoir(p, 0, a.message("2 etat"), 1004, f);
+    p.expirer(1004 + h1::kForgetMs);
+    CHECK(p.sessions() == 0, "session oubliee");
+    Portail::Requete r;
+    CHECK(!p.requete(&r), "requete de la session oubliee purgee");
   }
   return bilan("test_portail");
 }

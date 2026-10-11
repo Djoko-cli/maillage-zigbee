@@ -21,9 +21,21 @@ void Portail::fermee(uint8_t c) {
   for (uint8_t i = 0; i < h1::kSlots; i++) {
     if (connexionDe_[i] == c) {
       connexionDe_[i] = kAucune;
+      purger(i);
       table_.end(i);
     }
   }
+}
+
+void Portail::purger(uint8_t slot) {
+  uint8_t k = 0;
+  for (uint8_t i = 0; i < nombre_; i++) {
+    const Requete &r = file_[(debut_ + i) % kFile];
+    if (r.session == slot) continue;
+    if (k != i) file_[(debut_ + k) % kFile] = r;
+    k++;
+  }
+  nombre_ = k;
 }
 
 void Portail::recevoir(uint8_t c, const uint8_t *octets, size_t n, uint32_t maintenant, h1::Table::Random rnd,
@@ -73,7 +85,15 @@ void Portail::ligne(uint8_t c, const uint8_t *l, size_t n, uint32_t maintenant, 
     refus_++;
     return;
   }
-  connexionDe_[slot] = c;
+  // Une session ne parle que sur la connexion ou elle a ete promue : une
+  // place reprise (frais) prend la connexion et perd les requetes de l'ancienne.
+  if (frais) {
+    connexionDe_[slot] = c;
+    purger(slot);
+  } else if (connexionDe_[slot] != c) {
+    refus_++;
+    return;
+  }
   Requete r;
   r.session = slot;
   if (!lireRequete(p.payload, p.payloadLen, &r.rid, r.commande) || nombre_ == kFile) {
@@ -116,7 +136,10 @@ void Portail::diffuser(const uint8_t *ligne, size_t n, Sortie &s) {
 void Portail::expirer(uint32_t maintenant) {
   const uint8_t liberes = table_.expire(maintenant);
   for (uint8_t i = 0; i < h1::kSlots; i++)
-    if (liberes & (1u << i)) connexionDe_[i] = kAucune;
+    if (liberes & (1u << i)) {
+      connexionDe_[i] = kAucune;
+      purger(i);
+    }
 }
 
 uint8_t Portail::sessions() const {
