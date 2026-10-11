@@ -43,6 +43,14 @@ const uint8_t *Ligne::fin(size_t *n) {
   return (const uint8_t *)buf_;
 }
 
+void Ligne::effacer() {
+  // Ecriture volatile : le compilateur ne peut pas la juger inutile.
+  volatile char *p = buf_;
+  for (size_t i = 0; i < sizeof(buf_); i++) p[i] = 0;
+  long_ = 0;
+  trop_ = false;
+}
+
 void ListeDecoupee::commencer(const char *type, const char *entete) {
   type_ = type;
   snprintf(entete_, sizeof(entete_), "%s", entete);

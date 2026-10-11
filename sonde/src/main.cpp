@@ -341,6 +341,7 @@ static void cmdCleNouvelle(const Commande &c) {
   sLigne.debut("cle");
   sLigne.ajoute(",\"id\":%lu,\"cle\":\"%s\",\"empreinte\":\"%s\"", (unsigned long)c.id, hexa, kid);
   finir();
+  sLigne.effacer();  // la ligne partagee a porte la cle en clair
   h1::wipe(cle, sizeof(cle));
   h1::wipe(hexa, sizeof(hexa));
 }

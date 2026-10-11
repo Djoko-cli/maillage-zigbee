@@ -29,6 +29,9 @@ class Ligne {
   // Ferme la ligne (« } » et LF) et rend ses octets, valables jusqu'au
   // prochain debut().
   const uint8_t *fin(size_t *n);
+  // Met tout le tampon a zero (ligne qui a porte un secret) : les octets
+  // rendus par fin() ne sont plus valables.
+  void effacer();
 
  private:
   char buf_[kMax + 1];  // + le 0 final de vsnprintf

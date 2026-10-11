@@ -49,6 +49,25 @@ int main() {
   l.ajoute("c");  // ignore
   CHECK(texte(l) == "\x1E{\"v\":1,\"t\":\"erreur\",\"erreur\":\"ligne trop longue\"}\n", "erreur de debordement");
 
+  // effacer : tout le tampon a zero, y compris apres un debordement.
+  l.debut("cle");
+  l.ajoute(",\"cle\":\"%s\"", "SECRET");
+  size_t nsec = 0;
+  const uint8_t *sec = l.fin(&nsec);
+  CHECK(std::string((const char *)sec, nsec).find("SECRET") != std::string::npos, "secret dans la ligne avant effacer");
+  l.effacer();
+  bool zeros = true;
+  for (size_t i = 0; i < Ligne::kMax + 1; i++) zeros = zeros && sec[i] == 0;
+  CHECK(zeros, "tampon efface");
+  l.debut("x");
+  l.ajoute("%s", plein.c_str());
+  l.ajoute(",\"cle\":\"SECRET\"");
+  CHECK(l.tropLong(), "debordement avec secret");
+  l.effacer();
+  zeros = true;
+  for (size_t i = 0; i < Ligne::kMax + 1; i++) zeros = zeros && sec[i] == 0;
+  CHECK(zeros && !l.tropLong(), "tampon efface apres debordement");
+
   // Liste vide.
   ListeDecoupee liste(l, sortie, nullptr);
   gLignes.clear();
