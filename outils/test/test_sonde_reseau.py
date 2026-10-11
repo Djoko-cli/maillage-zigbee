@@ -1,10 +1,14 @@
 """Tests de outils/sonde_reseau.py : enveloppe H1 (vecteurs du pont Halo,
 benq tools/host_tests/test_h1.cpp), requetes et reponses par le reseau."""
+import contextlib
+import io
 import os
+import socket
 import stat
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import sonde_reseau as sr  # noqa: E402
@@ -68,6 +72,100 @@ class Cle(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(os.stat(chemin).st_mode), 0o600)
             with open(chemin) as f:
                 self.assertEqual(f.read(), cle + "\n")
+
+
+class FauxSocket:
+    """Socket de test : rend les morceaux donnes, puis un timeout (comme une vraie socket sans donnee)."""
+
+    def __init__(self, morceaux):
+        self.morceaux = list(morceaux)
+        self.envoye = b""
+
+    def sendall(self, donnees):
+        self.envoye += donnees
+
+    def settimeout(self, _):
+        pass
+
+    def recv(self, _):
+        if not self.morceaux:
+            raise socket.timeout("aucune donnee")
+        return self.morceaux.pop(0)
+
+
+def scelle(session, ctr, charge):
+    """Ligne H1 telle qu'une sonde la rend (MAC C), pour la session donnee."""
+    mac = sr._mac(session.ks, f"C|{session.sid}|{ctr}|".encode() + charge.encode())
+    return f"H1 {session.sid} {ctr} {mac} {charge}\n".encode()
+
+
+def client_de_test(morceaux):
+    """Client sans poignee de main (la session est posee directement), sur une FauxSocket."""
+    c = sr.Client.__new__(sr.Client)
+    c.s = FauxSocket(morceaux)
+    c.tampon = b""
+    c.session = sr.Session(PSK, NA, "505152535455565758595A5B5C5D5E5F", "1234ABCD")
+    c.rid = 0
+    return c
+
+
+class Reseau(unittest.TestCase):
+    def test_commande_sans_reponse_finale_leve_timeout(self):
+        c = client_de_test([])
+        with self.assertRaises(TimeoutError):
+            c.commande("table 0000 1", delai=0.2)
+
+    def test_commande_liste_coupee_leve_timeout(self):
+        c = client_de_test([])
+        c.s = FauxSocket([scelle(c.session, 1, '1 {"v":1,"t":"table","suite":true}')])
+        with self.assertRaises(TimeoutError):
+            c.commande("table 0000 1", delai=0.2)
+
+    def test_commande_rend_la_reponse_finale(self):
+        c = client_de_test([])
+        c.s = FauxSocket([scelle(c.session, 1, '1 {"v":1,"t":"etat"}')])
+        self.assertEqual(c.commande("etat", delai=0.2), [{"v": 1, "t": "etat"}])
+
+    def test_code_de_sortie_erreur(self):
+        self.assertEqual(sr.code_de_sortie([{"t": "erreur", "erreur": "refuse"}]), 1)
+        self.assertEqual(sr.code_de_sortie([{"t": "etat"}]), 0)
+
+
+class SondeFausse:
+    def __init__(self, reponse):
+        self.reponse = reponse
+
+    def commande(self, texte, types):
+        self.texte = texte
+        return self.reponse
+
+
+class Wifi(unittest.TestCase):
+    def lancer(self, reponse, tty=True):
+        entree = mock.Mock(isatty=mock.Mock(return_value=tty))
+        with mock.patch("sys.stdin", entree), \
+                mock.patch("builtins.input", return_value="Mon Wifi") as saisie, \
+                mock.patch("getpass.getpass", return_value="motdepasse") as secret, \
+                mock.patch.object(sr, "_sonde_usb", return_value=SondeFausse(reponse)), \
+                contextlib.redirect_stdout(io.StringIO()) as sortie:
+            code = sr.cmd_wifi()
+        return code, saisie, secret, sortie.getvalue()
+
+    def test_pas_de_reponse_code_1(self):
+        self.assertEqual(self.lancer(None)[0], 1)
+
+    def test_erreur_code_1(self):
+        self.assertEqual(self.lancer({"t": "erreur", "erreur": "ecriture"})[0], 1)
+
+    def test_configure_code_0(self):
+        self.assertEqual(self.lancer({"t": "wifi", "configure": True})[0], 0)
+
+    def test_sans_terminal_refuse_avant_toute_saisie(self):
+        code, saisie, secret, texte = self.lancer(None, tty=False)
+        self.assertEqual(code, 1)
+        saisie.assert_not_called()
+        secret.assert_not_called()
+        self.assertIn("terminal", texte)
 
 
 if __name__ == "__main__":

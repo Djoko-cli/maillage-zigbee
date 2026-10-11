@@ -122,15 +122,32 @@ def _sonde_usb():
 
 
 def cmd_wifi():
+    """Code de sortie : 0 seulement si la sonde a enregistre le Wi-Fi. Le mot de passe n'est jamais
+    affiche ; sans terminal, getpass l'afficherait : on refuse avant toute saisie."""
+    if not sys.stdin.isatty():
+        print("Refuse : wifi demande le mot de passe au clavier, il faut un terminal (pas de redirection).")
+        return 1
     nom = input("Nom du Wi-Fi (2,4 GHz) : ")
     mdp = getpass.getpass("Mot de passe (vide : reseau ouvert) : ")
     try:
         ligne = ligne_wifi(nom, mdp, 1)
+    except ValueError as e:
+        print("Wi-Fi non envoye :", e)
+        return 1
     finally:
         mdp = None
     r = _sonde_usb().commande(ligne, ("wifi", "erreur"))
     del ligne
-    print("Wi-Fi :", "enregistre, la sonde redemarre" if r and r.get("configure") else r)
+    if isinstance(r, dict) and r.get("configure") is True:
+        print("Wi-Fi : enregistre, la sonde redemarre")
+        return 0
+    if r is None:
+        print("Wi-Fi : pas de reponse de la sonde")
+    elif r.get("t") == "erreur":
+        print("Wi-Fi : refuse par la sonde, erreur", r.get("erreur"))
+    else:
+        print("Wi-Fi : reponse inattendue", r)
+    return 1
 
 
 def cmd_cle():
@@ -181,15 +198,19 @@ class Client:
         return ligne.decode()
 
     def commande(self, texte, delai=15.0):
-        """Lignes JSON de la reponse (jusqu'a "suite": false pour une liste)."""
+        """Lignes JSON de la reponse, jusqu'a la ligne finale (sans "suite": true). Leve TimeoutError si
+        cette ligne n'arrive pas avant l'echeance : une liste coupee n'est jamais rendue comme complete."""
         self.rid += 1
         self._ecrire(self.session.sceller(f"{self.rid} {texte}"))
         lignes, fin = [], time.time() + delai
-        while time.time() < fin:
+        while True:
+            restant = fin - time.time()
+            if restant <= 0:
+                raise TimeoutError("pas de reponse finale de la sonde")
             try:
-                charge = self.session.ouvrir(self._lire(max(0.1, fin - time.time())))
+                charge = self.session.ouvrir(self._lire(max(0.1, restant)))
             except socket.timeout:
-                break
+                raise TimeoutError("pas de reponse finale de la sonde") from None
             r = couper_rid(charge) if charge else None
             if not r or r[0] != self.rid:
                 continue
@@ -197,7 +218,6 @@ class Client:
             lignes.append(j)
             if not j.get("suite"):
                 return lignes
-        return lignes
 
     def ecouter(self, secondes):
         n, fin = 0, time.time() + secondes
@@ -215,6 +235,11 @@ class Client:
 def _psk():
     with open(FICHIER_CLE) as f:
         return bytes.fromhex(f.read().strip())
+
+
+def code_de_sortie(lignes):
+    """1 si la sonde a repondu par une erreur (refus, echec), 0 sinon."""
+    return 1 if any(j.get("t") == "erreur" for j in lignes) else 0
 
 
 def main(argv):
@@ -251,9 +276,17 @@ def main(argv):
     else:
         print(__doc__)
         return 2
-    for j in c.commande(texte, delai=130.0 if argv[0] in ("table", "routes") else 15.0):
+    try:
+        lignes = c.commande(texte, delai=130.0 if argv[0] in ("table", "routes") else 15.0)
+    except TimeoutError:
+        print("pas de reponse de la sonde")
+        return 1
+    except OSError as e:
+        print("connexion interrompue :", e)
+        return 1
+    for j in lignes:
         print(json.dumps(j, ensure_ascii=False))
-    return 0
+    return code_de_sortie(lignes)
 
 
 if __name__ == "__main__":
