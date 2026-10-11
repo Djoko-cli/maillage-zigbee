@@ -937,7 +937,7 @@ int main() {
     CHECK(etablir(p, f, cl, 0, kNa1, 1000), "session etablie");
     CHECK(p.sessions() == 1, "une session");
     Portail::Requete r;
-    recevoir(p, 0, cl.message("2 table 1A2B 5"), 1002, f);
+    recevoir(p, 0, cl.message("2 table 1A2B 5"), 1004, f);
     CHECK(p.requete(&r) && r.rid == 2 && strcmp(r.commande, "table 1A2B 5") == 0, "requete table");
     CHECK(!p.requete(&r), "file vide");
     const char *l = "\x1e{\"v\":1,\"t\":\"etat\"}\n";
@@ -996,7 +996,7 @@ int main() {
     Client cl{gCle};
     CHECK(etablir(p, f, cl, 0, kNa1, 1000), "session");
     const size_t avant = f.lignes[0].size();
-    recevoir(p, 0, cl.message("etat"), 1002, f);
+    recevoir(p, 0, cl.message("etat"), 1004, f);
     Portail::Requete r;
     CHECK(!p.requete(&r), "pas de requete");
     CHECK(f.lignes[0].size() == avant, "pas de reponse");
