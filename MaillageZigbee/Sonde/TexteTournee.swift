@@ -64,6 +64,16 @@ enum TexteTournee {
         String(localized: "passe complémentaire à \(heure(d))")
     }
 
+    /// L'indicateur du maillage incomplet, sous la barre : « Maillage incomplet · passe complémentaire à 14:24 » tant
+    /// qu'une passe est programmee, « Maillage incomplet » sans heure quand le maillage affiche est marque incomplet
+    /// (relu au lancement) et qu'aucune passe n'est programmee ; rien sinon, et rien pendant une tournee (sa propre
+    /// ligne a la priorite).
+    static func texteIncomplet(passe: Date?, incomplet: Bool, tourneeEnCours: Bool) -> String? {
+        guard !tourneeEnCours else { return nil }
+        if let passe { return String(localized: "Maillage incomplet · passe complémentaire à \(heure(passe))") }
+        return incomplet ? String(localized: "Maillage incomplet") : nil
+    }
+
     /// « Tournée complète à 19:24 : la sonde a déjà beaucoup servi » : la tournée attend que le budget de pages de la
     /// sonde le permette (sans tables de voisins : « Tournée à 19:24 : … »).
     static func tourneeDifferee(_ t: SondeMaillage.TourneeDifferee) -> String {
