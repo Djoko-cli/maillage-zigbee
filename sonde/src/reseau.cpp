@@ -8,7 +8,9 @@
 #include <esp_random.h>
 #include <esp_sleep.h>
 #include <esp_system.h>
+#include <errno.h>
 #include <esp_wifi.h>
+#include <lwip/sockets.h>
 
 #include "h1_proto.h"
 
@@ -26,6 +28,9 @@ WiFiClient sClients[Portail::kConnexions];
 // Place occupee : un WiFiClient deconnecte vaut false, mais sa place n'est
 // liberee (Portail::fermee) qu'ici.
 bool sOccupe[Portail::kConnexions] = {};
+// Connexion coupee par envoyer() (ecriture incomplete) : Portail::fermee n'est
+// appelee qu'au tour suivant, jamais depuis l'interieur d'une methode du Portail.
+bool sAFermer[Portail::kConnexions] = {};
 bool sDemarre = false;
 bool sMdns = false;
 char sNomSonde[33] = {0};
@@ -41,13 +46,19 @@ void aleatoire(void *p, size_t n) { esp_fill_random(p, n); }
 struct SortieTcp : Portail::Sortie {
   void envoyer(uint8_t c, const uint8_t *o, size_t n) override {
     if (c >= Portail::kConnexions || !sOccupe[c]) return;
-    if (sClients[c].write(o, n) != n) sEchecs++;
+    if (sClients[c].write(o, n) != n) {
+      sEchecs++;
+      sClients[c].stop();
+      sOccupe[c] = false;
+      sAFermer[c] = true;
+    }
   }
   // Appele par Portail, qui fait lui-meme sa fermee().
   void fermer(uint8_t c) override {
     if (c >= Portail::kConnexions) return;
     sClients[c].stop();
     sOccupe[c] = false;
+    sAFermer[c] = false;
   }
 };
 SortieTcp sSortie;
@@ -74,6 +85,17 @@ void annoncer() {
   MDNS.addService("_maillage-zigbee", "_tcp", kPort);
   MDNS.addServiceTxt("_maillage-zigbee", "_tcp", "v", "1");
   sMdns = true;
+}
+
+// true si le pair a ferme (FIN lu, ou erreur autre que « rien a lire »).
+bool fermeParLePair(WiFiClient &c) {
+  const int fd = c.fd();
+  if (fd < 0) return true;
+  uint8_t octet;
+  const int r = recv(fd, &octet, 1, MSG_PEEK | MSG_DONTWAIT);
+  if (r > 0) return false;
+  if (r == 0) return true;
+  return errno != EAGAIN && errno != EWOULDBLOCK;
 }
 
 }  // namespace
@@ -132,6 +154,21 @@ void demarrer(const char *nomSonde) {
 void tour(uint32_t maintenant) {
   if (!sDemarre) return;
   annoncer();
+  // Connexions coupees par une ecriture incomplete : le Portail les apprend
+  // avant qu'une place soit reprise.
+  for (uint8_t i = 0; i < Portail::kConnexions; i++) {
+    if (!sAFermer[i]) continue;
+    sAFermer[i] = false;
+    sPortail.fermee(i);
+  }
+  // Fermeture propre du pair (FIN) : connected() la prend pour une connexion
+  // ouverte, recv() rend alors 0.
+  for (uint8_t i = 0; i < Portail::kConnexions; i++) {
+    if (!sOccupe[i] || !fermeParLePair(sClients[i])) continue;
+    sClients[i].stop();
+    sOccupe[i] = false;
+    sPortail.fermee(i);
+  }
   WiFiClient nouveau = sServeur.accept();
   if (nouveau) {
     uint8_t libre = Portail::kAucune;
