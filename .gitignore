@@ -2,6 +2,7 @@
 # (spec de la sonde, section 5).
 sonde/cle_hue.local.h
 outils/sonde.local.json
+outils/cle_reseau.local
 essais/
 garde.local.txt
 
