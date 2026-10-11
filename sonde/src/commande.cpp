@@ -43,6 +43,23 @@ bool lireCourt(const char *s, uint16_t *v) {
   return true;
 }
 
+bool lireHexa(const char *s, uint8_t *out, size_t max, size_t *n) {
+  const size_t l = strlen(s);
+  if (l == 0 || l % 2 != 0 || l / 2 > max) return false;
+  for (size_t i = 0; i < l; i++) {
+    const char c = s[i];
+    if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) return false;
+  }
+  for (size_t i = 0; i < l / 2; i++) {
+    const char a = s[2 * i], b = s[2 * i + 1];
+    const uint8_t ha = (uint8_t)(a <= '9' ? a - '0' : a - 'A' + 10);
+    const uint8_t hb = (uint8_t)(b <= '9' ? b - '0' : b - 'A' + 10);
+    out[i] = (uint8_t)((ha << 4) | hb);
+  }
+  *n = l / 2;
+  return true;
+}
+
 namespace {
 
 constexpr size_t kLigneMax = 255;  // au-dela : syntaxe
@@ -79,6 +96,61 @@ Commande cibleIdDelai(TypeCommande type, char *mots[kMotsMax], size_t n) {
   c.cible = cible;
   c.id = id;
   c.delaiMs = delai;
+  return c;
+}
+
+bool sansNul(const uint8_t *o, size_t n) {
+  for (size_t i = 0; i < n; i++)
+    if (o[i] == 0) return false;
+  return true;
+}
+
+// wifi | wifi efface | wifi <NOM> <MDP | -> <id>
+Commande wifi(char *mots[kMotsMax], size_t n) {
+  Commande c;
+  c.type = TypeCommande::kSyntaxe;
+  if (n == 1) {
+    c.type = TypeCommande::kWifiLire;
+    return c;
+  }
+  if (n == 2 && strcmp(mots[1], "efface") == 0) {
+    c.type = TypeCommande::kWifiEfface;
+    return c;
+  }
+  if (n != 4) return c;
+  size_t nNom = 0, nMdp = 0;
+  uint32_t id;
+  if (!lireHexa(mots[1], c.wifiNom, kWifiNomMax, &nNom) || !sansNul(c.wifiNom, nNom)) return c;
+  if (strcmp(mots[2], "-") != 0) {
+    if (!lireHexa(mots[2], c.wifiMdp, kWifiMdpMax, &nMdp) || nMdp < kWifiMdpMin || !sansNul(c.wifiMdp, nMdp))
+      return c;
+  }
+  if (!lireEntier(mots[3], &id)) return c;
+  c.type = TypeCommande::kWifi;
+  c.wifiNomLong = (uint8_t)nNom;
+  c.wifiMdpLong = (uint8_t)nMdp;
+  c.id = id;
+  return c;
+}
+
+// cle | cle efface | cle nouvelle <64 HEXA> <id>
+Commande cle(char *mots[kMotsMax], size_t n) {
+  Commande c;
+  c.type = TypeCommande::kSyntaxe;
+  if (n == 1) {
+    c.type = TypeCommande::kCleLire;
+    return c;
+  }
+  if (n == 2 && strcmp(mots[1], "efface") == 0) {
+    c.type = TypeCommande::kCleEfface;
+    return c;
+  }
+  if (n != 4 || strcmp(mots[1], "nouvelle") != 0) return c;
+  size_t nAlea = 0;
+  uint32_t id;
+  if (!lireHexa(mots[2], c.alea, kAleaLong, &nAlea) || nAlea != kAleaLong || !lireEntier(mots[3], &id)) return c;
+  c.type = TypeCommande::kCleNouvelle;
+  c.id = id;
   return c;
 }
 
@@ -121,6 +193,8 @@ Commande lireCommande(const char *ligne) {
     strcpy(c.nom, mots[1]);
     return c;
   }
+  if (strcmp(m, "wifi") == 0) return wifi(mots, n);
+  if (strcmp(m, "cle") == 0) return cle(mots, n);
   if (strcmp(m, "table") == 0) return cibleIdDelai(TypeCommande::kTable, mots, n);
 #if SONDE_ROUTES
   if (strcmp(m, "routes") == 0) return cibleIdDelai(TypeCommande::kRoutes, mots, n);

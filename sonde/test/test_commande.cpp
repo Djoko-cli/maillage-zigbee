@@ -107,5 +107,55 @@ int main() {
   longue[sizeof(longue) - 1] = 0;
   CHECK(est(longue, TypeCommande::kSyntaxe), "ligne de 299 caracteres");
 
+  // Hexa
+  uint8_t h[4];
+  size_t hn = 9;
+  CHECK(lireHexa("0A1B", h, 4, &hn) && hn == 2 && h[0] == 0x0A && h[1] == 0x1B, "deux octets");
+  hn = 9;
+  CHECK(!lireHexa("0a1b", h, 4, &hn) && hn == 9, "minuscules refusees");
+  CHECK(!lireHexa("ABC", h, 4, &hn), "impair");
+  CHECK(!lireHexa("", h, 4, &hn), "vide");
+  CHECK(!lireHexa("0011223344", h, 4, &hn), "trop long");
+  CHECK(!lireHexa("0G", h, 4, &hn), "pas hexa");
+
+  // wifi
+  {
+    // « Mon Wifi » / « motdepasse » (inventes)
+    const Commande w = lireCommande("wifi 4D6F6E2057696669 6D6F7464657061737365 7");
+    CHECK(w.type == TypeCommande::kWifi && w.id == 7, "wifi");
+    CHECK(w.wifiNomLong == 8 && memcmp(w.wifiNom, "Mon Wifi", 8) == 0, "nom");
+    CHECK(w.wifiMdpLong == 10 && memcmp(w.wifiMdp, "motdepasse", 10) == 0, "mot de passe");
+  }
+  {
+    const Commande w = lireCommande("wifi 4F7576657274 - 8");
+    CHECK(w.type == TypeCommande::kWifi && w.wifiMdpLong == 0 && w.id == 8, "reseau ouvert");
+  }
+  CHECK(est("wifi", TypeCommande::kWifiLire), "wifi seul");
+  CHECK(est("wifi efface", TypeCommande::kWifiEfface), "wifi efface");
+  CHECK(est("wifi 41 3132333435363738 1", TypeCommande::kWifi), "nom d'un octet, mdp de 8");
+  CHECK(est("wifi 41 31323334353637 1", TypeCommande::kSyntaxe), "mdp de 7");
+  CHECK(est("wifi 4100 3132333435363738 1", TypeCommande::kSyntaxe), "octet nul dans le nom");
+  CHECK(est("wifi 41 3132333435363700 1", TypeCommande::kSyntaxe), "octet nul dans le mdp");
+  CHECK(est("wifi 41 3132333435363738", TypeCommande::kSyntaxe), "sans id");
+  CHECK(est("wifi 41 3132333435363738 1 2", TypeCommande::kSyntaxe), "mot de trop");
+  CHECK(est("wifi efface 1", TypeCommande::kSyntaxe), "efface avec argument");
+  CHECK(est("wifi 4142434445464748494A4B4C4D4E4F505152535455565758595A303132333435 - 1", TypeCommande::kWifi),
+        "nom de 32 octets");
+  CHECK(est("wifi 4142434445464748494A4B4C4D4E4F505152535455565758595A30313233343536 - 1", TypeCommande::kSyntaxe),
+        "nom de 33 octets");
+
+  // cle
+  {
+    const Commande k =
+        lireCommande("cle nouvelle 000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F 3");
+    CHECK(k.type == TypeCommande::kCleNouvelle && k.id == 3 && k.alea[0] == 0x00 && k.alea[31] == 0x1F, "cle nouvelle");
+  }
+  CHECK(est("cle", TypeCommande::kCleLire), "cle seule");
+  CHECK(est("cle efface", TypeCommande::kCleEfface), "cle efface");
+  CHECK(est("cle nouvelle 0001 3", TypeCommande::kSyntaxe), "alea trop court");
+  CHECK(est("cle nouvelle 000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F", TypeCommande::kSyntaxe),
+        "sans id");
+  CHECK(est("cle autre", TypeCommande::kSyntaxe), "cle autre");
+
   return bilan("commande");
 }
