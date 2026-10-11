@@ -1,5 +1,5 @@
 // ===========================================================================
-//  Sonde de maillage Zigbee, firmware 1.0.0 (spec :
+//  Sonde de maillage Zigbee, firmware 1.1.0 (spec :
 //  docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md)
 //
 //  ESP32-C6 membre du reseau Hue : appareil final non endormi, jamais
@@ -33,6 +33,16 @@
 //    oubli                            quitter le reseau et l'oublier ; la
 //                                     sonde redemarre, et son bonjour de
 //                                     demarrage suit
+//    wifi <NOM HEXA> <MDP HEXA | -> <id> | wifi | wifi efface
+//                                     Wi-Fi de l'acces par le reseau (USB
+//                                     seulement ; redemarre apres un
+//                                     changement)
+//    cle nouvelle <64 HEXA> <id> | cle | cle efface
+//                                     cle H1 (USB seulement ; la cle n'est
+//                                     rendue qu'une fois)
+//  Par le reseau (spec sonde Wi-Fi) : « <rid> <commande> » dans un message H1,
+//  liste blanche de canaux.h ; la reponse va au canal qui a demande, les
+//  lignes signal a tous.
 //  Une seule requete reseau a la fois (sinon « occupee »), garde-fou de
 //  cadence (cadence.h), une seule nouvelle tentative par page ; une requete
 //  en cours s'arrete en « non_membre » si la sonde quitte le reseau.
@@ -47,15 +57,20 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <esp_log.h>
+#include <esp_random.h>
 #include <esp_system.h>
 
 #include "adhesion.h"
 #include "cadence.h"
+#include "canaux.h"
+#include "cle_reseau.h"
 #include "commande.h"
 #include "entrees.h"
+#include "h1_proto.h"
 #include "ligne.h"
 #include "options.h"
 #include "pagination.h"
+#include "reseau.h"
 #include "version.h"
 #include "voyant.h"
 #include "zigbee.h"
@@ -109,7 +124,23 @@ static Pagination<ResultatEchecs, 1> sEchecs;  // une « table » d'une entree
 //  Sorties
 // ---------------------------------------------------------------------------
 
-static void ecrire(void *, const uint8_t *octets, size_t n) { Serial.write(octets, n); }
+// Destination des lignes : le canal de la commande en cours (l'USB par
+// defaut), ou tous les canaux pour une ligne signal (sDiffusion).
+static Origine sDestination;
+static bool sDiffusion = false;
+// Canal de la requete reseau Zigbee en cours (table, routes, echecs).
+static Origine sOrigineTravail;
+
+static void ecrire(void *, const uint8_t *octets, size_t n) {
+  if (sDiffusion) {
+    Serial.write(octets, n);
+    reseau::diffuser(octets, n);
+  } else if (sDestination.reseau) {
+    reseau::repondre(sDestination.session, sDestination.rid, octets, n);
+  } else {
+    Serial.write(octets, n);
+  }
+}
 
 static void finir() {
   size_t n = 0;
@@ -157,6 +188,7 @@ static void cmdBonjour() {
   if (role) sLigne.ajoute(",\"role\":\"%s\"", role);
   else sLigne.ajoute(",\"role\":null");
   sLigne.ajoute(",\"suspendue\":%s", sSuspendue ? "true" : "false");
+  sLigne.ajoute(",\"reseau\":%s", reseau::configure() ? "true" : "false");
   finir();
 }
 
@@ -222,6 +254,7 @@ static void cmdEtat() {
   sLigne.ajoute(",\"suspendue\":%s,\"refus_cadence\":%lu,\"rattachements_echoues\":%lu,\"pile\":\"%s\"",
                 sSuspendue ? "true" : "false", (unsigned long)sCadence.refus(),
                 (unsigned long)sAdhesion.echecsRattachement(), pile);
+  reseau::ajouterEtat(sLigne);
   finir();
 }
 
@@ -250,6 +283,83 @@ static void cmdSuspendre(bool suspendue) {
   sSuspendue = suspendue;
   sPreferences.putBool(kCleSuspendue, suspendue);
   cmdEtat();
+}
+
+// ---------------------------------------------------------------------------
+//  Acces par le reseau (USB seulement : liste blanche de canaux.h)
+// ---------------------------------------------------------------------------
+
+static void redemarrer();
+
+static void ajouteHexa(const char *cle, const uint8_t *o, size_t n) {
+  char t[2 * kWifiNomMax + 1];
+  h1::toHex(o, n, t);
+  sLigne.ajoute(",\"%s\":\"%s\"", cle, t);
+}
+
+// Le mot de passe est en clair dans c : efface des qu'il a servi.
+static void cmdWifi(Commande &c) {
+  const bool ok = reseau::ecrireWifi(c.wifiNom, c.wifiNomLong, c.wifiMdp, c.wifiMdpLong);
+  h1::wipe(c.wifiMdp, sizeof(c.wifiMdp));
+  if (!ok) return repondreErreur("ecriture");
+  sLigne.debut("wifi");
+  sLigne.ajoute(",\"id\":%lu,\"configure\":true", (unsigned long)c.id);
+  ajouteHexa("nom", c.wifiNom, c.wifiNomLong);
+  finir();
+  redemarrer();
+}
+
+static void cmdWifiLire() {
+  char nom[2 * kWifiNomMax + 1];
+  reseau::nomWifiHexa(nom);
+  sLigne.debut("wifi");
+  if (nom[0]) sLigne.ajoute(",\"configure\":true,\"nom\":\"%s\"", nom);
+  else sLigne.ajoute(",\"configure\":false,\"nom\":null");
+  finir();
+}
+
+static void cmdWifiEfface() {
+  if (!reseau::effacerWifi()) return repondreErreur("ecriture");
+  sLigne.debut("wifi");
+  sLigne.ajoute(",\"configure\":false,\"nom\":null");
+  finir();
+  redemarrer();
+}
+
+static void cmdCleNouvelle(const Commande &c) {
+  uint8_t carte[32], cle[32];
+  esp_fill_random(carte, sizeof(carte));
+  const bool ok = deriverCle(c.alea, carte, cle) && reseau::nouvelleCle(cle);
+  h1::wipe(carte, sizeof(carte));
+  if (!ok) {
+    h1::wipe(cle, sizeof(cle));
+    return repondreErreur("ecriture");
+  }
+  char hexa[65], kid[9];
+  h1::toHex(cle, sizeof(cle), hexa);
+  h1::keyId(cle, kid);
+  sLigne.debut("cle");
+  sLigne.ajoute(",\"id\":%lu,\"cle\":\"%s\",\"empreinte\":\"%s\"", (unsigned long)c.id, hexa, kid);
+  finir();
+  h1::wipe(cle, sizeof(cle));
+  h1::wipe(hexa, sizeof(hexa));
+}
+
+static void cmdCleLire() {
+  char kid[9];
+  sLigne.debut("cle");
+  if (reseau::empreinte(kid)) sLigne.ajoute(",\"empreinte\":\"%s\"", kid);
+  else sLigne.ajoute(",\"empreinte\":null");
+  reseau::ajouterCompteurs(sLigne);
+  finir();
+}
+
+static void cmdCleEfface() {
+  if (!reseau::effacerCle()) return repondreErreur("ecriture");
+  sLigne.debut("cle");
+  sLigne.ajoute(",\"empreinte\":null");
+  reseau::ajouterCompteurs(sLigne);
+  finir();
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +407,7 @@ static void commencer(const Commande &c, Travail t, uint32_t maintenant) {
   sTravail = t;
   sCible = c.cible;
   sId = c.id;
+  sOrigineTravail = sDestination;
   if (t == Travail::kTable) sTable.commencer(maintenant, c.delaiMs);
 #if SONDE_ROUTES
   if (t == Travail::kRoutes) sRoutes.commencer(maintenant, c.delaiMs);
@@ -407,7 +518,9 @@ static void progresser(uint32_t maintenant) {
       pousserPage(sTable, maintenant,
                   [](uint8_t index, uint32_t numero) { return zigbee::envoyerVoisins(sCible, index, numero); });
       if (!sTable.actif()) {
+        sDestination = sOrigineTravail;
         rendre(sTable, jsonEntreeVoisin);
+        sDestination = Origine();
         sTravail = Travail::kAucun;
       }
       return;
@@ -416,7 +529,9 @@ static void progresser(uint32_t maintenant) {
       pousserPage(sRoutes, maintenant,
                   [](uint8_t index, uint32_t numero) { return zigbee::envoyerRoutes(sCible, index, numero); });
       if (!sRoutes.actif()) {
+        sDestination = sOrigineTravail;
         rendre(sRoutes, jsonEntreeRoute);
+        sDestination = Origine();
         sTravail = Travail::kAucun;
       }
 #endif
@@ -426,7 +541,9 @@ static void progresser(uint32_t maintenant) {
       pousserPage(sEchecs, maintenant,
                   [](uint8_t, uint32_t numero) { return zigbee::envoyerEchecs(sCible, numero); });
       if (!sEchecs.actif()) {
+        sDestination = sOrigineTravail;
         rendreEchecs();
+        sDestination = Origine();
         sTravail = Travail::kAucun;
       }
 #endif
@@ -465,8 +582,7 @@ static void cmdOubli(uint32_t maintenant) {
 //  Commandes de l'USB
 // ---------------------------------------------------------------------------
 
-static void executer(const char *ligne, uint32_t maintenant) {
-  const Commande c = lireCommande(ligne);
+static void executerCommande(Commande &c, uint32_t maintenant) {
   switch (c.type) {
     case TypeCommande::kBonjour: return cmdBonjour();
     case TypeCommande::kNom: return cmdNom(c.nom);
@@ -478,9 +594,25 @@ static void executer(const char *ligne, uint32_t maintenant) {
     case TypeCommande::kSuspendre: return cmdSuspendre(true);
     case TypeCommande::kReprendre: return cmdSuspendre(false);
     case TypeCommande::kOubli: return cmdOubli(maintenant);
+    case TypeCommande::kWifi: return cmdWifi(c);
+    case TypeCommande::kWifiLire: return cmdWifiLire();
+    case TypeCommande::kWifiEfface: return cmdWifiEfface();
+    case TypeCommande::kCleNouvelle: return cmdCleNouvelle(c);
+    case TypeCommande::kCleLire: return cmdCleLire();
+    case TypeCommande::kCleEfface: return cmdCleEfface();
     case TypeCommande::kSyntaxe: return repondreErreur("syntaxe");
     case TypeCommande::kInconnue: return repondreErreur("inconnue");
   }
+}
+
+// La reponse va a l'origine ; par le reseau, la liste blanche d'abord.
+static void executer(const char *ligne, uint32_t maintenant, const Origine &o) {
+  sDestination = o;
+  Commande c = lireCommande(ligne);
+  if (o.reseau && !distanceAutorisee(c.type)) repondreErreur("refuse");
+  else executerCommande(c, maintenant);
+  h1::wipe(c.wifiMdp, sizeof(c.wifiMdp));  // aucun mot de passe ne survit a la commande
+  sDestination = Origine();
 }
 
 // ---------------------------------------------------------------------------
@@ -519,7 +651,9 @@ static void evenements(uint32_t maintenant) {
         sLigne.debut("signal");
         sLigne.ajoute(",\"signal\":\"0x%02X\",\"nom\":\"%s\",\"ok\":%s,\"detail\":%u", e.brut,
                       e.nom ? e.nom : "?", e.ok ? "true" : "false", e.detail);
+        sDiffusion = true;
         finir();
+        sDiffusion = false;
 #endif
         break;
     }
@@ -602,6 +736,10 @@ static size_t sCmdLong = 0;
 static bool sCmdTropLongue = false;  // plus de 255 caracteres : refusee en entier
 
 void setup() {
+  // Avant tout : apres une reinitialisation qui n'est ni une mise sous tension
+  // ni un reveil, sommeil profond de 0,2 s si le Wi-Fi est configure (spec
+  // sonde Wi-Fi, 3.2). Sans Wi-Fi, ne fait rien.
+  reseau::gardeDemarrage();
   Serial.begin(115200);
   // Aucun journal de la pile ni d'Arduino : sur le meme USB, il couperait les
   // lignes machine (les signaux arrivent en lignes « signal »).
@@ -612,6 +750,8 @@ void setup() {
   const String nom = sPreferences.getString(kCleNom, kNomDefaut);
   if (nomValide(nom.c_str())) snprintf(sNom, sizeof(sNom), "%s", nom.c_str());
   sSuspendue = sPreferences.getBool(kCleSuspendue, false);
+  // Le Wi-Fi d'abord, puis la pile Zigbee (cohabitation : essai du 10/10).
+  reseau::demarrer(sNom);
   zigbee::demarrer();
   // La pile demarre dans sa tache : jusqu'a 2 s pour lire l'adresse longue
   // avant le bonjour du demarrage (sinon "ieee":null, et le suivant l'aura).
@@ -626,13 +766,24 @@ void loop() {
     if (o == '\n' || o == '\r') {
       sCommande[sCmdLong] = 0;
       if (sCmdTropLongue) repondreErreur("syntaxe");
-      else if (sCmdLong) executer(sCommande, millis());
+      else if (sCmdLong) executer(sCommande, millis(), Origine());
+      h1::wipe(sCommande, sizeof(sCommande));  // la ligne « wifi » porte le mot de passe en hexa
       sCmdLong = 0;
       sCmdTropLongue = false;
     } else if (o >= 0x20 && o < 0x7F) {
       if (sCmdLong < sizeof(sCommande) - 1) sCommande[sCmdLong++] = (char)o;
       else sCmdTropLongue = true;
     }
+  }
+  reseau::tour(millis());
+  Portail::Requete r;
+  while (reseau::requete(&r)) {
+    Origine o;
+    o.reseau = true;
+    o.session = r.session;
+    o.rid = r.rid;
+    executer(r.commande, millis(), o);
+    h1::wipe(r.commande, sizeof(r.commande));
   }
   // L'heure relue a chaque etape : une commande ou une action d'adhesion peut
   // prendre jusqu'a 1 s.
