@@ -51,7 +51,7 @@ struct FenetreTests {
         defer { SondeMaillageTests.nettoyer(p, domaine) }
         let surveillance = Surveillance(mode: .direct, dossier: nil)
         let noms = NomsPont()
-        let sonde = SondeMaillage(preferences: p, actif: true,
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(),
                                   ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } })
         func taille(_ vue: some View) -> CGSize {
             NSHostingView(rootView: vue.environment(surveillance).environment(sonde).environment(noms)).fittingSize

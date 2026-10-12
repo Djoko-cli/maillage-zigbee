@@ -195,7 +195,7 @@ struct SondeReseauTests {
             default: []
             }
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal },
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(s.miseEnServicePossible)
@@ -208,7 +208,7 @@ struct SondeReseauTests {
         #expect(iCle != nil && iWifi != nil && iCle! < iWifi!, "la cle d'abord, le Wi-Fi ensuite")
         #expect(s.cleReseauConnue)
         #expect(s.nomWifi == "Mon Wifi")
-        let relue = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+        let relue = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal },
                                   delaiPremiereTournee: .seconds(3600))
         #expect(relue.nomWifi == "Mon Wifi", "le nom du Wi-Fi est garde d'un lancement a l'autre")
         await s.oublier()
@@ -231,7 +231,7 @@ struct SondeReseauTests {
             default: []
             }
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal },
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(!s.cleReseauConnue)
@@ -270,7 +270,7 @@ struct SondeReseauTests {
             default: []
             }
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal },
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
@@ -292,7 +292,7 @@ struct SondeReseauTests {
             default: []
             }
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal },
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(s.miseEnServicePossible, "sinon le refus viendrait de l'eligibilite, pas de l'empreinte")
@@ -309,8 +309,7 @@ struct SondeReseauTests {
         defer { SondeMaillageTests.nettoyer(p, d) }
         let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
         let t = TrousseauMemoire()
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal },
-                              trousseau: t, delaiPremiereTournee: .seconds(3600))
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: t, ouvrirCanal: { _ in canal }, delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(!s.miseEnServicePossible, "firmware 1.0.0")
         let erreur = await s.autoriserReseau(nomWifi: "X", motDePasse: "motdepasse")
@@ -377,7 +376,7 @@ struct TourneeSondeTests {
 
     static func sonde(_ p: UserDefaults, canal: CanalRejoue, premiere: Duration = .seconds(3600),
                       periode: Duration = .seconds(3600)) -> SondeMaillage {
-        SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, delaiPremiereTournee: premiere,
+        SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal }, delaiPremiereTournee: premiere,
                       periodeTournees: periode, delaiTable: .seconds(2), attendre: { _ in })
     }
 
@@ -558,7 +557,7 @@ struct PasseComplementaireTests {
     }
 
     static func sonde(_ p: UserDefaults, canal: CanalRejoue, horloge: HorlogeApp, sommeil: Sommeil) -> SondeMaillage {
-        SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, delaiPremiereTournee: .seconds(10),
+        SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal }, delaiPremiereTournee: .seconds(10),
                       periodeTournees: .seconds(900), delaiTable: .seconds(2), horloge: { horloge.maintenant },
                       attendre: { _ in }, dormir: sommeil.dormir)
     }
@@ -881,7 +880,7 @@ struct BudgetPagesAppTests {
         defer { SondeMaillageTests.nettoyer(p, domaine) }
         p.set([Self.t1970(100), 300] as [Double], forKey: SondeMaillage.cleJournalPages)
         let avant = p.dictionaryRepresentation().keys.sorted()
-        let s = SondeMaillage(preferences: p, actif: false)
+        let s = SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire())
         s.portsChanges([])
         #expect(p.dictionaryRepresentation().keys.sorted() == avant && s.tourneeDifferee == nil)
     }

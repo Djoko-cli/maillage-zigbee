@@ -26,9 +26,8 @@ struct SondeParReseauTests {
         p.set("SONDE-01", forKey: SondeMaillage.cleNom)
         p.set("A000000000000001", forKey: SondeMaillage.cleIeee)
         let t = TrousseauMemoire(cle ? ["A000000000000001": Self.cle] : [:])
-        return SondeMaillage(preferences: p, actif: true,
+        return SondeMaillage(preferences: p, actif: true, trousseau: t,
                              ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
-                             trousseau: t,
                              ouvrirReseau: { nom, _ in
                                  ouvertures.ajouter(nom)
                                  return muette ? CanalFerme() : CanalRejoue(repondre: reponses)

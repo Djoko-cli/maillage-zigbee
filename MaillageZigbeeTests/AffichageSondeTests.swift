@@ -322,7 +322,7 @@ struct AffichageSondeTests {
     @Test func fermetureDeLaFenetreDesReglages() async throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
-        let sonde = SondeMaillage(preferences: p, actif: false)
+        let sonde = SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire())
         let (fenetre, _) = try await ReglagesHauteurTests.fenetreSonde(sonde)
         defer { fenetre.orderOut(nil); fenetre.contentViewController = nil }
         #expect(FenetreReglages.estFenetreDesReglages(fenetre))

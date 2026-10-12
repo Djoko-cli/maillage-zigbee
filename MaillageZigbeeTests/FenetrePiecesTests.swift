@@ -51,7 +51,7 @@ struct FenetrePiecesTests {
         fenetre.contentView = NSHostingView(rootView: vue
             .environment(s)
             .environment(NomsPont())
-            .environment(sonde ?? SondeMaillage(preferences: p, actif: false))
+            .environment(sonde ?? SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire()))
             .environment(\._accessibilityReduceMotion, reduire)
             .defaultAppStorage(p))
         fenetre.setFrame(NSRect(origin: fenetre.frame.origin, size: taille), display: false)
@@ -151,7 +151,7 @@ struct FenetrePiecesTests {
     @Test(.timeLimit(.minutes(1))) func marges() async throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
-        let sonde = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } })
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } })
         let noms = NomsPont()
         let demo = NomsSceneTests.surveillanceDemo()
         let sansReseau = Surveillance(mode: .direct, dossier: nil)
@@ -378,7 +378,7 @@ struct FenetrePiecesTests {
         let vue = FenetrePieces(fichierPlaces: nil)
             .environment(s)
             .environment(NomsPont())
-            .environment(SondeMaillage(preferences: p, actif: false))
+            .environment(SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire()))
         #expect(FenetrePieces.tailleMinimale == CGSize(width: 820, height: 680))
         #expect(NSHostingView(rootView: vue).fittingSize == FenetrePieces.tailleMinimale)
     }
@@ -851,7 +851,7 @@ struct FenetrePiecesTests {
         #expect(ligne.minX == feux.droite + HautPieces.ecartFeux, "la capsule de gauche apres les boutons : \(ligne)")
         let capsule = NSHostingView(rootView: BarreOutils().capsuleDeVerre()
             .environment(demo)
-            .environment(SondeMaillage(preferences: p, actif: false))
+            .environment(SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire()))
             .environment(NomsPont())).fittingSize.height
         let hautDesCapsules = feux.milieu - capsule / 2
         #expect(hautDesCapsules >= 10 && hautDesCapsules <= 13, "le haut des capsules : \(hautDesCapsules) pt")
@@ -873,7 +873,7 @@ struct FenetrePiecesTests {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
         let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
-        let sonde = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let demo = NomsSceneTests.surveillanceDemo()
         let (fenetre, moteur) = try Self.fenetre(demo, taille: CGSize(width: 1100, height: 760), preferences: p,
                                                  sonde: sonde)
@@ -930,7 +930,7 @@ struct FenetrePiecesTests {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
         let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
-        let sonde = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let demo = NomsSceneTests.surveillanceDemo()
         let (fenetre, moteur) = try Self.fenetre(demo, taille: CGSize(width: 1100, height: 760), preferences: p,
                                                  sonde: sonde)
@@ -979,7 +979,7 @@ struct FenetrePiecesTests {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
         let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
-        let sonde = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let demo = NomsSceneTests.surveillanceDemo()
         let (fenetre, moteur) = try Self.fenetre(demo, taille: CGSize(width: 1100, height: 760), preferences: p,
                                                  sonde: sonde)
@@ -1145,7 +1145,7 @@ struct FenetrePiecesTests {
     @Test func bandeEntreLesCapsules() throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
-        let sonde = SondeMaillage(preferences: p, actif: false)
+        let sonde = SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire())
         let noms = NomsPont()
         let s = NomsSceneTests.surveillanceDemo()
         let fenetre = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 700),
@@ -1190,7 +1190,7 @@ struct FenetrePiecesTests {
     func capsulesALeurLargeurIdeale(troisD: Bool) throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
-        let sonde = SondeMaillage(preferences: p, actif: false)
+        let sonde = SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire())
         let noms = NomsPont()
         let s = NomsSceneTests.surveillanceDemo()
         let moteur = MoteurPieces(troisD: troisD)

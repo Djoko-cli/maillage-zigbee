@@ -178,10 +178,10 @@ final class SondeMaillage {
     @ObservationIgnored private var fermetures: Task<Void, Never>?
     @ObservationIgnored private var surveillantPorts: PortsUSB?
 
-    /// `actif` faux (mode demo, tests) : ni port, ni preferences lues.
-    init(preferences: UserDefaults = .standard, actif: Bool,
+    /// `actif` faux (mode demo, tests) : ni port, ni preferences lues. `trousseau` sans valeur par defaut : seule l'app
+    /// passe le trousseau du systeme, les tests un `TrousseauMemoire` (un oubli ne compile pas : spec sonde Wi-Fi, 4.3).
+    init(preferences: UserDefaults = .standard, actif: Bool, trousseau: any TrousseauCles,
          ouvrirCanal: @escaping (String) -> any CanalSonde = { CanalSerie(liaison: LiaisonSerie(chemin: $0)) },
-         trousseau: any TrousseauCles = TrousseauSysteme(service: CheminSonde.serviceTrousseau),
          ouvrirReseau: @escaping (String, Data) -> any CanalSonde = {
              CanalReseau(transport: TransportTCP(service: $0), cle: $1, delaiPoigneeDeMain: .seconds(15))
          },

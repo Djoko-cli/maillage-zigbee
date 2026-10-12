@@ -417,7 +417,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         let canal = CanalRejoue { l in l == "bonjour\n" ? [CanalRejoue.bonjour] : l == "etat\n" ? [CanalRejoue.etatDetache] : [] }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         await s.connecter(Self.port, choisi: true)
         guard case .connectee(let b) = s.etat else {
             Issue.record("etat \(s.etat)")
@@ -435,7 +435,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         let halo = #"{"v":1,"t":"bonjour","produit":"pont-halo","version":"0.4.0","mac":null,"appairee":true,"code":null,"qr":null}"#
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in CanalRejoue { _ in [halo] } })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalRejoue { _ in [halo] } })
         await s.connecter(Self.port, choisi: true)
         guard case .refusee(let m) = s.etat else {
             Issue.record("etat \(s.etat)")
@@ -451,7 +451,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalRejoue { _ in [CanalRejoue.bonjour] }
         })
@@ -472,7 +472,7 @@ struct SondeMaillageTests {
         let autre = PortUSB(chemin: "/dev/cu.usbmodemFACTICE02", vid: 0x303A, pid: 0x1001, serie: "B0:00:00:00:00:02",
                             produit: "USB JTAG/serial debug unit")
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalRejoue { _ in [CanalRejoue.bonjour] }
         })
@@ -493,7 +493,7 @@ struct SondeMaillageTests {
                             produit: nil)
         let journal = JournalCanaux()
         let canal = CanalTemoin("2", journal: journal, retenirBonjour: true)
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         s.portsChanges([autre])
         #expect(s.etat == .absente)
         s.choisir(autre)
@@ -512,7 +512,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in CanalRejoue { _ in [] } })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalRejoue { _ in [] } })
         s.portsChanges([])
         #expect(s.etat == .absente)
     }
@@ -524,7 +524,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         let journal = JournalCanaux()
         let canal = CanalTemoin("1", journal: journal, retenirBonjour: true)
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let connexion = Task { await s.connecter(Self.port, choisi: true) }
         await journal.attendre("bonjour 1")
         await s.oublier()
@@ -544,7 +544,7 @@ struct SondeMaillageTests {
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         let journal = JournalCanaux()
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalTemoin("\(canaux)", journal: journal)
         })
@@ -562,7 +562,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         let journal = JournalCanaux()
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalTemoin("\(canaux)", journal: journal)
         })
@@ -585,7 +585,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         let journal = JournalCanaux()
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             // Fin du flux en differe, comme la liaison serie qui ferme le port sur sa file.
             return CanalTemoin("\(canaux)", journal: journal, fermetureDifferee: .milliseconds(50))
@@ -604,7 +604,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ -> any CanalSonde in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ -> any CanalSonde in
             canaux += 1
             return canaux == 1 ? CanalEnPanne() : CanalRejoue { CanalRejoue.sondeMinimale($0) }
         }, delaiNouvelEssai: .milliseconds(50))
@@ -622,7 +622,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalEnPanne()
         }, delaiNouvelEssai: .milliseconds(20))
@@ -655,7 +655,7 @@ struct SondeMaillageTests {
                             produit: nil)
         let journal = JournalCanaux()
         var ouverts: [String] = []
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { chemin -> any CanalSonde in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { chemin -> any CanalSonde in
             ouverts.append(chemin)
             return chemin == autre.chemin ? CanalTemoin("autre", journal: journal, retenirBonjour: true) : CanalEnPanne()
         }, delaiNouvelEssai: .milliseconds(50))
@@ -687,7 +687,7 @@ struct SondeMaillageTests {
         defer { Self.nettoyer(p, domaine) }
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         p.set("SONDE-01", forKey: SondeMaillage.cleNom)
-        let s = SondeMaillage(preferences: p, actif: false)
+        let s = SondeMaillage(preferences: p, actif: false, trousseau: TrousseauMemoire())
         #expect(s.serie == nil)
         #expect(s.nom == nil)
     }
@@ -700,12 +700,12 @@ struct SondeMaillageTests {
         let canal = CanalRejoue { l in
             l == "bonjour\n" ? [CanalRejoue.bonjourNomme] : l == "etat\n" ? [CanalRejoue.etatDetache] : []
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         #expect(s.nom == nil)
         await s.connecter(Self.port, choisi: true)
         #expect(s.nom == "SONDE-01")
         #expect(p.string(forKey: SondeMaillage.cleNom) == "SONDE-01")
-        #expect(SondeMaillage(preferences: p, actif: true).nom == "SONDE-01", "relu au lancement")
+        #expect(SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire()).nom == "SONDE-01", "relu au lancement")
         await s.oublier()
         #expect(s.nom == nil)
         #expect(p.string(forKey: SondeMaillage.cleNom) == nil)
@@ -720,7 +720,7 @@ struct SondeMaillageTests {
         let canal = CanalRejoue { l in
             l == "bonjour\n" ? [CanalRejoue.bonjourNomme] : l == "etat\n" ? [CanalRejoue.etatDetache] : []
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         await s.connecter(sansSerie, choisi: true)
         #expect(Self.connectee(s))
         #expect(s.serie == nil)
@@ -740,7 +740,7 @@ struct SondeMaillageTests {
         let troisieme = PortUSB(chemin: "/dev/cu.usbmodemFACTICE03", vid: 0x303A, pid: 0x1001, serie: "C0:00:00:00:00:03",
                                 produit: nil)
         let journal = JournalCanaux()
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { chemin in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { chemin in
             if chemin == Self.port.chemin {
                 return CanalRejoue { l in
                     l == "bonjour\n" ? [CanalRejoue.bonjourNomme] : l == "etat\n" ? [CanalRejoue.etatDetache] : []
@@ -779,7 +779,7 @@ struct SondeMaillageTests {
         p.set("SONDE-01", forKey: SondeMaillage.cleNom)
         let journal = JournalCanaux()
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ -> any CanalSonde in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ -> any CanalSonde in
             canaux += 1
             // D'abord un bonjour qui tarde (connexion en cours), puis un port qui ne s'ouvre pas.
             return canaux == 1 ? CanalTemoin("1", journal: journal, retenirBonjour: true) : CanalEnPanne()
@@ -800,7 +800,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             let b = canaux == 1 ? CanalRejoue.bonjourNomme : CanalRejoue.bonjour
             return CanalRejoue { l in l == "bonjour\n" ? [b] : l == "etat\n" ? [CanalRejoue.etatDetache] : [] }
@@ -822,7 +822,7 @@ struct SondeMaillageTests {
         let canal = CanalRejoue { l in
             l == "etat\n" && muette.withLock({ $0 }) ? [] : CanalRejoue.sondeMinimale(l)
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         await s.connecter(Self.port, choisi: true)
         #expect(s.etatSonde?.membre == true && s.etatSonde?.canal == 25, "l'etat, lu a la connexion")
         muette.withLock { $0 = true }
@@ -844,7 +844,7 @@ struct SondeMaillageTests {
         // Seconde sonde : `bonjour` seulement ; son `etat` reste sans reponse.
         let seconde = CanalRejoue { l in l == "bonjour\n" ? [CanalRejoue.bonjour] : [] }
         let premiere = CanalRejoue { CanalRejoue.sondeMinimale($0) }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { $0 == autre.chemin ? seconde : premiere })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { $0 == autre.chemin ? seconde : premiere })
         await s.connecter(Self.port, choisi: true)
         #expect(s.etatSonde != nil)
         let connexion = Task { await s.connecter(autre, choisi: true) }
@@ -866,7 +866,7 @@ struct SondeMaillageTests {
             journal.noter(l.trimmingCharacters(in: .newlines))
             return l == "etat\n" ? [] : CanalRejoue.sondeMinimale(l)
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let connexion = Task { await s.connecter(Self.port, choisi: true) }
         await journal.attendre("etat")
         await s.oublier()
@@ -883,7 +883,7 @@ struct SondeMaillageTests {
         let canal = CanalRejoue { l in
             l == "etat\n" ? [#"{"v":1,"t":"etat","erreur":"occupee"}"#] : CanalRejoue.sondeMinimale(l)
         }
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let debut = ContinuousClock.now
         await s.connecter(Self.port, choisi: true)
         #expect(s.erreurTournee == Sonde.Erreur.occupee("etat").localizedDescription)
@@ -897,7 +897,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         let thread = #"{"v":1,"t":"bonjour","produit":"sonde-maillage","version":"1.1.0","mac":"A00000000001","appairee":true}"#
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in CanalRejoue { _ in [thread] } })
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalRejoue { _ in [thread] } })
         await s.connecter(Self.port, choisi: true)
         guard case .refusee(let m) = s.etat else {
             Issue.record("etat \(s.etat)")
@@ -912,7 +912,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         var canaux = 0
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
             return CanalRejoue { CanalRejoue.sondeMinimale($0) }
         })
@@ -928,7 +928,7 @@ struct SondeMaillageTests {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         let horloge = HorlogeFactice(MaillageDemo.debut)
-        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
                               horloge: { horloge.maintenant })
         var suite: [String] = []
         var recus: [Date] = []

@@ -39,8 +39,10 @@ struct MaillageZigbeeApp: App {
             : NomsPasseur(cache: NomsPasseur.fichierCache(dossier: Surveillance.dossierParDefaut),
                           lanceur: NomsPasseur.lancerPasseurDuMac)
         _nomsPasseur = State(initialValue: np)
-        // Inerte en demo et sous tests : aucun port ouvert.
-        let sm = SondeMaillage(actif: !Self.demo && !Surveillance.sousTests)
+        // Inerte en demo et sous tests : aucun port ouvert ; sous les tests, jamais le vrai trousseau.
+        let sm = SondeMaillage(actif: !Self.demo && !Surveillance.sousTests,
+                               trousseau: Surveillance.sousTests ? TrousseauMemoire()
+                                   : TrousseauSysteme(service: CheminSonde.serviceTrousseau))
         _sonde = State(initialValue: sm)
         // Les mises a jour : ni en demo, ni sous les tests (aucune recherche, aucun reseau), ni dans une
         // compilation de travail.

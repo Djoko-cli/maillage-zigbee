@@ -62,7 +62,7 @@ struct ReglagesHauteurTests {
     @Test func lAjustementSuitLaPage() async throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, domaine) }
-        let sonde = SondeMaillage(preferences: p, actif: true,
+        let sonde = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(),
                                   ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } })
         let (fenetre, onglets) = try await Self.fenetreSonde(sonde)
         defer { fenetre.orderOut(nil); fenetre.contentViewController = nil }
