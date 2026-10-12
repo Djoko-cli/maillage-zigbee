@@ -53,8 +53,8 @@ final class SondeMaillage {
     static let cleJournalPages = "sondeJournalPages"
     /// Pages de la derniere lecture complete des tables de voisins (estime la suivante apres un relancement).
     static let clePagesTables = "sondePagesTables"
-    /// Nouvel essai d'une connexion automatique en echec : une sonde qui demarre en plus de 3 s (bonjour sans reponse)
-    /// n'attend pas l'evenement USB suivant.
+    /// Nouvel essai d'une connexion automatique en echec, repete tant que le port de la sonde retenue est liste : une
+    /// sonde qui demarre lentement (bonjour sans reponse) n'attend pas l'evenement USB suivant.
     static let delaiNouvelEssai: Duration = .seconds(5)
     /// Nouvel essai de la connexion par le reseau, tant que le reseau reste le chemin choisi.
     static let delaiReessaiReseau: Duration = .seconds(60)
@@ -653,8 +653,8 @@ final class SondeMaillage {
     /// Connexion au port : ferme la liaison en place et attend qu'elle le soit vraiment, ouvre le port, le garde s'il
     /// repond en sonde Zigbee. Perimee par un `deconnecter` pendant une attente, elle ferme sa liaison (en l'attendant)
     /// et sort sans toucher a l'etat, a la sonde, ni au numero de serie retenu. Automatique (`choisi` faux) et en echec,
-    /// elle est refaite une fois apres `delaiNouvelEssai` ; `dernierEssai` : c'est ce nouvel essai.
-    func connecter(_ port: PortUSB, choisi: Bool, dernierEssai: Bool = false) async {
+    /// elle est refaite toutes les `delaiNouvelEssai` tant que le port reste liste (`planifierNouvelEssai`).
+    func connecter(_ port: PortUSB, choisi: Bool) async {
         deconnecter(.connexion, port: port)
         let n = essai
         // Tant que l'ancienne liaison tient le port, TIOCEXCL refuse de le rouvrir.
@@ -709,7 +709,7 @@ final class SondeMaillage {
             guard n == essai else { return }
             enConnexion = nil
             etat = choisi ? .refusee(error.localizedDescription) : .erreur(error.localizedDescription)
-            if !choisi && !dernierEssai { planifierNouvelEssai(port) }
+            if !choisi { planifierNouvelEssai(port) }
         }
     }
 
@@ -742,16 +742,18 @@ final class SondeMaillage {
     }
 
     /// Nouvel essai d'une connexion automatique en echec, apres `delaiNouvelEssai`, si rien n'a change depuis (aucun
-    /// `deconnecter` : ni evenement USB, ni choix, ni oubli). C'est le seul : en echec a son tour, la sonde attend
-    /// l'evenement USB suivant.
+    /// `deconnecter` : ni evenement USB, ni choix, ni oubli) et que le port est toujours liste. En echec a son tour, il
+    /// en planifie un autre : une sonde qui ne lit l'USB qu'apres une longue attente (Wi-Fi absent ou refuse) finit par
+    /// repondre, sans debrancher (constat 2 de la relecture finale).
     private func planifierNouvelEssai(_ port: PortUSB) {
         let n = essai
         let delai = delaiNouvelEssai
         nouvelEssai?.cancel()
         nouvelEssai = Task { [weak self] in
             try? await Task.sleep(for: delai)
-            guard !Task.isCancelled, let self, n == self.essai else { return }
-            await self.connecter(port, choisi: false, dernierEssai: true)
+            guard !Task.isCancelled, let self, n == self.essai,
+                  self.ports.contains(where: { $0.chemin == port.chemin }) else { return }
+            await self.connecter(port, choisi: false)
         }
     }
 

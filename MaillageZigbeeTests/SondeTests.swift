@@ -615,33 +615,47 @@ struct SondeMaillageTests {
         await s.oublier()
     }
 
-    /// Un seul nouvel essai : en echec a son tour, la sonde reste en erreur jusqu'a l'evenement
-    /// USB suivant. Un port choisi dans les Reglages, puis refuse, n'est pas essaye de nouveau.
-    @Test(.timeLimit(.minutes(1))) func unSeulNouvelEssaiEtAucunPourUnChoix() async throws {
+    /// Nouveaux essais tant que le port de la sonde retenue est liste : une sonde qui attend son Wi-Fi, absent, avant
+    /// de lire l'USB (firmware 1.1.0 d'avant le correctif : 15 s) finit par repondre sans evenement USB (constat 2 de
+    /// la relecture finale). Debranchee, plus d'essai. Un port choisi dans les Reglages, puis refuse, n'est pas
+    /// essaye de nouveau.
+    @Test(.timeLimit(.minutes(1))) func nouveauxEssaisTantQueLePortEstLaEtAucunPourUnChoix() async throws {
         let (p, domaine) = try Self.preferences()
         defer { Self.nettoyer(p, domaine) }
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         var canaux = 0
         let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
             canaux += 1
-            return CanalEnPanne()
+            return canaux < 4 ? CanalEnPanne() : CanalRejoue { CanalRejoue.sondeMinimale($0) }
         }, delaiNouvelEssai: .milliseconds(20))
         s.portsChanges([Self.port])
-        #expect(await Self.sonder { canaux == 2 }, "nouvel essai")
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(canaux == 2, "un seul")
-        guard case .erreur = s.etat else {
-            Issue.record("etat \(s.etat)")
-            return
-        }
-        await s.connecter(Self.port, choisi: true)
-        guard case .refusee = s.etat else {
-            Issue.record("etat \(s.etat)")
-            return
-        }
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(canaux == 3, "aucun pour un port choisi")
+        #expect(await Self.sonder { Self.connectee(s) }, "connectee au quatrieme essai : \(s.etat)")
+        #expect(canaux == 4)
         await s.oublier()
+
+        p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
+        var pannes = 0
+        let t = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in
+            pannes += 1
+            return CanalEnPanne()
+        }, delaiNouvelEssai: .milliseconds(20))
+        t.portsChanges([Self.port])
+        #expect(await Self.sonder { pannes >= 3 }, "essais repetes")
+        t.portsChanges([])
+        let apres = pannes
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(pannes <= apres + 1 && t.etat == .absente, "debranchee : plus d'essai")
+        t.portsChanges([Self.port])
+        #expect(await Self.sonder { pannes > apres + 1 })
+        await t.connecter(Self.port, choisi: true)
+        guard case .refusee = t.etat else {
+            Issue.record("etat \(t.etat)")
+            return
+        }
+        let choix = pannes
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(pannes == choix, "aucun pour un port choisi")
+        await t.oublier()
     }
 
     /// Le nouvel essai planifie est perime si la sonde est debranchee, oubliee, ou si un autre port
