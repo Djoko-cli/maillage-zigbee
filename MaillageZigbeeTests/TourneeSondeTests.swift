@@ -210,6 +210,56 @@ struct SondeReseauTests {
         #expect(t.identifiants.isEmpty, "oublier la sonde efface sa cle de ce Mac")
     }
 
+    /// `cleReseauConnue` est un etat observable : il suit la mise en service et l'oubli sans que rien d'autre ne
+    /// relise le trousseau.
+    @MainActor @Test func cleReseauConnueSuitLeTrousseau() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let t = TrousseauMemoire()
+        let canal = CanalRejoue { l in
+            switch l {
+            case "bonjour\n": [SondeReseauTests.bonjourUsb]
+            case "etat\n": [CanalRejoue.etatAttache]
+            case let x where x.hasPrefix("cle nouvelle "): [SondeReseauTests.reponseCle]
+            case let x where x.hasPrefix("wifi "): [#"{"v":1,"t":"wifi","id":2,"configure":true,"nom":"4D6F6E2057696669"}"#]
+            default: []
+            }
+        }
+        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+                              delaiPremiereTournee: .seconds(3600))
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(!s.cleReseauConnue)
+        let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
+        #expect(erreur == nil)
+        #expect(s.cleReseauConnue)
+        await s.oublier()
+        #expect(!s.cleReseauConnue)
+    }
+
+    /// Le Wi-Fi n'est pas confirme apres la cle : le message dit que la cle existe et qu'on peut recommencer.
+    @MainActor @Test func wifiNonConfirmeApresLaCle() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let t = TrousseauMemoire()
+        let canal = CanalRejoue { l in
+            switch l {
+            case "bonjour\n": [SondeReseauTests.bonjourUsb]
+            case "etat\n": [CanalRejoue.etatAttache]
+            case let x where x.hasPrefix("cle nouvelle "): [SondeReseauTests.reponseCle]
+            case let x where x.hasPrefix("wifi "): [#"{"v":1,"t":"wifi","id":2,"configure":false}"#]
+            default: []
+            }
+        }
+        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+                              delaiPremiereTournee: .seconds(3600))
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
+        #expect(erreur == String(localized: "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez."))
+        #expect(try t.lire(identifiant: "A000000000000001") == "62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D")
+        #expect(s.cleReseauConnue)
+        await s.oublier()
+    }
+
     @MainActor @Test func empreinteFausseRefusee() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }

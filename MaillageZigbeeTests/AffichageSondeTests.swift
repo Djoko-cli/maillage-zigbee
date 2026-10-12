@@ -187,6 +187,25 @@ struct AffichageSondeTests {
         #expect(FenetreReglages.texteEtatSonde(.sansSonde, nom: nil) == String(localized: "aucune sonde choisie"))
     }
 
+    /// Sonde injoignable par le reseau : « SONDE-01 · Réseau — sonde injoignable ».
+    @Test func texteInjoignable() {
+        #expect(FenetreReglages.texteEtatSonde(.injoignable, nom: "SONDE-01")
+                == String(localized: "\("SONDE-01") · \(String(localized: "Réseau — sonde injoignable"))"))
+    }
+
+    /// Wi-Fi de la sonde (`etat.reseau`) : « connecté · canal 6 · −58 dBm » ; « non connecté (raison 201) ».
+    @Test func texteReseauSonde() {
+        let connecte = String(localized: "connecté"), canal = 6
+        #expect(FenetreReglages.texteReseauSonde(ReseauSonde(connecte: true, canal: 6, rssi: -58))
+                == "\(connecte) · \(String(localized: "canal \(canal)")) · −58 dBm")
+        #expect(FenetreReglages.texteReseauSonde(ReseauSonde(connecte: true)) == connecte)
+        let raison = 201
+        #expect(FenetreReglages.texteReseauSonde(ReseauSonde(connecte: false, raison: 201))
+                == String(localized: "non connecté (raison \(raison))"))
+        #expect(FenetreReglages.texteReseauSonde(ReseauSonde(connecte: false, raison: 0))
+                == String(localized: "non connecté"))
+    }
+
     /// Choix du port : la sonde retenue sous son nom seul ; un autre port, un port sans numero
     /// de serie ou la sonde retenue sans nom connu (firmware 1.0.0), sous son nom de port et son
     /// numero de serie USB (la MAC) : seul moyen de distinguer la sonde du pont Halo avant la

@@ -91,8 +91,9 @@ final class SondeMaillage {
             reevaluer()
         }
     }
-    /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue.
-    var cleReseauConnue: Bool { cleReseau() != nil }
+    /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue. Etat observable, relu du trousseau
+    /// par `relireCleReseau` chaque fois que la cle ou l'adresse longue peut changer.
+    private(set) var cleReseauConnue = false
     /// La mise en service par l'USB est possible : la sonde retenue y est connectee, en firmware 1.1.0 ou plus, hors
     /// tournee, son adresse longue connue.
     var miseEnServicePossible: Bool {
@@ -200,6 +201,7 @@ final class SondeMaillage {
             ? ReglageChemin(rawValue: preferences.string(forKey: CheminSonde.cleReglage) ?? "") ?? .automatique
             : .automatique
         memoire = nouvelleMemoire()
+        relireCleReseau()
     }
 
     /// La memoire d'une tournee qui commence : vide, sauf le journal des pages envoyees dans les 10 dernieres minutes
@@ -272,6 +274,7 @@ final class SondeMaillage {
         if let ieee { try? trousseau.oublier(identifiant: ieee) }
         preferences.removeObject(forKey: Self.cleIeee)
         ieee = nil
+        relireCleReseau()
         annoncee = false
         preferences.removeObject(forKey: Self.cleSerie)
         serie = nil
@@ -298,11 +301,17 @@ final class SondeMaillage {
                 return String(localized: "La sonde a rendu une clé invalide : rien n'a été enregistré.")
             }
             try trousseau.ranger(identifiant: ieee, cle: hexa)
-            let w = try await s.configurerWifi(nom: nom, motDePasse: mdp)
-            guard w.configure else { return String(localized: "La sonde n'a pas enregistré le Wi-Fi.") }
-            return nil
+            relireCleReseau()
         } catch {
             return error.localizedDescription
+        }
+        // La cle est rangee des deux cotes : si le Wi-Fi echoue, recommencer remplace simplement la cle.
+        let sansConfirmation = String(localized: "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez.")
+        do {
+            let w = try await s.configurerWifi(nom: nom, motDePasse: mdp)
+            return w.configure ? nil : sansConfirmation
+        } catch {
+            return sansConfirmation
         }
     }
 
@@ -507,6 +516,11 @@ final class SondeMaillage {
         return H1.octets(hexa: hexa)
     }
 
+    /// Releve `cleReseauConnue` dans le trousseau.
+    private func relireCleReseau() {
+        cleReseauConnue = cleReseau() != nil
+    }
+
     /// Applique le chemin choisi (spec sonde Wi-Fi, 4.2) apres un changement de ports, d'annonces ou de reglage.
     private func reevaluer() {
         guard actif, serie != nil else { return }
@@ -657,6 +671,7 @@ final class SondeMaillage {
             if retenue, let i = b.ieee {
                 preferences.set(i, forKey: Self.cleIeee)
                 ieee = i
+                relireCleReseau()
             }
             await lireEtat(s)
             guard n == essai, s === sonde else { return }

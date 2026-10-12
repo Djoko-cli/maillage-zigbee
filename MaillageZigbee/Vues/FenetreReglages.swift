@@ -36,7 +36,7 @@ enum OngletReglages: String, CaseIterable {
 
 /// Une page des Reglages, celle d'un onglet : General (ouverture a la connexion, mises a jour, langue, vue par pieces :
 /// les etages en 2D), Notifications (par categorie), Pont Hue (`ReglagesPont`), Maison (`ReglagesMaison`), Sonde (port
-/// USB, etat), Diagnostic (maillage, capture, journal). La fenetre et ses onglets sont dans `ControleurReglages`.
+/// USB, chemin, acces par le reseau, etat), Diagnostic (maillage, capture, journal). La fenetre et ses onglets sont dans `ControleurReglages`.
 struct FenetreReglages: View {
     let onglet: OngletReglages
     /// Appele a chaque changement de hauteur de la page : la fenetre la suit (`ControleurReglages`).
@@ -53,6 +53,10 @@ struct FenetreReglages: View {
     @State private var messageCapture: String?
     @State private var langue = LangueApp.lire()
     @State private var messageLangue: String?
+    @State private var nomWifi = ""
+    @State private var motDePasseWifi = ""
+    @State private var messageReseau: String?
+    @State private var miseEnService = false
 
     var body: some View {
         Group {
@@ -176,8 +180,8 @@ struct FenetreReglages: View {
         }
     }
 
-    /// Onglet Sonde : port, etat, firmware, releve.
-    private var reglagesSonde: some View {
+    /// Onglet Sonde : port, chemin, etat, firmware, releve ; puis l'acces par le reseau.
+    @ViewBuilder private var reglagesSonde: some View {
         Section {
             if surveillance.mode == .demo {
                 Text("Mode démo : pas de sonde.").foregroundStyle(.secondary)
@@ -191,6 +195,13 @@ struct FenetreReglages: View {
                     }
                 }
                 LabeledContent("État", value: Self.texteEtatSonde(sonde.etat, nom: sonde.nomEtat))
+                if let a = sonde.acces {
+                    LabeledContent("Chemin", value: a.libelle)
+                }
+                Picker("Chemin de la sonde", selection: Binding(get: { sonde.reglageChemin },
+                                                                set: { sonde.reglageChemin = $0 })) {
+                    ForEach(ReglageChemin.allCases, id: \.self) { Text($0.libelle).tag($0) }
+                }
                 if case .connectee(let b) = sonde.etat {
                     LabeledContent("Firmware", value: b.version)
                 }
@@ -199,6 +210,42 @@ struct FenetreReglages: View {
                     Button("Oublier la sonde") { Task { await sonde.oublier() } }
                 }
                 Text("Seul le port choisi est ouvert. Un autre ESP32-C6 branché n'est jamais ouvert : ne le choisissez pas.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        if surveillance.mode != .demo {
+            accesParLeReseau
+        }
+    }
+
+    /// Onglet Sonde : l'acces par le reseau. La cle est creee par la carte, branchee en USB, puis rangee dans le
+    /// trousseau ; le mot de passe du Wi-Fi va a la sonde et nulle part ailleurs (le champ est vide des le clic).
+    private var accesParLeReseau: some View {
+        Section("Accès par le réseau") {
+            if case .connectee(let b) = sonde.etat, !b.accepteReseau {
+                Text("Sonde 1.1.0 requise.").foregroundStyle(.secondary)
+            } else {
+                TextField("Nom du Wi-Fi (2,4 GHz)", text: $nomWifi)
+                SecureField("Mot de passe", text: $motDePasseWifi)
+                Button(sonde.cleReseauConnue ? "Régénérer la clé" : "Autoriser l'accès réseau") {
+                    miseEnService = true
+                    let nom = nomWifi, mdp = motDePasseWifi
+                    motDePasseWifi = ""
+                    Task {
+                        messageReseau = await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp)
+                            ?? String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
+                        miseEnService = false
+                    }
+                }
+                .disabled(!sonde.miseEnServicePossible || nomWifi.isEmpty || miseEnService)
+                if let r = sonde.etatSonde?.reseau {
+                    LabeledContent("Wi-Fi de la sonde", value: Self.texteReseauSonde(r))
+                }
+                if let messageReseau {
+                    Text(messageReseau).font(.caption).foregroundStyle(.secondary)
+                }
+                Text("Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -311,6 +358,18 @@ struct FenetreReglages: View {
         }
         guard let nom else { return texte }
         return String(localized: "\(nom) · \(texte)")
+    }
+
+    /// Wi-Fi de la sonde (`etat.reseau`) : « connecté · canal 6 · −58 dBm » ; « non connecté (raison 201) ».
+    static func texteReseauSonde(_ r: ReseauSonde) -> String {
+        guard r.connecte else {
+            if let raison = r.raison, raison != 0 { return String(localized: "non connecté (raison \(raison))") }
+            return String(localized: "non connecté")
+        }
+        var parties = [String(localized: "connecté")]
+        if let c = r.canal { parties.append(String(localized: "canal \(c)")) }
+        if let s = r.rssi { parties.append("\(s.formatted()) dBm".replacingOccurrences(of: "-", with: "−")) }
+        return parties.joined(separator: " · ")
     }
 
     private func enregistrerCapture() {

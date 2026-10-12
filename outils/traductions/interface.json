@@ -397,5 +397,18 @@
   "Branchez la sonde 1.1.0 en USB, hors tournée.": "Connect the probe 1.1.0 over USB, outside a round.",
   "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères.": "Wi-Fi name of 1 to 32 bytes, password empty or 8 to 63 characters.",
   "La sonde a rendu une clé invalide : rien n'a été enregistré.": "The probe returned an invalid key: nothing was saved.",
-  "La sonde n'a pas enregistré le Wi-Fi.": "The probe did not save the Wi-Fi."
+  "Accès par le réseau": "Network access",
+  "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.": "Network access allowed: the probe restarts and joins the Wi-Fi.",
+  "Autoriser l'accès réseau": "Allow network access",
+  "Chemin de la sonde": "Probe path",
+  "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez.": "Key created, but the probe did not confirm the Wi-Fi: try again.",
+  "Mot de passe": "Password",
+  "Nom du Wi-Fi (2,4 GHz)": "Wi-Fi name (2.4 GHz)",
+  "Régénérer la clé": "Regenerate key",
+  "Sonde 1.1.0 requise.": "Probe 1.1.0 required.",
+  "Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas.": "Probe plugged in over USB, no round under way. The password goes straight to the probe: the app does not keep it.",
+  "Wi-Fi de la sonde": "Probe Wi-Fi",
+  "connecté": "connected",
+  "non connecté": "not connected",
+  "non connecté (raison %lld)": "not connected (reason %lld)"
 }

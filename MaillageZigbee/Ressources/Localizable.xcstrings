@@ -1057,6 +1057,38 @@
         }
       }
     },
+    "Accès par le réseau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès par le réseau"
+          }
+        }
+      }
+    },
+    "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network access allowed: the probe restarts and joins the Wi-Fi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi."
+          }
+        }
+      }
+    },
     "Accès à Maison refusé à Passeur Noms : Réglages Système › Confidentialité et sécurité › Maison." : {
       "localizations" : {
         "en" : {
@@ -1393,6 +1425,22 @@
         }
       }
     },
+    "Autoriser l'accès réseau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow network access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l'accès réseau"
+          }
+        }
+      }
+    },
     "Autres" : {
       "localizations" : {
         "en" : {
@@ -1617,6 +1665,22 @@
         }
       }
     },
+    "Chemin de la sonde" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probe path"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chemin de la sonde"
+          }
+        }
+      }
+    },
     "Choisissez la sonde dans Réglages › Sonde. La liaison au pont Hue viendra ensuite." : {
       "localizations" : {
         "en" : {
@@ -1645,6 +1709,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clé absente de ce Mac pour le pont %@ : liez le pont depuis les Réglages."
+          }
+        }
+      }
+    },
+    "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key created, but the probe did not confirm the Wi-Fi: try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez."
           }
         }
       }
@@ -2205,22 +2285,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La sonde a rendu une clé invalide : rien n'a été enregistré."
-          }
-        }
-      }
-    },
-    "La sonde n'a pas enregistré le Wi-Fi." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The probe did not save the Wi-Fi."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La sonde n'a pas enregistré le Wi-Fi."
           }
         }
       }
@@ -2797,6 +2861,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monter d'un étage"
+          }
+        }
+      }
+    },
+    "Mot de passe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe"
+          }
+        }
+      }
+    },
+    "Nom du Wi-Fi (2,4 GHz)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi name (2.4 GHz)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom du Wi-Fi (2,4 GHz)"
           }
         }
       }
@@ -3793,6 +3889,22 @@
         }
       }
     },
+    "Régénérer la clé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate key"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Régénérer la clé"
+          }
+        }
+      }
+    },
     "Réponse illisible du pont (%@)." : {
       "localizations" : {
         "en" : {
@@ -4061,6 +4173,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sonde"
+          }
+        }
+      }
+    },
+    "Sonde 1.1.0 requise." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probe 1.1.0 required."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonde 1.1.0 requise."
+          }
+        }
+      }
+    },
+    "Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probe plugged in over USB, no round under way. The password goes straight to the probe: the app does not keep it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas."
           }
         }
       }
@@ -4577,6 +4721,22 @@
         }
       }
     },
+    "Wi-Fi de la sonde" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probe Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi de la sonde"
+          }
+        }
+      }
+    },
     "a changé %lld fois de chemin" : {
       "localizations" : {
         "en" : {
@@ -4957,6 +5117,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "cherche un réseau"
+          }
+        }
+      }
+    },
+    "connecté" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "connected"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "connecté"
           }
         }
       }
@@ -5597,6 +5773,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "noms de l'app Hue seulement"
+          }
+        }
+      }
+    },
+    "non connecté" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not connected"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non connecté"
+          }
+        }
+      }
+    },
+    "non connecté (raison %lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not connected (reason %lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non connecté (raison %lld)"
           }
         }
       }

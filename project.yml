@@ -72,9 +72,10 @@ targets:
         LSApplicationCategoryType: public.app-category.utilities
         LSUIElement: true
         NSHumanReadableCopyright: ""
-        NSLocalNetworkUsageDescription: "Maillage Zigbee cherche le pont Hue sur le réseau local pour lire les noms et les pièces de vos appareils."
+        NSLocalNetworkUsageDescription: "Maillage Zigbee cherche le pont Hue et la sonde sur le réseau local, pour lire les noms et les pièces de vos appareils et interroger la sonde sans câble."
         NSBonjourServices:
           - _hue._tcp
+          - _maillage-zigbee._tcp
     settings:
       base:
         PRODUCT_NAME: Maillage Zigbee
