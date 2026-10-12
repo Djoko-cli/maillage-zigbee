@@ -1361,6 +1361,22 @@
         }
       }
     },
+    "Automatique" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique"
+          }
+        }
+      }
+    },
     "Autres" : {
       "localizations" : {
         "en" : {
@@ -3745,6 +3761,22 @@
         }
       }
     },
+    "Réseau seulement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réseau seulement"
+          }
+        }
+      }
+    },
     "Réseau Zigbee" : {
       "localizations" : {
         "en" : {
@@ -4285,6 +4317,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un autre pont (%@) est déjà lié : oubliez-le d'abord."
+          }
+        }
+      }
+    },
+    "USB" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB"
+          }
+        }
+      }
+    },
+    "USB seulement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB seulement"
           }
         }
       }

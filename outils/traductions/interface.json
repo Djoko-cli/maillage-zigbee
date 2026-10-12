@@ -386,5 +386,9 @@
   "%@ : %@": "%1$@: %2$@",
   "Met la courbe en avant ; un second clic rend les autres": "Highlights this curve; click again to bring the others back",
   "pas vu par la sonde": "not seen by the probe",
-  "qualité du lien : %@": "link quality: %@"
+  "qualité du lien : %@": "link quality: %@",
+  "Automatique": "Automatic",
+  "USB seulement": "USB only",
+  "Réseau seulement": "Network only",
+  "USB": "USB"
 }
