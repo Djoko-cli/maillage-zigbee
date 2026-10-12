@@ -26,7 +26,7 @@ class Portail {
   static constexpr uint8_t kAucune = 0xFF;
   // Une connexion sans session etablie (pas de poignee de main reussie) est fermee apres kSansSessionMs ; une
   // connexion dont la session se tait depuis kMuetteMs aussi. kMuetteMs depasse la periode d'entretien de l'app
-  // (SondeMaillage.periodeEntretien, 240 s : un `etat` hors tournee ; en tournee, 128 s au plus entre deux
+  // (SondeMaillage.periodeEntretien, 180 s : un `etat` hors tournee ; en tournee, 128 s au plus entre deux
   // requetes) : seule une app partie (Mac en veille, interface perdue) perd sa place.
   static constexpr uint32_t kSansSessionMs = 10000;
   static constexpr uint32_t kMuetteMs = 300000;

@@ -55,7 +55,14 @@ final class SondeMaillage {
     static let clePagesTables = "sondePagesTables"
     /// Nouvel essai d'une connexion automatique en echec, repete tant que le port de la sonde retenue est liste : une
     /// sonde qui demarre lentement (bonjour sans reponse) n'attend pas l'evenement USB suivant.
+    /// Le premier delai ; il double a chaque echec de suite (`delaiNouvelEssai(rang:base:plafond:)`) jusqu'a
+    /// `plafondNouvelEssai`, et repart de la a chaque evenement USB ou connexion reussie.
     static let delaiNouvelEssai: Duration = .seconds(5)
+    /// Plafond de l'espacement progressif des nouveaux essais USB.
+    static let plafondNouvelEssai: Duration = .seconds(60)
+    /// Une tournee refusee parce que la sonde n'a pas encore sa pile Zigbee (`occupee`, attente du Wi-Fi au demarrage)
+    /// est retentee bientot, au lieu d'attendre le rythme de 15 minutes.
+    static let delaiReessaiOccupee: Duration = .seconds(30)
     /// Nouvel essai de la connexion par le reseau, tant que le reseau reste le chemin choisi.
     static let delaiReessaiReseau: Duration = .seconds(60)
     /// Attente de `bonjour`, `etat` et `voisins` par le reseau : celle de l'USB, plus 3 s (spec sonde Wi-Fi, 4.1).
@@ -63,8 +70,10 @@ final class SondeMaillage {
     /// Resolution Bonjour, connexion TCP et poignee de main H1 : le canal reseau se ferme s'il n'a pas de session
     /// apres ce delai (decision de la tache 13).
     static let delaiPoigneeDeMain: Duration = .seconds(15)
-    /// Relecture d'`etat` hors tournee : la session H1 de la sonde est oubliee apres 10 min sans message.
-    static let periodeEntretien: Duration = .seconds(240)
+    /// Relecture d'`etat` hors tournee : la session H1 de la sonde est oubliee apres 10 min sans message, et la carte
+    /// ferme une connexion muette depuis 300 s (`Portail::kMuetteMs`) : 180 s laissent 2 minutes de marge aux minuteries
+    /// d'une app en arriere-plan (App Nap).
+    static let periodeEntretien: Duration = .seconds(180)
     /// Premiere tournee apres la connexion : le temps que la sonde se rattache si elle vient de demarrer.
     static let delaiPremiereTournee: Duration = .seconds(10)
     /// Une tournee toutes les 15 minutes (spec de l'app, section 6).
@@ -158,6 +167,11 @@ final class SondeMaillage {
     @ObservationIgnored private var entretien: Task<Void, Never>?
     @ObservationIgnored private var navigateur: NavigateurBonjour?
     @ObservationIgnored private let delaiNouvelEssai: Duration
+    @ObservationIgnored private let plafondNouvelEssai: Duration
+    @ObservationIgnored private let delaiReessaiOccupee: Duration
+    /// Nombre d'echecs de suite des nouveaux essais USB (espacement progressif) ; remis a zero par un evenement USB
+    /// (`lancerConnexion`) et par une connexion reussie.
+    @ObservationIgnored private var rangNouvelEssai = 0
     /// Nouvel essai planifie d'une connexion automatique en echec.
     @ObservationIgnored private var nouvelEssai: Task<Void, Never>?
     /// Heure des releves (injectee par les tests).
@@ -208,6 +222,8 @@ final class SondeMaillage {
          delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau,
          periodeEntretien: Duration = SondeMaillage.periodeEntretien,
          delaiNouvelEssai: Duration = SondeMaillage.delaiNouvelEssai,
+         plafondNouvelEssai: Duration = SondeMaillage.plafondNouvelEssai,
+         delaiReessaiOccupee: Duration = SondeMaillage.delaiReessaiOccupee,
          delaiPremiereTournee: Duration = SondeMaillage.delaiPremiereTournee,
          periodeTournees: Duration = SondeMaillage.periodeTournees,
          delaiTable: Duration = ProtocoleSonde.echeanceTable,
@@ -223,6 +239,8 @@ final class SondeMaillage {
         self.delaiCommandeReseau = delaiCommandeReseau
         self.periodeEntretien = periodeEntretien
         self.delaiNouvelEssai = delaiNouvelEssai
+        self.plafondNouvelEssai = plafondNouvelEssai
+        self.delaiReessaiOccupee = delaiReessaiOccupee
         self.delaiPremiereTournee = delaiPremiereTournee
         self.periodeTournees = periodeTournees
         self.delaiTable = delaiTable
@@ -359,7 +377,14 @@ final class SondeMaillage {
             return .echec(String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée."))
         }
         miseEnServiceEnCours = true
-        defer { finirMiseEnService(s) }
+        let resultat = await mettreEnService(s, ieee: ieee, nomWifi: nomWifi, motDePasse: motDePasse)
+        // Apres `.cleEtWifi`, la sonde redemarre : la tournee retenue ne part pas sur une liaison qui va se fermer, la
+        // reconnexion planifie la premiere (N2 de la re-relecture finale).
+        finirMiseEnService(s, relancer: resultat != .cleEtWifi)
+        return resultat
+    }
+
+    private func mettreEnService(_ s: Sonde, ieee: String, nomWifi: String, motDePasse: String) async -> MiseEnService {
         let wifi = Self.envoiWifi(wifiConfigure: wifiConfigure, motDePasse: motDePasse)
         let nom = Data(nomWifi.utf8), mdp = Data(motDePasse.utf8)
         guard !wifi || (1...32).contains(nom.count), mdp.isEmpty || (8...63).contains(mdp.count) else {
@@ -390,12 +415,13 @@ final class SondeMaillage {
     }
 
     /// Fin d'une mise en service : la tournee arrivee a son heure entre-temps part, si la sonde est toujours celle-la
-    /// (apres un `wifi`, elle redemarre : sa reconnexion planifie de toute facon la premiere tournee).
-    private func finirMiseEnService(_ s: Sonde) {
+    /// et si `relancer` (apres un `wifi`, la sonde redemarre : la fermeture de la liaison n'est pas encore vue, et sa
+    /// reconnexion planifie de toute facon la premiere tournee).
+    private func finirMiseEnService(_ s: Sonde, relancer: Bool) {
         miseEnServiceEnCours = false
         guard tourneeRetenue else { return }
         tourneeRetenue = false
-        if sonde === s { planifierTournee(dans: .zero) }
+        if relancer, sonde === s { planifierTournee(dans: .zero) }
     }
 
     /// Nom donne par le dernier `bonjour` : retenu a cote du numero de serie, efface si le firmware n'en donne pas.
@@ -458,7 +484,7 @@ final class SondeMaillage {
             }
             let suite = await self.tourner(s, complementaire: complementaire)
             guard !Task.isCancelled, n == self.essai, self.sonde === s else { return }
-            self.planifierSuite(passeSurReports: suite)
+            self.planifierSuite(suite)
         }
     }
 
@@ -476,13 +502,27 @@ final class SondeMaillage {
         return true
     }
 
+    /// Ce qui suit une tournee.
+    private enum SuiteTournee {
+        /// La tournee n'a pas eu lieu, ou une passe complementaire n'a lu aucune route (rien ne dit qu'une autre y
+        /// arriverait : pas d'emballement) : le rythme normal.
+        case rythme
+        /// Une passe complementaire peut suivre : la tournee a eu lieu, et, pour une passe, elle a lu des routes.
+        case passe
+        /// La sonde a refuse (`occupee` : pile Zigbee pas encore lancee) : une autre tournee bientot.
+        case bientot
+    }
+
     /// Ce qui suit une tournee finie : la passe complementaire si elle a reporte des routes (des que le budget le permet,
-    /// au moins 30 s apres), sinon la tournee suivante 15 minutes apres sa fin. `passeSurReports` faux : la tournee n'a
-    /// pas eu lieu, ou une passe complementaire n'a lu aucune route (rien ne dit qu'une autre y arriverait : pas
-    /// d'emballement), donc le rythme normal.
-    private func planifierSuite(passeSurReports: Bool) {
+    /// au moins 30 s apres), une nouvelle tournee dans `delaiReessaiOccupee` si la sonde etait occupee, sinon la tournee
+    /// suivante 15 minutes apres sa fin.
+    private func planifierSuite(_ suite: SuiteTournee) {
         let fin = horloge()
-        guard passeSurReports, let instant = memoire.instantPasseComplementaire(apres: fin) else {
+        if suite == .bientot {
+            planifierTournee(dans: delaiReessaiOccupee)
+            return
+        }
+        guard suite == .passe, let instant = memoire.instantPasseComplementaire(apres: fin) else {
             planifierTournee(dans: periodeTournees)
             return
         }
@@ -491,20 +531,18 @@ final class SondeMaillage {
 
     /// Une tournee de la sonde `s` : son avancement, puis son maillage (s'il y en a un) a la surveillance, son bilan et
     /// l'etat lu de la sonde. Perimee (sonde deconnectee entre-temps), elle ne touche plus a rien.
-    /// Rend vrai si une passe complementaire peut la suivre : la tournee a eu lieu, et, pour une passe, elle a lu des
-    /// routes.
-    private func tourner(_ s: Sonde, complementaire: Bool) async -> Bool {
+    private func tourner(_ s: Sonde, complementaire: Bool) async -> SuiteTournee {
         debuterTournee()
-        guard tourneeEnCours else { return false }
+        guard tourneeEnCours else { return .rythme }
         let debut = horloge()
         do {
             let r = try await Tournee.executer(s, memoire: memoire, complementaire: complementaire, horloge: horloge,
                                                attendre: attendre, avancement: { [weak self] a in self?.avancer(a) },
                                                surBudget: { [weak self] b in self?.garderBudget(b) })
-            guard s === sonde else { return false }
+            guard s === sonde else { return .rythme }
             guard !Task.isCancelled else {
                 finirTournee(nil)
-                return false
+                return .rythme
             }
             memoire = r.memoire
             if actif {
@@ -518,13 +556,26 @@ final class SondeMaillage {
             dureeTournee = horloge().timeIntervalSince(debut)
             erreurTournee = Self.texteEmpechement(r.empechement) ?? r.bilan.lacune.map(Self.texteLacune)
             finirTournee(r.maillage)
-            return r.empechement == nil && (!complementaire || r.bilan.routesRouteursDemandees > 0)
+            return r.empechement == nil && (!complementaire || r.bilan.routesRouteursDemandees > 0) ? .passe : .rythme
         } catch {
-            guard s === sonde else { return false }
-            if !(error is CancellationError) { erreurTournee = error.localizedDescription }
+            guard s === sonde else { return .rythme }
+            if !(error is CancellationError) { erreurTournee = Self.texteErreur(error) }
             finirTournee(nil)
-            return false
+            return Self.sondeOccupee(error) ? .bientot : .rythme
         }
+    }
+
+    /// La sonde a refuse parce que sa pile Zigbee n'est pas (encore) lancee : elle attend son Wi-Fi au demarrage.
+    private static func sondeOccupee(_ erreur: Error) -> Bool {
+        if case Sonde.Erreur.occupee? = erreur as? Sonde.Erreur { return true }
+        return false
+    }
+
+    /// Le message d'une erreur de la sonde connectee ; un refus `occupee` (etat transitoire, retente bientot) reste neutre.
+    private static func texteErreur(_ erreur: Error) -> String {
+        sondeOccupee(erreur)
+            ? String(localized: "La sonde n'est pas encore prête : nouvel essai dans un instant.")
+            : erreur.localizedDescription
     }
 
     /// Pourquoi une tournee n'a pas eu lieu ; nil si elle a eu lieu.
@@ -736,7 +787,7 @@ final class SondeMaillage {
     /// Connexion au port : ferme la liaison en place et attend qu'elle le soit vraiment, ouvre le port, le garde s'il
     /// repond en sonde Zigbee. Perimee par un `deconnecter` pendant une attente, elle ferme sa liaison (en l'attendant)
     /// et sort sans toucher a l'etat, a la sonde, ni au numero de serie retenu. Automatique (`choisi` faux) et en echec,
-    /// elle est refaite toutes les `delaiNouvelEssai` tant que le port reste liste (`planifierNouvelEssai`).
+    /// elle est refaite, de plus en plus espacee, tant que le port reste liste (`planifierNouvelEssai`).
     func connecter(_ port: PortUSB, choisi: Bool) async {
         deconnecter(.connexion, port: port)
         let n = essai
@@ -770,6 +821,7 @@ final class SondeMaillage {
             cheminConnecte = port.chemin
             acces = .usb
             etat = .connectee(b)
+            rangNouvelEssai = 0
             if choisi, let serieUSB = port.serie {
                 // Le releve etait celui d'une autre sonde.
                 if serieUSB != serie { oublierReleve() }
@@ -808,7 +860,7 @@ final class SondeMaillage {
             // La liaison est fermee : `liaisonFermee` s'en occupe.
         } catch {
             guard s === sonde else { return }
-            erreurTournee = error.localizedDescription
+            erreurTournee = Self.texteErreur(error)
         }
     }
 
@@ -816,6 +868,8 @@ final class SondeMaillage {
     /// `.connexion` tout de suite ; un `deconnecter` d'ici au depart de la tache (oublier, autre choix, port retire)
     /// l'annule.
     private func lancerConnexion(_ port: PortUSB, choisi: Bool) {
+        // Un evenement USB (ou un choix) : l'espacement des nouveaux essais repart du premier delai.
+        rangNouvelEssai = 0
         deconnecter(.connexion, port: port)
         let n = essai
         Task {
@@ -824,20 +878,29 @@ final class SondeMaillage {
         }
     }
 
-    /// Nouvel essai d'une connexion automatique en echec, apres `delaiNouvelEssai`, si rien n'a change depuis (aucun
+    /// Nouvel essai d'une connexion automatique en echec, apres un delai progressif (`delaiNouvelEssai(rang:base:plafond:)`, 5 s
+    /// puis 10, 20... au plus 60 s ; un evenement USB ou une connexion reussie le remet a 5 s), si rien n'a change depuis (aucun
     /// `deconnecter` : ni evenement USB, ni choix, ni oubli) et que le port est toujours liste. En echec a son tour, il
     /// en planifie un autre : une sonde qui ne lit l'USB qu'apres une longue attente (Wi-Fi absent ou refuse) finit par
     /// repondre, sans debrancher (constat 2 de la relecture finale).
     private func planifierNouvelEssai(_ port: PortUSB) {
         let n = essai
-        let delai = delaiNouvelEssai
+        let delai = Self.delaiNouvelEssai(rang: rangNouvelEssai, base: delaiNouvelEssai, plafond: plafondNouvelEssai)
+        rangNouvelEssai += 1
+        let dormir = self.dormir
         nouvelEssai?.cancel()
         nouvelEssai = Task { [weak self] in
-            try? await Task.sleep(for: delai)
+            try? await dormir(delai)
             guard !Task.isCancelled, let self, n == self.essai,
                   self.ports.contains(where: { $0.chemin == port.chemin }) else { return }
             await self.connecter(port, choisi: false)
         }
+    }
+
+    /// L'espacement des nouveaux essais USB : `base`, puis le double a chaque echec de suite, au plus `plafond` (par
+    /// exemple 5, 10, 20, 40, 60, 60 s) : une carte qui ne repond jamais n'est plus rouverte toutes les 5 s.
+    static func delaiNouvelEssai(rang: Int, base: Duration, plafond: Duration) -> Duration {
+        min(plafond, base * (1 << min(max(rang, 0), 16)))
     }
 
     private func liaisonFermee(_ s: Sonde) {

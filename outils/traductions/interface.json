@@ -417,5 +417,6 @@
   "autorisé · clé %@": "allowed · key %@",
   "non autorisé": "not allowed",
   "Régénérer une clé": "Regenerate a key",
-  "sonde": "probe"
+  "sonde": "probe",
+  "La sonde n'est pas encore prête : nouvel essai dans un instant.": "The probe is not ready yet: trying again shortly."
 }

@@ -45,6 +45,13 @@ struct SondeParReseauTests {
                              delaiPremiereTournee: .seconds(3600))
     }
 
+    /// La carte ferme une connexion muette depuis 300 s (`Portail::kMuetteMs`) : l'entretien (un `etat` hors tournee)
+    /// garde au moins 2 minutes de marge, pour les minuteries d'une app en arriere-plan (N4 de la re-relecture finale).
+    @Test func periodeEntretienLaisseUneMargeSousLaFermetureDesConnexionsMuettes() {
+        #expect(SondeMaillage.periodeEntretien == .seconds(180))
+        #expect(SondeMaillage.periodeEntretien + .seconds(120) <= .seconds(300))
+    }
+
     @Test func reseauQuandDebranchee() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }

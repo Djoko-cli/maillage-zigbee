@@ -347,16 +347,19 @@ struct SondeReseauTests {
     }
 
     /// Aucune tournee ne part pendant une mise en service (constat 13 de la relecture finale) : le `wifi` fait
-    /// redemarrer la sonde, il ne doit pas tomber en pleine tournee. La tournee due pendant ce temps part a la fin.
-    @MainActor @Test func pasDeTourneePendantLaMiseEnService() async throws {
+    /// redemarrer la sonde, il ne doit pas tomber en pleine tournee. La tournee due pendant ce temps part a la fin,
+    /// sauf apres `.cleEtWifi` : la sonde redemarre, la liaison est sur le point de se fermer, et sa reconnexion
+    /// planifie la premiere tournee (N2 de la re-relecture finale).
+    @MainActor @Test(arguments: [false, true]) func pasDeTourneePendantLaMiseEnService(avecWifi: Bool) async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }
         let ordre = Ordre()
         let porte = Porte()
         let canal = CanalRejoue { l in
             switch l {
-            case "bonjour\n": return [SondeReseauTests.bonjourUsb]
-            case "etat\n": return [CanalRejoue.etatAttache]
+            // Sans mot de passe saisi, la sonde garde son Wi-Fi : la cle seule (`.cleSeule`).
+            case "bonjour\n": return [avecWifi ? SondeReseauTests.bonjourUsb : Self.bonjourWifi]
+            case "etat\n": return [avecWifi ? CanalRejoue.etatAttache : Self.etatWifi]
             case let x where x.hasPrefix("cle nouvelle "):
                 porte.ouvrir()  // la premiere tournee est due pendant la mise en service
                 return [SondeReseauTests.reponseCle]
@@ -374,9 +377,45 @@ struct SondeReseauTests {
         s.surTournee = { debut in if debut { ordre.ajouter("tournee") } }
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(s.miseEnServicePossible)
-        #expect(await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse") == .cleEtWifi)
-        #expect(await SondeMaillageTests.sonder { ordre.valeurs.contains("tournee") }, "la tournee part apres")
-        #expect(ordre.valeurs.first == "wifi", "\(ordre.valeurs)")
+        let resultat = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: avecWifi ? "motdepasse" : "")
+        #expect(resultat == (avecWifi ? .cleEtWifi : .cleSeule))
+        if avecWifi {
+            // La tournee retenue ne part pas : la sonde redemarre. Le delai laisse une tournee partir si elle devait.
+            try await Task.sleep(for: .milliseconds(300))
+            #expect(ordre.valeurs == ["wifi"], "aucune tournee apres .cleEtWifi : \(ordre.valeurs)")
+        } else {
+            #expect(await SondeMaillageTests.sonder { ordre.valeurs.contains("tournee") }, "la tournee part apres")
+            #expect(!ordre.valeurs.contains("wifi"), "\(ordre.valeurs)")
+        }
+        await s.oublier()
+    }
+
+    /// La sonde attend son Wi-Fi au demarrage et repond `occupee` a `etat` (sa pile Zigbee n'est pas lancee) : la
+    /// premiere tournee echoue, la suivante est tentee bientot (30 s), pas 15 minutes plus tard, puis le rythme normal
+    /// reprend. L'erreur montree reste neutre (N1 de la re-relecture finale).
+    @MainActor @Test func tourneeRefuseeParUneSondeOccupeeRetenteBientot() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let libre = Mutex(false)
+        let canal = CanalRejoue { l in
+            if l == "etat\n", !libre.withLock({ $0 }) { return [#"{"v":1,"t":"etat","erreur":"occupee"}"#] }
+            return SondeRejouee.repondre(l)
+        }
+        let sommeil = Sommeil()
+        let neutre = String(localized: "La sonde n'est pas encore prête : nouvel essai dans un instant.")
+        let s = PasseComplementaireTests.sonde(p, canal: canal, horloge: HorlogeApp(PasseComplementaireTests.t0), sommeil: sommeil)
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(s.erreurTournee == neutre, "a la connexion aussi")
+        #expect(await SondeMaillageTests.sonder { sommeil.delais == [.seconds(10)] })
+        sommeil.liberer()
+        #expect(await SondeMaillageTests.sonder { sommeil.delais.count == 2 })
+        #expect(sommeil.delais == [.seconds(10), .seconds(30)], "retentee bientot, pas dans 15 minutes")
+        #expect(!s.tourneeEnCours && s.derniereTournee == nil && s.erreurTournee == neutre)
+        libre.withLock { $0 = true }
+        sommeil.liberer()
+        #expect(await SondeMaillageTests.sonder { s.derniereTournee != nil && sommeil.delais.count == 3 })
+        #expect(sommeil.delais.last == .seconds(900), "le rythme de 15 minutes reprend")
+        #expect(s.erreurTournee == nil)
         await s.oublier()
     }
 

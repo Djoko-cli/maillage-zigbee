@@ -658,6 +658,29 @@ struct SondeMaillageTests {
         await t.oublier()
     }
 
+    /// Les nouveaux essais d'une carte qui ne repond jamais s'espacent : 5, 10, 20, 40 puis 60 s au plus, au lieu de
+    /// rouvrir le port toutes les 5 s ; un evenement USB remet le premier delai (N3 de la re-relecture finale).
+    @Test(.timeLimit(.minutes(1))) func nouveauxEssaisUSBDeplusEnPlusEspaces() async throws {
+        let (p, domaine) = try Self.preferences()
+        defer { Self.nettoyer(p, domaine) }
+        p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
+        let sommeil = Sommeil()
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in CanalEnPanne() },
+                              dormir: sommeil.dormir)
+        s.portsChanges([Self.port])
+        for i in 1...6 {
+            #expect(await Self.sonder { sommeil.delais.count == i }, "attente \(i) : \(sommeil.delais)")
+            sommeil.liberer()
+        }
+        #expect(await Self.sonder { sommeil.delais.count == 7 })
+        #expect(sommeil.delais == [5, 10, 20, 40, 60, 60, 60].map { Duration.seconds($0) })
+        // Un evenement USB : l'espacement repart de 5 s.
+        s.portsChanges([Self.port])
+        #expect(await Self.sonder { sommeil.delais.count == 8 })
+        #expect(sommeil.delais.last == .seconds(5))
+        await s.oublier()
+    }
+
     /// Le nouvel essai planifie est perime si la sonde est debranchee, oubliee, ou si un autre port
     /// est choisi pendant son attente : il n'ouvre rien (aucun port qu'on ne lui a pas designe).
     @Test(.timeLimit(.minutes(1)), arguments: ["debranchee", "oubliee", "autre port choisi"])
@@ -900,7 +923,8 @@ struct SondeMaillageTests {
         let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal })
         let debut = ContinuousClock.now
         await s.connecter(Self.port, choisi: true)
-        #expect(s.erreurTournee == Sonde.Erreur.occupee("etat").localizedDescription)
+        // Etat transitoire (la pile Zigbee attend le Wi-Fi) : un message neutre, retente bientot.
+        #expect(s.erreurTournee == String(localized: "La sonde n'est pas encore prête : nouvel essai dans un instant."))
         #expect(ContinuousClock.now - debut < Sonde.delaiCommandeUSB)
         await s.oublier()
     }

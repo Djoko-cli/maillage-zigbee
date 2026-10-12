@@ -2385,6 +2385,22 @@
         }
       }
     },
+    "La sonde n'est pas encore prête : nouvel essai dans un instant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The probe is not ready yet: trying again shortly."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sonde n'est pas encore prête : nouvel essai dans un instant."
+          }
+        }
+      }
+    },
     "La sonde n'est pas sur le réseau du pont (canal ou identifiant du réseau différent)." : {
       "localizations" : {
         "en" : {

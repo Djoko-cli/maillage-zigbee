@@ -412,7 +412,7 @@ int main() {
   }
 
   {  // muette : une session qui se tait depuis kMuetteMs perd sa connexion ; un message la garde
-    static_assert(Portail::kMuetteMs > 240000, "au-dela de la periode d'entretien de l'app");
+    static_assert(Portail::kMuetteMs >= 180000 + 60000, "au moins 60 s au-dela de la periode d'entretien de l'app (180 s)");
     static_assert(Portail::kMuetteMs < h1::kForgetMs, "avant l'oubli de la session");
     Portail p;
     Fausse f;
