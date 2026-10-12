@@ -23,12 +23,13 @@ struct SondeParReseauTests {
     /// Une sonde retenue (serie, nom, adresse longue), la cle dans un trousseau en memoire.
     static func faire(_ p: UserDefaults, cle: Bool = true, reponses: @escaping @Sendable (String) -> [String] = sondeReseau,
                       muette: Bool = false, lente: Duration? = nil, ouvertures: Compteur = Compteur(),
+                      trousseau: TrousseauMemoire? = nil,
                       periodeEntretien: Duration = SondeMaillage.periodeEntretien,
                       delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau) -> SondeMaillage {
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         p.set("SONDE-01", forKey: SondeMaillage.cleNom)
         p.set("A000000000000001", forKey: SondeMaillage.cleIeee)
-        let t = TrousseauMemoire(cle ? ["A000000000000001": Self.cle] : [:])
+        let t = trousseau ?? TrousseauMemoire(cle ? ["A000000000000001": Self.cle] : [:])
         return SondeMaillage(preferences: p, actif: true, trousseau: t,
                              ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
                              ouvrirReseau: { nom, _ in
@@ -94,6 +95,23 @@ struct SondeParReseauTests {
         #expect(await SondeMaillageTests.sonder { s.etat == .connexion })
         s.reglageChemin = .automatique
         #expect(await SondeMaillageTests.sonder { s.acces == .usb }, "\(s.etat) \(String(describing: s.acces))")
+        await s.oublier()
+    }
+
+    /// La cle n'est plus lisible au moment de se connecter (trousseau, constat 7 de la relecture finale) : l'app ne
+    /// reste pas bloquee en « connexion… » ; elle relit le trousseau et, sans cle, n'essaie plus le reseau.
+    @Test func cleIllisibleNeBloquePas() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let o = Compteur()
+        let t = TrousseauMemoire(["A000000000000001": Self.cle])
+        let s = Self.faire(p, ouvertures: o, trousseau: t)
+        #expect(s.cleReseauConnue)
+        try t.oublier(identifiant: "A000000000000001")
+        s.portsChanges([])
+        s.annoncesChangees(["SONDE-01"])
+        #expect(await SondeMaillageTests.sonder { s.etat == .absente && !s.cleReseauConnue }, "etat \(s.etat)")
+        #expect(o.noms.isEmpty)
         await s.oublier()
     }
 

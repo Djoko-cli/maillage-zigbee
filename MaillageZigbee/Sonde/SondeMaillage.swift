@@ -609,7 +609,16 @@ final class SondeMaillage {
     /// Connexion par le reseau a la sonde retenue (spec sonde Wi-Fi, 4.1 et 4.2) : `bonjour` doit dire la sonde Zigbee et
     /// son adresse longue celle retenue.
     func connecterReseau() async {
-        guard actif, let nom, let cle = cleReseau() else { return }
+        guard actif else { return }
+        guard let nom, let cle = cleReseau() else {
+            // `reevaluer` a deja mis l'etat a `.connexion` : sans nom ni cle lisible (trousseau en echec, cle effacee
+            // entre-temps), l'app ne doit pas y rester bloquee. La cle est relue, puis nouvel essai.
+            relireCleReseau()
+            guard etat == .connexion, tentativeReseau else { return }
+            etat = .injoignable
+            planifierReessaiReseau()
+            return
+        }
         deconnecter(.connexion)
         tentativeReseau = true
         // La connexion concerne la sonde retenue (sans port) : `versUnAutrePort` reste faux, `nomEtat` donne son nom.
