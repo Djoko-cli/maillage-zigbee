@@ -53,11 +53,9 @@ struct FenetreReglages: View {
     @State private var messageCapture: String?
     @State private var langue = LangueApp.lire()
     @State private var messageLangue: String?
-    /// Le nom du Wi-Fi tape et pas encore mis en service ; nil tant que rien n'est tape depuis l'ouverture de la fenetre.
-    /// Le champ montre alors le nom garde (`SondeMaillage.nomWifi`). La fenetre est gardee a la fermeture : le brouillon
-    /// est remis a nil a la fermeture (`Self.estFenetreDesReglages`) et apres une mise en service reussie.
-    @State private var brouillonWifi: String?
-    @State private var motDePasseWifi = ""
+    /// Le nom et le mot de passe du Wi-Fi tapes et pas encore mis en service (`SaisieWifi`) ; oublies a la fermeture
+    /// de la fenetre (`Self.estFenetreDesReglages`).
+    @State private var saisie = SaisieWifi()
     @State private var messageReseau: String?
     /// Non nil tant que `messageReseau` est le message de succes de la mise en service : il s'efface quand la sonde,
     /// redemarree, est de retour sur le Wi-Fi (`SuiviSuccesReseau`). Une erreur n'a pas de suivi : elle reste.
@@ -92,7 +90,7 @@ struct FenetreReglages: View {
             if onglet == .general { ouverture.actualiser() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) {
-            if Self.estFenetreDesReglages($0.object) { brouillonWifi = nil }
+            if Self.estFenetreDesReglages($0.object) { saisie.fermerFenetre() }
         }
         .onChange(of: sonde.etat) { suivreSuccesReseau() }
         .onChange(of: sonde.etatSonde?.reseau?.connecte) { suivreSuccesReseau() }
@@ -281,22 +279,23 @@ struct FenetreReglages: View {
                 Text("Sonde 1.1.0 requise.").foregroundStyle(.secondary)
             } else {
                 TextField("Nom du Wi-Fi (2,4 GHz)", text: Binding(
-                    get: { Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi) },
-                    set: { brouillonWifi = $0 }))
+                    get: { Self.nomWifiAffiche(brouillon: saisie.brouillon, garde: sonde.nomWifi) },
+                    set: { saisie.brouillon = $0 }))
                 // Vide des le clic, par construction : quand le Wi-Fi de la sonde est joint, l'invite dit que le mot
                 // de passe est dans la sonde. L'app ne le garde ni ne l'affiche.
-                SecureField("Mot de passe", text: $motDePasseWifi,
+                SecureField("Mot de passe", text: $saisie.motDePasse,
                             prompt: Self.motDePasseEnregistre(sonde.etatSonde?.reseau) ? Text("Enregistré dans la sonde") : nil)
                 // Mot de passe laisse vide et Wi-Fi deja configure : seule la cle change, la sonde garde son Wi-Fi.
-                let envoiWifi = SondeMaillage.envoiWifi(wifiConfigure: sonde.wifiConfigure, motDePasse: motDePasseWifi)
+                let envoiWifi = SondeMaillage.envoiWifi(wifiConfigure: sonde.wifiConfigure, motDePasse: saisie.motDePasse)
                 HStack {
                     Button(Self.titreBoutonAcces(empreinte: sonde.empreinteAcces, envoiWifi: envoiWifi)) {
                         miseEnService = true
                         messageReseau = nil
                         messageInformatif = false
                         suiviSucces = nil
-                        let nom = Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi), mdp = motDePasseWifi
-                        motDePasseWifi = ""
+                        let nom = Self.nomWifiAffiche(brouillon: saisie.brouillon, garde: sonde.nomWifi)
+                        let mdp = saisie.motDePasse
+                        saisie.motDePasse = ""
                         Task {
                             switch await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp) {
                             case .echec(let erreur):
@@ -306,7 +305,7 @@ struct FenetreReglages: View {
                                 messageInformatif = true
                             case .cleEtWifi:
                                 messageReseau = String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
-                                brouillonWifi = nil
+                                saisie.brouillon = nil
                                 var suivi = SuiviSuccesReseau()
                                 // L'etat de depart : une sonde deja sur le Wi-Fi n'est « de retour » qu'apres un redemarrage.
                                 _ = suivi.observer(sondeJointe: sonde.etat.estConnectee,
@@ -317,7 +316,7 @@ struct FenetreReglages: View {
                         }
                     }
                     .disabled(!sonde.miseEnServicePossible || miseEnService
-                              || (envoiWifi && Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi).isEmpty))
+                              || (envoiWifi && Self.nomWifiAffiche(brouillon: saisie.brouillon, garde: sonde.nomWifi).isEmpty))
                     if miseEnService {
                         ProgressView().controlSize(.small)
                     }
@@ -496,6 +495,20 @@ struct FenetreReglages: View {
         } catch {
             messageCapture = error.localizedDescription
         }
+    }
+}
+
+/// Le Wi-Fi saisi dans la page Sonde et pas encore mis en service. `brouillon` : le nom tape ; nil tant que rien n'est
+/// tape depuis l'ouverture de la fenetre, le champ montre alors le nom garde (`SondeMaillage.nomWifi`), et apres une mise
+/// en service reussie. `motDePasse` : vide des le clic, jamais garde. La fenetre des Reglages est gardee a la fermeture :
+/// `fermerFenetre` oublie la saisie.
+struct SaisieWifi: Equatable {
+    var brouillon: String?
+    var motDePasse = ""
+
+    mutating func fermerFenetre() {
+        brouillon = nil
+        motDePasse = ""
     }
 }
 

@@ -330,6 +330,15 @@ struct AffichageSondeTests {
         #expect(FenetreReglages.nomWifiAffiche(brouillon: "Bureau", garde: nil) == "Bureau")
     }
 
+    /// A la fermeture de la fenetre des Reglages (gardee, avec son etat), la saisie du Wi-Fi est oubliee : le nom tape,
+    /// et le mot de passe tape mais jamais envoye (constat 10 de la relecture finale).
+    @Test func saisieOublieeALaFermeture() {
+        var s = SaisieWifi(brouillon: "Bureau", motDePasse: "motdepasse")
+        s.fermerFenetre()
+        #expect(s.brouillon == nil)
+        #expect(s.motDePasse.isEmpty, "le mot de passe ne survit pas a la fermeture")
+    }
+
     /// La fermeture qui remet le brouillon du nom du Wi-Fi a nil est celle de la fenetre des Reglages, pas d'une autre.
     @Test func fermetureDeLaFenetreDesReglages() async throws {
         let (p, domaine) = try SondeMaillageTests.preferences()
