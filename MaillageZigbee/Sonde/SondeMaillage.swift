@@ -174,6 +174,9 @@ final class SondeMaillage {
     @ObservationIgnored private var cheminConnecte: String?
     /// Liaison d'une connexion en cours, avant sa verification : `deconnecter` la ferme aussi.
     @ObservationIgnored private var enConnexion: Sonde?
+    /// La connexion en cours (`.connexion`) passe par le reseau : une sonde branchee en USB l'interrompt (`portsChanges`).
+    /// Remis a faux par `deconnecter`.
+    @ObservationIgnored private var tentativeReseau = false
     /// Numero d'essai, incremente par `deconnecter` : une connexion dont le numero a change est perimee et ne touche
     /// plus a rien.
     @ObservationIgnored private var essai = 0
@@ -549,8 +552,11 @@ final class SondeMaillage {
         ports = liste.filter(\.estEspressif)
         guard let serie else { return }
         if reglageChemin != .reseau, let p = ports.first(where: { $0.serie == serie }) {
-            // `lancerConnexion` passe tout de suite a `.connexion` : un second appel n'en lance pas d'autre.
-            if (sonde == nil || acces == .reseau) && etat != .connexion { lancerConnexion(p, choisi: false) }
+            // `lancerConnexion` passe tout de suite a `.connexion` : un second appel n'en lance pas d'autre. Une
+            // tentative par le reseau, elle, cede a l'USB (constat 6 de la relecture finale).
+            if (sonde == nil || acces == .reseau) && (etat != .connexion || tentativeReseau) {
+                lancerConnexion(p, choisi: false)
+            }
         } else if acces != .reseau && !versUnAutrePort {
             if sonde != nil || etat != .absente { deconnecter(.absente) }
             reevaluer()
@@ -588,6 +594,7 @@ final class SondeMaillage {
         case .reseau?:
             guard acces != .reseau, etat != .connexion else { return }
             deconnecter(.connexion)
+            tentativeReseau = true
             serieEtat = serie
             let n = essai
             Task {
@@ -604,6 +611,7 @@ final class SondeMaillage {
     func connecterReseau() async {
         guard actif, let nom, let cle = cleReseau() else { return }
         deconnecter(.connexion)
+        tentativeReseau = true
         // La connexion concerne la sonde retenue (sans port) : `versUnAutrePort` reste faux, `nomEtat` donne son nom.
         serieEtat = serie
         let n = essai
@@ -635,6 +643,10 @@ final class SondeMaillage {
             acces = .reseau
             etat = .connectee(b)
             retenirNom(b.nom)
+            // L'USB a pu devenir le chemin choisi pendant la tentative (sonde branchee, reglage change) : il l'emporte.
+            // Si le chemin reste le reseau, rien n'est relance.
+            reevaluer()
+            guard n == essai, s === sonde else { return }
             await lireEtat(s)
             guard n == essai, s === sonde else { return }
             planifierTournee(dans: delaiPremiereTournee)
@@ -818,6 +830,7 @@ final class SondeMaillage {
         reessaiReseau = nil
         sonde = nil
         enConnexion = nil
+        tentativeReseau = false
         acces = nil
         cheminConnecte = nil
         serieEtat = port?.serie

@@ -22,7 +22,7 @@ struct SondeParReseauTests {
 
     /// Une sonde retenue (serie, nom, adresse longue), la cle dans un trousseau en memoire.
     static func faire(_ p: UserDefaults, cle: Bool = true, reponses: @escaping @Sendable (String) -> [String] = sondeReseau,
-                      muette: Bool = false, ouvertures: Compteur = Compteur(),
+                      muette: Bool = false, lente: Duration? = nil, ouvertures: Compteur = Compteur(),
                       periodeEntretien: Duration = SondeMaillage.periodeEntretien,
                       delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau) -> SondeMaillage {
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
@@ -33,7 +33,9 @@ struct SondeParReseauTests {
                              ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
                              ouvrirReseau: { nom, _ in
                                  ouvertures.ajouter(nom)
-                                 return muette ? CanalFerme() : CanalRejoue(repondre: reponses)
+                                 if muette { return CanalFerme() }
+                                 if let lente { return CanalLent(delai: lente, repondre: reponses) }
+                                 return CanalRejoue(repondre: reponses)
                              },
                              delaiReessaiReseau: .milliseconds(100),
                              delaiCommandeReseau: delaiCommandeReseau,
@@ -63,6 +65,35 @@ struct SondeParReseauTests {
         #expect(await SondeMaillageTests.sonder { s.acces == .reseau })
         s.portsChanges([SondeMaillageTests.port])
         #expect(await SondeMaillageTests.sonder { s.acces == .usb })
+        await s.oublier()
+    }
+
+    /// Automatique : la sonde branchee en USB pendant une tentative par le reseau fait basculer sur l'USB (constat 6
+    /// de la relecture finale : c'est le moment ou on la branche pour la mettre en service).
+    @Test func usbBrancheePendantUneTentativeReseau() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let s = Self.faire(p, lente: .milliseconds(300))
+        s.portsChanges([])
+        s.annoncesChangees(["SONDE-01"])
+        #expect(await SondeMaillageTests.sonder { s.etat == .connexion })
+        s.portsChanges([SondeMaillageTests.port])
+        #expect(await SondeMaillageTests.sonder { s.acces == .usb }, "\(s.etat) \(String(describing: s.acces))")
+        await s.oublier()
+    }
+
+    /// Une connexion par le reseau qui reussit reevalue le chemin : l'USB, devenu le chemin choisi pendant la tentative
+    /// (ici, le reglage repasse en Automatique, sonde branchee), l'emporte.
+    @Test func reevaluationApresConnexionReseau() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let s = Self.faire(p, lente: .milliseconds(300))
+        s.reglageChemin = .reseau
+        s.portsChanges([SondeMaillageTests.port])
+        s.annoncesChangees(["SONDE-01"])
+        #expect(await SondeMaillageTests.sonder { s.etat == .connexion })
+        s.reglageChemin = .automatique
+        #expect(await SondeMaillageTests.sonder { s.acces == .usb }, "\(s.etat) \(String(describing: s.acces))")
         await s.oublier()
     }
 
@@ -163,6 +194,30 @@ struct CanalFerme: CanalSonde {
     func ouvrir() throws -> AsyncStream<Data> { AsyncStream { $0.finish() } }
     func envoyer(_ ligne: String) {}
     func fermer() {}
+}
+
+/// Un canal qui repond comme `CanalRejoue`, mais apres `delai` (une sonde lente a joindre par le reseau).
+final class CanalLent: CanalSonde {
+    private let canal = CanalRejoue { _ in [] }
+    private let delai: Duration
+    private let repondre: @Sendable (String) -> [String]
+
+    init(delai: Duration, repondre: @escaping @Sendable (String) -> [String]) {
+        self.delai = delai
+        self.repondre = repondre
+    }
+
+    func ouvrir() throws -> AsyncStream<Data> { try canal.ouvrir() }
+
+    func envoyer(_ ligne: String) {
+        let reponses = repondre(ligne)
+        Task { [canal, delai] in
+            try? await Task.sleep(for: delai)
+            canal.emettre(reponses)
+        }
+    }
+
+    func fermer() { canal.fermer() }
 }
 
 /// Un drapeau partage entre le test et un canal rejoue.
