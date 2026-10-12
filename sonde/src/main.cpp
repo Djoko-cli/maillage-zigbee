@@ -710,12 +710,18 @@ static void ecrireVoyant(uint8_t r, uint8_t g, uint8_t b) {
   rgbLedWrite(kBrocheVoyant, r, g, b);
 }
 
+// Attente du Wi-Fi au demarrage : la pile Zigbee ne demarre qu'a sa fin
+// (Wi-Fi connecte ou attente abandonnee), et loop() lit l'USB pendant ce temps.
+static AttenteWifi sAttenteWifi;
+
+// Le voyant ne montre la recherche d'un reseau qu'une fois la pile lancee (rechercheAMontrer) :
+// pendant l'attente du Wi-Fi, c'est l'orange lent « Wi-Fi configure, pas connecte ».
 static void voyantTour(uint32_t maintenant) {
   if (sAdhesion.adhesions() != sAdhesionsVues) {
     sAdhesionsVues = sAdhesion.adhesions();
     sVoyant.adherer(maintenant);
   }
-  sVoyant.chercher(sAdhesion.cherche(), maintenant, sAdhesion.neuve());
+  sVoyant.chercher(rechercheAMontrer(sAttenteWifi, sAdhesion.cherche()), maintenant, sAdhesion.neuve());
   sVoyant.suspendre(sSuspendue, maintenant);
   // « Configure » se lit dans la NVS : une fois par seconde suffit (un Wi-Fi
   // mis en place ne prend effet qu'au redemarrage de toute facon).
@@ -740,9 +746,6 @@ static char sCommande[256];
 static size_t sCmdLong = 0;
 static bool sCmdTropLongue = false;  // plus de 255 caracteres : refusee en entier
 
-// Attente du Wi-Fi au demarrage : la pile Zigbee ne demarre qu'a sa fin
-// (Wi-Fi connecte ou attente abandonnee), et loop() lit l'USB pendant ce temps.
-static AttenteWifi sAttenteWifi;
 static bool sZigbeeLancee = false;
 
 // Fin du demarrage, apres le Wi-Fi : serveur et Bonjour, puis la pile Zigbee

@@ -38,6 +38,8 @@ class AttenteWifi {
   }
 
   bool enCours() const { return etat_ == Etat::kAttente; }
+  // La pile Zigbee a ete lancee (ou va l'etre dans le meme tour de loop()).
+  bool lancee() const { return etat_ == Etat::kLancee; }
 
  private:
   // kAvant : pas commencee ; kFinie : rien a attendre, pas encore rendue.
@@ -45,3 +47,11 @@ class AttenteWifi {
   Etat etat_ = Etat::kAvant;
   uint32_t debut_ = 0;
 };
+
+// La recherche d'un reseau Zigbee n'est visible (voyant bleu) que pendant que la
+// pile tourne : pendant l'attente du Wi-Fi, l'adhesion est a son etat de
+// demarrage (cherche() vrai) sans que rien ne cherche, et le voyant montre
+// l'orange lent « Wi-Fi configure, pas connecte » (N5 de la re-relecture finale).
+inline bool rechercheAMontrer(const AttenteWifi &attente, bool adhesionCherche) {
+  return attente.lancee() && adhesionCherche;
+}

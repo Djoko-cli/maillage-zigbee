@@ -15,6 +15,9 @@
 //       allume, 250 ms eteint, comme le pont Halo ;
 //     - rattachement (parent perdu, redemarrage) : pulsation bleue lente,
 //       0 -> 24 -> 0 sur 2 s ;
+//     main.cpp ne signale la recherche qu'une fois la pile Zigbee lancee
+//     (rechercheAMontrer, demarrage.h) : pendant l'attente du Wi-Fi au
+//     demarrage, rien ne cherche encore, et c'est l'orange lent (5) qui parle ;
 //  3. adhesion : deux eclairs verts rapides (100 ms, pause, 100 ms) ;
 //  4. suspendue : un bref eclair orange (100 ms) toutes les 5 s, le premier
 //     tout de suite, aussi apres un redemarrage ;
