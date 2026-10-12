@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import MaillageCoeur
 import Synchronization
 import Testing
@@ -229,11 +230,25 @@ struct SondeReseauTests {
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(!s.cleReseauConnue)
+        // La vue doit etre prevenue : une propriete calculee qui relit le trousseau ne declencherait rien.
+        let prevenue = Drapeau()
+        withObservationTracking { _ = s.cleReseauConnue } onChange: { prevenue.lever() }
         let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
         #expect(erreur == nil)
         #expect(s.cleReseauConnue)
+        #expect(prevenue.leve, "la vue est prevenue quand la cle est rangee")
+        let oubliPrevenu = Drapeau()
+        withObservationTracking { _ = s.cleReseauConnue } onChange: { oubliPrevenu.lever() }
         await s.oublier()
         #expect(!s.cleReseauConnue)
+        #expect(oubliPrevenu.leve, "la vue est prevenue quand la cle est effacee")
+    }
+
+    /// Drapeau leve depuis un rappel `@Sendable` d'observation.
+    final class Drapeau: Sendable {
+        private let etat = Mutex(false)
+        func lever() { etat.withLock { $0 = true } }
+        var leve: Bool { etat.withLock { $0 } }
     }
 
     /// Le Wi-Fi n'est pas confirme apres la cle : le message dit que la cle existe et qu'on peut recommencer.
