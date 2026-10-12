@@ -56,6 +56,9 @@ struct FenetreReglages: View {
     @State private var nomWifi = ""
     @State private var motDePasseWifi = ""
     @State private var messageReseau: String?
+    /// Non nil tant que `messageReseau` est le message de succes de la mise en service : il s'efface quand la sonde,
+    /// redemarree, est de retour sur le Wi-Fi (`SuiviSuccesReseau`). Une erreur n'a pas de suivi : elle reste.
+    @State private var suiviSucces: SuiviSuccesReseau?
     @State private var miseEnService = false
 
     var body: some View {
@@ -82,6 +85,21 @@ struct FenetreReglages: View {
         // Etat de l'ouverture a la connexion relu a chaque affichage de l'onglet (Reglages Systeme).
         .onAppear {
             if onglet == .general { ouverture.actualiser() }
+        }
+        .onChange(of: sonde.etat) { suivreSuccesReseau() }
+        .onChange(of: sonde.etatSonde?.reseau?.connecte) { suivreSuccesReseau() }
+    }
+
+    /// Fait avancer le suivi du message de succes de la mise en service ; l'efface quand la sonde est de retour.
+    private func suivreSuccesReseau() {
+        guard var suivi = suiviSucces else { return }
+        let efface = suivi.observer(sondeJointe: sonde.etat.estConnectee,
+                                    wifiConnecte: Self.motDePasseEnregistre(sonde.etatSonde?.reseau))
+        if efface {
+            messageReseau = nil
+            suiviSucces = nil
+        } else {
+            suiviSucces = suivi
         }
     }
 
@@ -186,28 +204,41 @@ struct FenetreReglages: View {
             if surveillance.mode == .demo {
                 Text("Mode démo : pas de sonde.").foregroundStyle(.secondary)
             } else {
-                Picker("Port", selection: Binding(
-                    get: { sonde.ports.first { $0.serie != nil && $0.serie == sonde.serie }?.chemin ?? "" },
-                    set: { c in if let p = sonde.ports.first(where: { $0.chemin == c }) { sonde.choisir(p) } })) {
-                    Text("—").tag("")
-                    ForEach(sonde.ports) { p in
-                        Text(verbatim: Self.libellePort(p, serieRetenue: sonde.serie, nom: sonde.nom)).tag(p.chemin)
+                Picker("Liaison", selection: Binding(get: { sonde.reglageChemin },
+                                                     set: { sonde.reglageChemin = $0 })) {
+                    ForEach(ReglageChemin.allCases, id: \.self) { Text($0.libelle).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                if sonde.reglageChemin == .reseau {
+                    // Par le Wi-Fi il n'y a pas de port : l'instance Bonjour de la sonde retenue la remplace.
+                    if let nom = sonde.nom {
+                        LabeledContent("Service Bonjour", value: nom)
+                    }
+                } else {
+                    Picker("Port", selection: Binding(
+                        get: { sonde.ports.first { $0.serie != nil && $0.serie == sonde.serie }?.chemin ?? "" },
+                        set: { c in if let p = sonde.ports.first(where: { $0.chemin == c }) { sonde.choisir(p) } })) {
+                        Text("—").tag("")
+                        ForEach(sonde.ports) { p in
+                            Text(verbatim: Self.libellePort(p, serieRetenue: sonde.serie, nom: sonde.nom)).tag(p.chemin)
+                        }
                     }
                 }
                 LabeledContent("État", value: Self.texteEtatSonde(sonde.etat, nom: sonde.nomEtat))
-                if let a = sonde.acces {
+                // Le chemin en service ne s'apprend que dans Automatique : les deux autres liaisons l'imposent.
+                if sonde.reglageChemin == .automatique, let a = sonde.acces {
                     LabeledContent("Chemin", value: a.libelle)
-                }
-                Picker("Chemin de la sonde", selection: Binding(get: { sonde.reglageChemin },
-                                                                set: { sonde.reglageChemin = $0 })) {
-                    ForEach(ReglageChemin.allCases, id: \.self) { Text($0.libelle).tag($0) }
                 }
                 if case .connectee(let b) = sonde.etat {
                     LabeledContent("Firmware", value: b.version)
                 }
                 ReleveSonde()
                 if sonde.serie != nil {
-                    Button("Oublier la sonde") { Task { await sonde.oublier() } }
+                    Button("Oublier la sonde") {
+                        messageReseau = nil
+                        suiviSucces = nil
+                        Task { await sonde.oublier() }
+                    }
                 }
                 Text("Seul le port choisi est ouvert. Un autre ESP32-C6 branché n'est jamais ouvert : ne le choisissez pas.")
                     .font(.caption)
@@ -223,29 +254,49 @@ struct FenetreReglages: View {
     /// trousseau ; le mot de passe du Wi-Fi va a la sonde et nulle part ailleurs (le champ est vide des le clic).
     private var accesParLeReseau: some View {
         Section("Accès par le réseau") {
+            LabeledContent("Accès réseau", value: Self.texteAccesReseau(empreinte: sonde.empreinteAcces))
             if case .connectee(let b) = sonde.etat, !b.accepteReseau {
                 Text("Sonde 1.1.0 requise.").foregroundStyle(.secondary)
             } else {
                 TextField("Nom du Wi-Fi (2,4 GHz)", text: $nomWifi)
-                SecureField("Mot de passe", text: $motDePasseWifi)
-                Button(sonde.cleReseauConnue ? "Régénérer la clé" : "Autoriser l'accès réseau") {
-                    miseEnService = true
-                    let nom = nomWifi, mdp = motDePasseWifi
-                    motDePasseWifi = ""
-                    Task {
-                        messageReseau = await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp)
-                            ?? String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
-                        miseEnService = false
+                // Vide des le clic, par construction : quand le Wi-Fi de la sonde est joint, l'invite dit que le mot
+                // de passe est dans la sonde. L'app ne le garde ni ne l'affiche.
+                SecureField("Mot de passe", text: $motDePasseWifi,
+                            prompt: Self.motDePasseEnregistre(sonde.etatSonde?.reseau) ? Text("Enregistré dans la sonde") : nil)
+                HStack {
+                    Button(Self.titreBoutonAcces(empreinte: sonde.empreinteAcces)) {
+                        miseEnService = true
+                        messageReseau = nil
+                        suiviSucces = nil
+                        let nom = nomWifi, mdp = motDePasseWifi
+                        motDePasseWifi = ""
+                        Task {
+                            if let erreur = await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp) {
+                                messageReseau = erreur
+                            } else {
+                                messageReseau = String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
+                                var suivi = SuiviSuccesReseau()
+                                // L'etat de depart : une sonde deja sur le Wi-Fi n'est « de retour » qu'apres un redemarrage.
+                                _ = suivi.observer(sondeJointe: sonde.etat.estConnectee,
+                                                   wifiConnecte: Self.motDePasseEnregistre(sonde.etatSonde?.reseau))
+                                suiviSucces = suivi
+                            }
+                            miseEnService = false
+                        }
+                    }
+                    .disabled(!sonde.miseEnServicePossible || nomWifi.isEmpty || miseEnService)
+                    if miseEnService {
+                        ProgressView().controlSize(.small)
                     }
                 }
-                .disabled(!sonde.miseEnServicePossible || nomWifi.isEmpty || miseEnService)
                 if let r = sonde.etatSonde?.reseau {
                     LabeledContent("Wi-Fi de la sonde", value: Self.texteReseauSonde(r))
                 }
                 if let messageReseau {
-                    Text(messageReseau).font(.caption).foregroundStyle(.secondary)
+                    Text(messageReseau).font(.caption)
+                        .foregroundStyle(suiviSucces == nil ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
                 }
-                Text("Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas.")
+                Text("La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -360,6 +411,25 @@ struct FenetreReglages: View {
         return String(localized: "\(nom) · \(texte)")
     }
 
+    /// Acces reseau de la sonde retenue : « autorisé · clé 630DCD29 » (empreinte de la cle de ce Mac), ou
+    /// « non autorisé ».
+    static func texteAccesReseau(empreinte: String?) -> String {
+        guard let empreinte else { return String(localized: "non autorisé") }
+        return String(localized: "autorisé · clé \(empreinte)")
+    }
+
+    /// Titre du bouton de l'acces reseau : autoriser tant qu'il n'y a pas de cle, puis en regenerer une (le bouton
+    /// reste actif : une nouvelle cle remplace l'ancienne).
+    static func titreBoutonAcces(empreinte: String?) -> String {
+        empreinte == nil ? String(localized: "Autoriser l'accès réseau") : String(localized: "Régénérer une clé")
+    }
+
+    /// Le Wi-Fi de la sonde est joint : le mot de passe est donc dans la sonde (l'invite du champ le dit). Le mot de
+    /// passe lui-meme n'est jamais garde ni affiche.
+    static func motDePasseEnregistre(_ r: ReseauSonde?) -> Bool {
+        r?.connecte == true
+    }
+
     /// Wi-Fi de la sonde (`etat.reseau`) : « connecté · canal 6 · −58 dBm » ; « non connecté (raison 201) ».
     static func texteReseauSonde(_ r: ReseauSonde) -> String {
         guard r.connecte else {
@@ -391,6 +461,23 @@ struct FenetreReglages: View {
         } catch {
             messageCapture = error.localizedDescription
         }
+    }
+}
+
+/// Suivi du message de succes « la sonde redémarre et rejoint le Wi-Fi » : il s'efface quand la sonde est de retour,
+/// jointe et sur le Wi-Fi, apres avoir ete vue redemarrer (liaison perdue ou Wi-Fi non joint). Sans cette exigence, une
+/// sonde deja sur le Wi-Fi effacerait le message avant meme de redemarrer. `observer` s'appelle une fois au moment du
+/// succes (etat de depart), puis a chaque changement de la liaison ou du Wi-Fi.
+struct SuiviSuccesReseau: Equatable {
+    private(set) var aRedemarre = false
+
+    /// Vrai quand le message doit s'effacer.
+    mutating func observer(sondeJointe: Bool, wifiConnecte: Bool) -> Bool {
+        if !sondeJointe || !wifiConnecte {
+            aRedemarre = true
+            return false
+        }
+        return aRedemarre
     }
 }
 
@@ -431,14 +518,22 @@ struct ReleveSonde: View {
                 LabeledContent("Bilan", value: FenetreReglages.texteBilan(b, duree: sonde.dureeTournee))
             }
             if sonde.avancement == nil, let passe = sonde.passeComplementaire {
-                LabeledContent("Prochaine tournée", value: TexteTournee.passeComplementaire(passe))
+                ligneProchaineTournee(TexteTournee.passeComplementaire(passe))
             }
             if sonde.avancement == nil, let differee = sonde.tourneeDifferee {
-                LabeledContent("Prochaine tournée", value: TexteTournee.tourneeDifferee(differee))
+                ligneProchaineTournee(TexteTournee.tourneeDifferee(differee))
             }
             if let e = sonde.erreurTournee {
                 Text(e).font(.caption).foregroundStyle(.red)
             }
+        }
+    }
+
+    /// « Prochaine tournée » : le texte peut etre long (« la sonde a déjà beaucoup servi… »), il passe a la ligne au lieu
+    /// d'etre tronque, aligne a droite comme les autres valeurs.
+    private func ligneProchaineTournee(_ texte: String) -> some View {
+        LabeledContent("Prochaine tournée") {
+            Text(texte).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

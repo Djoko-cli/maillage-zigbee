@@ -31,6 +31,12 @@ final class SondeMaillage {
         /// Le port choisi n'est pas une sonde, ou ne repond pas.
         case refusee(String)
         case erreur(String)
+
+        /// La sonde est connectee (par l'USB ou par le reseau).
+        var estConnectee: Bool {
+            if case .connectee = self { return true }
+            return false
+        }
     }
 
     /// Numero de serie USB de la sonde retenue (l'adresse MAC du C6).
@@ -91,9 +97,12 @@ final class SondeMaillage {
             reevaluer()
         }
     }
-    /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue. Etat observable, relu du trousseau
-    /// par `relireCleReseau` chaque fois que la cle ou l'adresse longue peut changer.
-    private(set) var cleReseauConnue = false
+    /// Empreinte (`H1.kid`, 8 hexa) de la cle de l'acces par le reseau rangee dans le trousseau pour la sonde retenue ;
+    /// nil sans cle. Etat observable, relu du trousseau par `relireCleReseau` chaque fois que la cle ou l'adresse
+    /// longue peut changer.
+    private(set) var empreinteAcces: String?
+    /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue.
+    var cleReseauConnue: Bool { empreinteAcces != nil }
     /// La mise en service par l'USB est possible : la sonde retenue y est connectee, en firmware 1.1.0 ou plus, hors
     /// tournee, son adresse longue connue.
     var miseEnServicePossible: Bool {
@@ -516,9 +525,9 @@ final class SondeMaillage {
         return H1.octets(hexa: hexa)
     }
 
-    /// Releve `cleReseauConnue` dans le trousseau.
+    /// Releve `empreinteAcces` (donc `cleReseauConnue`) dans le trousseau.
     private func relireCleReseau() {
-        cleReseauConnue = cleReseau() != nil
+        empreinteAcces = cleReseau().map { H1.kid(cle: $0) }
     }
 
     /// Applique le chemin choisi (spec sonde Wi-Fi, 4.2) apres un changement de ports, d'annonces ou de reglage.

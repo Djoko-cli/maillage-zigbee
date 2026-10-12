@@ -1,14 +1,14 @@
 import Foundation
 
-/// Reglage « Chemin de la sonde » (spec sonde Wi-Fi, 4.2), garde dans les preferences.
+/// Reglage « Liaison » de la sonde (spec sonde Wi-Fi, 4.2), garde dans les preferences.
 enum ReglageChemin: String, CaseIterable, Sendable {
     case automatique, usb, reseau
 
     var libelle: String {
         switch self {
         case .automatique: String(localized: "Automatique")
-        case .usb: String(localized: "USB seulement")
-        case .reseau: String(localized: "Réseau seulement")
+        case .usb: String(localized: "USB")
+        case .reseau: String(localized: "Wi-Fi")
         }
     }
 }
@@ -20,7 +20,7 @@ enum Acces: Equatable, Sendable {
     var libelle: String {
         switch self {
         case .usb: String(localized: "USB")
-        case .reseau: String(localized: "Réseau")
+        case .reseau: String(localized: "Wi-Fi")
         }
     }
 }

@@ -206,6 +206,47 @@ struct AffichageSondeTests {
                 == String(localized: "non connecté"))
     }
 
+    /// Acces reseau : « autorisé · clé 630DCD29 » ou « non autorisé » ; le bouton autorise, puis regenere une cle.
+    @Test func accesReseau() {
+        let empreinte = "630DCD29"
+        #expect(FenetreReglages.texteAccesReseau(empreinte: empreinte) == String(localized: "autorisé · clé \(empreinte)"))
+        #expect(FenetreReglages.texteAccesReseau(empreinte: nil) == String(localized: "non autorisé"))
+        #expect(FenetreReglages.titreBoutonAcces(empreinte: nil) == String(localized: "Autoriser l'accès réseau"))
+        #expect(FenetreReglages.titreBoutonAcces(empreinte: empreinte) == String(localized: "Régénérer une clé"))
+    }
+
+    /// Les trois liaisons et le chemin en service se lisent « Automatique », « USB », « Wi-Fi ».
+    @Test func libellesDesLiaisons() {
+        #expect(ReglageChemin.allCases.map(\.libelle)
+                == [String(localized: "Automatique"), String(localized: "USB"), String(localized: "Wi-Fi")])
+        #expect(Acces.usb.libelle == String(localized: "USB") && Acces.reseau.libelle == String(localized: "Wi-Fi"))
+    }
+
+    /// L'invite « Enregistré dans la sonde » du mot de passe : seulement quand le Wi-Fi de la sonde est joint.
+    @Test func motDePasseEnregistre() {
+        #expect(FenetreReglages.motDePasseEnregistre(ReseauSonde(connecte: true, canal: 6, rssi: -58)))
+        #expect(!FenetreReglages.motDePasseEnregistre(ReseauSonde(connecte: false, raison: 201)))
+        #expect(!FenetreReglages.motDePasseEnregistre(nil))
+    }
+
+    /// Le message de succes de la mise en service s'efface quand la sonde est de retour sur le Wi-Fi apres avoir
+    /// redemarre, et pas avant : ni tant qu'elle n'a pas ete vue redemarrer, ni pendant qu'elle est hors du Wi-Fi.
+    @Test func succesDeLaMiseEnService() {
+        /// Un suivi et ses observations successives (liaison jointe, Wi-Fi joint) : ce que rend chacune.
+        func suite(_ etapes: [(Bool, Bool)]) -> [Bool] {
+            var suivi = SuiviSuccesReseau()
+            return etapes.map { suivi.observer(sondeJointe: $0.0, wifiConnecte: $0.1) }
+        }
+        // Sonde deja sur le Wi-Fi au moment du succes : rien ne s'efface avant le redemarrage (liaison perdue, puis
+        // de retour avec le Wi-Fi pas encore joint, puis joint).
+        #expect(suite([(true, true), (true, true), (false, true), (true, false), (true, true)])
+                == [false, false, false, false, true])
+        // Premiere mise en service : le Wi-Fi n'etait pas joint ; il le devient.
+        #expect(suite([(true, false), (true, true)]) == [false, true])
+        // Liaison perdue puis retrouvee, Wi-Fi joint : la sonde a redemarre.
+        #expect(suite([(true, true), (false, false), (true, true)]) == [false, false, true])
+    }
+
     /// Choix du port : la sonde retenue sous son nom seul ; un autre port, un port sans numero
     /// de serie ou la sonde retenue sans nom connu (firmware 1.0.0), sous son nom de port et son
     /// numero de serie USB (la MAC) : seul moyen de distinguer la sonde du pont Halo avant la

@@ -1073,6 +1073,22 @@
         }
       }
     },
+    "Accès réseau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès réseau"
+          }
+        }
+      }
+    },
     "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi." : {
       "localizations" : {
         "en" : {
@@ -1665,22 +1681,6 @@
         }
       }
     },
-    "Chemin de la sonde" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probe path"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chemin de la sonde"
-          }
-        }
-      }
-    },
     "Choisissez la sonde dans Réglages › Sonde. La liaison au pont Hue viendra ensuite." : {
       "localizations" : {
         "en" : {
@@ -2001,6 +2001,22 @@
         }
       }
     },
+    "Enregistré dans la sonde" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved in the probe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistré dans la sonde"
+          }
+        }
+      }
+    },
     "Entre %@ et %@ : %@" : {
       "localizations" : {
         "en" : {
@@ -2305,6 +2321,22 @@
         }
       }
     },
+    "La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The key goes over USB, with the probe plugged in, and stays in this Mac's keychain. With the \"Wi-Fi\" link, the probe can be unplugged and powered elsewhere. The Wi-Fi password goes straight to the probe: the app does not keep it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas."
+          }
+        }
+      }
+    },
     "La langue change au prochain lancement." : {
       "localizations" : {
         "en" : {
@@ -2509,6 +2541,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms ; le pont Hue donne les adresses, l'état de connexion et les piles. Le relevé est refait au lancement s'il a plus d'un jour."
+          }
+        }
+      }
+    },
+    "Liaison" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liaison"
           }
         }
       }
@@ -3889,18 +3937,18 @@
         }
       }
     },
-    "Régénérer la clé" : {
+    "Régénérer une clé" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regenerate key"
+            "value" : "Regenerate a key"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Régénérer la clé"
+            "value" : "Régénérer une clé"
           }
         }
       }
@@ -3965,22 +4013,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réseau — sonde injoignable"
-          }
-        }
-      }
-    },
-    "Réseau seulement" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Network only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réseau seulement"
           }
         }
       }
@@ -4097,6 +4129,22 @@
         }
       }
     },
+    "Service Bonjour" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour service"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Bonjour"
+          }
+        }
+      }
+    },
     "Seul le port choisi est ouvert. Un autre ESP32-C6 branché n'est jamais ouvert : ne le choisissez pas." : {
       "localizations" : {
         "en" : {
@@ -4189,22 +4237,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sonde 1.1.0 requise."
-          }
-        }
-      }
-    },
-    "Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probe plugged in over USB, no round under way. The password goes straight to the probe: the app does not keep it."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sonde branchée en USB, hors tournée. Le mot de passe va directement à la sonde : l'app ne le garde pas."
           }
         }
       }
@@ -4577,22 +4609,6 @@
         }
       }
     },
-    "USB seulement" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "USB only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "USB seulement"
-          }
-        }
-      }
-    },
     "Utiliser cette adresse" : {
       "localizations" : {
         "en" : {
@@ -4717,6 +4733,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vue par pièces"
+          }
+        }
+      }
+    },
+    "Wi-Fi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
           }
         }
       }
@@ -4941,6 +4973,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "aucune zone dans Maison"
+          }
+        }
+      }
+    },
+    "autorisé · clé %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "allowed · key %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "autorisé · clé %@"
           }
         }
       }
@@ -5773,6 +5821,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "noms de l'app Hue seulement"
+          }
+        }
+      }
+    },
+    "non autorisé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not allowed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non autorisé"
           }
         }
       }
