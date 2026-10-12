@@ -65,6 +65,7 @@
 #include "canaux.h"
 #include "cle_reseau.h"
 #include "commande.h"
+#include "demarrage.h"
 #include "entrees.h"
 #include "h1_proto.h"
 #include "ligne.h"
@@ -738,6 +739,24 @@ static char sCommande[256];
 static size_t sCmdLong = 0;
 static bool sCmdTropLongue = false;  // plus de 255 caracteres : refusee en entier
 
+// Attente du Wi-Fi au demarrage : la pile Zigbee ne demarre qu'a sa fin
+// (Wi-Fi connecte ou attente abandonnee), et loop() lit l'USB pendant ce temps.
+static AttenteWifi sAttenteWifi;
+static bool sZigbeeLancee = false;
+
+// Fin du demarrage, apres le Wi-Fi : serveur et Bonjour, puis la pile Zigbee
+// (cohabitation : essai du 10/10), puis le bonjour du demarrage.
+static void lancerZigbee() {
+  reseau::ouvrir();
+  zigbee::demarrer();
+  // La pile demarre dans sa tache : jusqu'a 2 s pour lire l'adresse longue
+  // avant le bonjour du demarrage (sinon "ieee":null, et le suivant l'aura).
+  for (int i = 0; i < 200 && !zigbee::prete(); i++) delay(10);
+  lireIeee(200);
+  sZigbeeLancee = true;
+  cmdBonjour();
+}
+
 void setup() {
   // Avant tout : apres une reinitialisation qui n'est ni une mise sous tension
   // ni un reveil, sommeil profond de 0,2 s si le Wi-Fi est configure (spec
@@ -753,14 +772,13 @@ void setup() {
   const String nom = sPreferences.getString(kCleNom, kNomDefaut);
   if (nomValide(nom.c_str())) snprintf(sNom, sizeof(sNom), "%s", nom.c_str());
   sSuspendue = sPreferences.getBool(kCleSuspendue, false);
-  // Le Wi-Fi d'abord, puis la pile Zigbee (cohabitation : essai du 10/10).
+  // Le Wi-Fi d'abord, puis la pile Zigbee (cohabitation : essai du 10/10). La
+  // connexion au Wi-Fi est attendue dans loop(), qui lit l'USB pendant ce temps
+  // (15 s au plus si le point d'acces manque) ; sans Wi-Fi configure, la pile
+  // demarre ici, comme dans la sonde 1.0.0.
   reseau::demarrer(sNom);
-  zigbee::demarrer();
-  // La pile demarre dans sa tache : jusqu'a 2 s pour lire l'adresse longue
-  // avant le bonjour du demarrage (sinon "ieee":null, et le suivant l'aura).
-  for (int i = 0; i < 200 && !zigbee::prete(); i++) delay(10);
-  lireIeee(200);
-  cmdBonjour();
+  sAttenteWifi.commencer(reseau::configure(), millis());
+  if (sAttenteWifi.finir(reseau::connecte(), millis())) lancerZigbee();
 }
 
 void loop() {
@@ -778,6 +796,8 @@ void loop() {
       else sCmdTropLongue = true;
     }
   }
+  // Fin de l'attente du Wi-Fi : la pile Zigbee demarre.
+  if (sAttenteWifi.finir(reseau::connecte(), millis())) lancerZigbee();
   reseau::tour(millis());
   Portail::Requete r;
   while (reseau::requete(&r)) {
@@ -789,9 +809,12 @@ void loop() {
     h1::wipe(r.commande, sizeof(r.commande));
   }
   // L'heure relue a chaque etape : une commande ou une action d'adhesion peut
-  // prendre jusqu'a 1 s.
-  evenements(millis());
-  progresser(millis());
+  // prendre jusqu'a 1 s. Avant la pile Zigbee (attente du Wi-Fi), ni signal ni
+  // reponse : l'adhesion reste a son etat de demarrage.
+  if (sZigbeeLancee) {
+    evenements(millis());
+    progresser(millis());
+  }
   voyantTour(millis());
   delay(5);
 }

@@ -31,7 +31,8 @@ bool sOccupe[Portail::kConnexions] = {};
 // Connexion coupee par envoyer() (ecriture incomplete) : Portail::fermee n'est
 // appelee qu'au tour suivant, jamais depuis l'interieur d'une methode du Portail.
 bool sAFermer[Portail::kConnexions] = {};
-bool sDemarre = false;
+bool sLance = false;    // demarrer() : connexion au Wi-Fi lancee
+bool sDemarre = false;  // ouvrir() : serveur et Bonjour
 bool sMdns = false;
 char sNomSonde[33] = {0};
 char sHote[40] = {0};
@@ -129,8 +130,6 @@ void demarrer(const char *nomSonde) {
   memcpy(nom, sNomWifi, sNomWifiLong);
   const size_t nMdp = p.getBytes(kCleMdp, mdp, sizeof(mdp) - 1);
   mdp[nMdp] = 0;
-  uint8_t cle[32];
-  const bool aCle = p.getBytes(kCleH1, cle, sizeof(cle)) == sizeof(cle);
   p.end();
 
   esp_coex_wifi_i154_enable();
@@ -141,12 +140,18 @@ void demarrer(const char *nomSonde) {
   WiFi.onEvent(surEvenement);
   WiFi.begin(nom, nMdp ? mdp : nullptr);
   h1::wipe(mdp, sizeof(mdp));
-  const uint32_t debut = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - debut < 15000) delay(100);
-  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+  sLance = true;
+}
 
+void ouvrir() {
+  if (!sLance || sDemarre) return;
+  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
   sServeur.begin();
   sServeur.setNoDelay(true);
+  Preferences p;
+  uint8_t cle[32];
+  const bool aCle = p.begin(kEspace, true) && p.getBytes(kCleH1, cle, sizeof(cle)) == sizeof(cle);
+  p.end();
   if (aCle) sPortail.cle(cle);
   h1::wipe(cle, sizeof(cle));
   annoncer();

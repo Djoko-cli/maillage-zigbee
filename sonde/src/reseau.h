@@ -7,8 +7,10 @@
 //  Demarrage (Wi-Fi configure) : gardeDemarrage() d'abord (sommeil profond de
 //  0,2 s apres une reinitialisation qui n'est ni une mise sous tension ni un
 //  reveil : la pile Zigbee laisse la radio sans reception Wi-Fi, essai du
-//  10/10), puis demarrer() AVANT la pile Zigbee : cohabitation, Wi-Fi connecte
-//  (15 s au plus), economie d'energie minimale, serveur TCP 5481, Bonjour.
+//  10/10), puis demarrer() : cohabitation, connexion au Wi-Fi lancee, sans
+//  l'attendre. loop() tourne pendant l'attente (demarrage.h : 15 s au plus,
+//  l'USB repond) ; a sa fin, ouvrir() (economie d'energie minimale, serveur TCP
+//  5481, cle, Bonjour), puis seulement la pile Zigbee.
 //  Tout se fait dans la tache loop, jamais sous le verrou de la pile Zigbee.
 // ===========================================================================
 #include <stddef.h>
@@ -25,7 +27,11 @@ void gardeDemarrage();
 bool configure();
 // Vrai si le Wi-Fi est connecte, adresse IP obtenue.
 bool connecte();
+// Lance la connexion au Wi-Fi configure, sans l'attendre ; rien sans Wi-Fi configure.
 void demarrer(const char *nomSonde);
+// Fin de l'attente du Wi-Fi (connecte ou abandonnee), avant la pile Zigbee : economie d'energie, serveur TCP, cle
+// (relue de la NVS : une cle creee pendant l'attente compte), Bonjour.
+void ouvrir();
 void tour(uint32_t maintenant);
 bool requete(Portail::Requete *r);
 void repondre(uint8_t session, uint32_t rid, const uint8_t *ligne, size_t n);
