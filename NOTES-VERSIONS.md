@@ -6,6 +6,34 @@ the notes of the GitHub release and those of the update window.
 Maillage Zigbee : une section par version publiée, en anglais puis en français. `outils/publier.sh` en tire les
 notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour.
 
+## 1.1.0
+
+**English**
+
+- The probe can live on a wall charger: the app queries it over the local network (probe firmware 1.1.0), found
+  by Bonjour.
+- Setup over USB in Settings, Probe: the Wi-Fi name and password go straight to the probe and are not kept by the
+  app; the probe creates an access key, which stays in the Mac's keychain.
+- Probe path: automatic (USB when plugged in, otherwise the network), or USB only, or network only.
+- The exchanges over the network are signed with that key, not encrypted; the probe refuses there the setup, the
+  Wi-Fi and leaving the Zigbee network, which stay on USB.
+- A 1.0.0 probe keeps working over USB.
+- At launch, the app shows the last known mesh again, with "Incomplete mesh" until the next pass completes it.
+
+**Français**
+
+- La sonde peut vivre sur un chargeur mural : l'app l'interroge par le réseau local (firmware de sonde 1.1.0),
+  trouvée par Bonjour.
+- Mise en service par l'USB dans Réglages, Sonde : le nom et le mot de passe du Wi-Fi vont directement à la sonde
+  et l'app ne les garde pas ; la sonde crée une clé d'accès, rangée dans le trousseau du Mac.
+- Chemin de la sonde : automatique (l'USB quand elle est branchée, le réseau sinon), ou USB seulement, ou réseau
+  seulement.
+- Les échanges par le réseau sont signés avec cette clé, non chiffrés ; la sonde y refuse la mise en service, le
+  Wi-Fi et l'oubli du réseau Zigbee, qui restent sur l'USB.
+- Une sonde 1.0.0 reste servie par l'USB.
+- Au lancement, l'app réaffiche le dernier maillage connu, avec « Maillage incomplet » jusqu'à ce que la passe
+  suivante le complète.
+
 ## 1.0.0
 
 **English**
