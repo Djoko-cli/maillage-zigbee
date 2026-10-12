@@ -33,10 +33,27 @@ enum ErreurTrousseau: Error, Equatable, Sendable, LocalizedError {
 /// macOS, ou l'app range ses elements, l'accessibilite n'est pas appliquee : l'element suit le verrou du trousseau,
 /// ouvert a la connexion ; elle est donnee pour le jour ou l'element irait au trousseau a protection des donnees.)
 struct TrousseauSysteme: TrousseauCles {
-    let service: String
+    /// Libelle de l'element (colonne Nom de Trousseaux d'acces) et son commentaire, d'apres le compte et la cle.
+    typealias Etiquette = @Sendable (_ identifiant: String, _ cle: String) -> (libelle: String, commentaire: String?)
 
-    init(service: String = "fr.djoko.maillage.zigbee.pont") {
+    let service: String
+    let etiquette: Etiquette
+
+    init(service: String = "fr.djoko.maillage.zigbee.pont",
+         etiquette: @escaping Etiquette = { identifiant, _ in ("Maillage Zigbee - pont Hue \(identifiant)", nil) }) {
         self.service = service
+        self.etiquette = etiquette
+    }
+
+    /// Ce qui est ecrit avec la cle : la valeur, le libelle, le commentaire s'il y en a un, l'accessibilite. Pur : les
+    /// tests le lisent sans toucher au trousseau.
+    func valeurs(identifiant: String, cle: String) -> [String: Any] {
+        let e = etiquette(identifiant, cle)
+        var v: [String: Any] = [kSecValueData as String: Data(cle.utf8),
+                                kSecAttrLabel as String: e.libelle,
+                                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+        if let c = e.commentaire { v[kSecAttrComment as String] = c }
+        return v
     }
 
     private func requete(_ identifiant: String) -> [String: Any] {
@@ -60,9 +77,7 @@ struct TrousseauSysteme: TrousseauCles {
     }
 
     func ranger(identifiant: String, cle: String) throws(ErreurTrousseau) {
-        let valeurs: [String: Any] = [kSecValueData as String: Data(cle.utf8),
-                                      kSecAttrLabel as String: "Maillage Zigbee - pont Hue \(identifiant)",
-                                      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+        let valeurs = valeurs(identifiant: identifiant, cle: cle)
         var s = SecItemUpdate(requete(identifiant) as CFDictionary, valeurs as CFDictionary)
         if s == errSecItemNotFound {
             s = SecItemAdd(requete(identifiant).merging(valeurs) { $1 } as CFDictionary, nil)

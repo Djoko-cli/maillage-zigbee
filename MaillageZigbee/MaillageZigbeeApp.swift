@@ -42,7 +42,7 @@ struct MaillageZigbeeApp: App {
         // Inerte en demo et sous tests : aucun port ouvert ; sous les tests, jamais le vrai trousseau.
         let sm = SondeMaillage(actif: !Self.demo && !Surveillance.sousTests,
                                trousseau: Surveillance.sousTests ? TrousseauMemoire()
-                                   : TrousseauSysteme(service: CheminSonde.serviceTrousseau))
+                                   : CheminSonde.trousseau())
         _sonde = State(initialValue: sm)
         // Les mises a jour : ni en demo, ni sous les tests (aucune recherche, aucun reseau), ni dans une
         // compilation de travail.
