@@ -622,8 +622,10 @@ struct GlissementTests {
         #expect(m.entree?.scene.liens == avec.scene.liens, "le releve est pose")
         let tr = try #require(m.transition)
         #expect(tr != premiere, "le lien qui apparait relance le glissement")
+        // Au bout du fondu l'opacite vaut 1 a un epsilon pres : `debut` est l'horloge du Mac (`CACurrentMediaTime`, le
+        // temps depuis le demarrage) et, au-dela de 2^21 s (24 jours), (debut + 0,3 - debut) / 0,3 n'est plus >= 1.
         #expect(tr.arrivee.liens.count == 1 && tr.poses(a: tr.debut).liens.values.allSatisfy { $0.opacite == 0 }
-                && tr.poses(a: tr.debut + TransitionScene.dureeFondu).liens.values.allSatisfy { $0.opacite == 1 },
+                && tr.poses(a: tr.debut + TransitionScene.dureeFondu).liens.values.allSatisfy { abs($0.opacite - 1) < 1e-6 },
                 "et il vient en fondu")
     }
 
