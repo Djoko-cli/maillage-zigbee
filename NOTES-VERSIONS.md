@@ -14,7 +14,7 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   Settings, Privacy & Security, "Open Anyway".
 - Updating from 1.0.0: at the first launch of 1.1.0, macOS says the app differs from the versions opened before
   and asks whether to open it; choose "Open Anyway". Only once: the Hue bridge key in the keychain and the
-  settings are kept.
+  settings are kept. macOS may also ask again for local network access (the probe and the Hue bridge): allow it.
 - The probe can live on a wall charger: the app queries it over Wi-Fi, on the local network, found by Bonjour.
   This needs probe firmware 1.1.0, flashed over USB (the probe stays a member of the Hue network).
 - Setup over USB in Settings, Probe: the Wi-Fi name and password go straight to the probe and are not kept by the
@@ -36,7 +36,8 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   par Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».
 - Depuis la 1.0.0 : au premier lancement de la 1.1.0, macOS dit que l'app diffère des versions ouvertes jusque-là
   et demande s'il faut l'ouvrir ; choisir « Ouvrir quand même ». Une seule fois : la clé du pont Hue, dans le
-  trousseau, et les réglages sont gardés.
+  trousseau, et les réglages sont gardés. macOS peut aussi redemander l'accès au réseau local (la sonde et le pont
+  Hue) : l'autoriser.
 - La sonde peut vivre sur un chargeur mural : l'app l'interroge par le Wi-Fi, sur le réseau local, trouvée par
   Bonjour. Il faut le firmware de sonde 1.1.0, à flasher par l'USB (la sonde reste membre du réseau Hue).
 - Mise en service par l'USB dans Réglages, Sonde : le nom et le mot de passe du Wi-Fi vont directement à la sonde
