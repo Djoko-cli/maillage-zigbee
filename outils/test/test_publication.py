@@ -30,13 +30,30 @@ CLE = 'p7jaASHZk/U9YboWWSgw+Z4xEGYXOfUUhTKtZG7uQlE='
 IDENTITE = 'Essai Inventee Signing'
 EMPREINTE = 'A1B2C3D4E5F60718293A4B5C6D7E8F9012345678'
 AUTRE_EMPREINTE = '0F1E2D3C4B5A69788796A5B4C3D2E1F00F1E2D3C'
+# Un Developer ID invente : son nom complet n'est jamais ecrit par l'outil (identite generique DEVELOPER_ID).
+DEVID_NOM = 'Developer ID Application: Titulaire Invente (ABCDE12345)'
+DEVID_SUJET = 'UID=ABCDE12345,CN=%s,OU=ABCDE12345,O=Titulaire Invente,C=FR' % DEVID_NOM
+DEVID = {'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-essai', 'FAUSSE_IDENTITE': DEVID_NOM,
+         'FAUX_SUJET': DEVID_SUJET, 'FAUX_SUJET_FEUILLE': DEVID_SUJET,
+         'FAUX_EMETTEUR_SUJET': 'CN=Developer ID Certification Authority,OU=G2,O=Apple Inc.,C=US'}
 COMPTE = 'compte-invente'
 AUTRE_CLE = 'lkPxEHj5erw+omLlr1AVsIoyhfz4YnoLa/N9147SNgc='
 # Aucune vraie commande reseau ne peut partir : git ne parle que le protocole file, et le PATH ne porte ni gh, ni les
 # outils de Sparkle, ni xcodegen (les fausses commandes sont donnees par leur chemin, par l'environnement).
 PATH_ISOLE = '/usr/bin:/bin'
-GIT_ENV = dict(os.environ, PATH=PATH_ISOLE, GIT_ALLOW_PROTOCOL='file',
-               GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_SYSTEM='/dev/null',
+# Les variables que publier.sh exporte, ou qu'un shell de publication aurait : jamais dans le monde des tests.
+VARIABLES_DE_PUBLICATION = ('NOTARISER', 'PROFIL_NOTARISATION', 'IDENTITE_SIGNATURE', 'SPARKLE_BIN', 'DD',
+                            'CONTROLE_ANONYMISATION', 'TABLE_ANONYMISATION')
+
+
+def environnement_neutre():
+    return {k: v for k, v in os.environ.items()
+            if k not in VARIABLES_DE_PUBLICATION and not k.startswith(('FAUX_', 'FAUSSE_'))}
+
+
+ISOLEMENT = dict(PATH=PATH_ISOLE, GIT_ALLOW_PROTOCOL='file', GIT_CONFIG_GLOBAL='/dev/null',
+                 GIT_CONFIG_SYSTEM='/dev/null')
+GIT_ENV = dict(environnement_neutre(), **ISOLEMENT,
                GIT_AUTHOR_NAME='Essai', GIT_AUTHOR_EMAIL='essai@example.invalid',
                GIT_COMMITTER_NAME='Essai', GIT_COMMITTER_EMAIL='essai@example.invalid')
 
@@ -92,8 +109,25 @@ FAUX = {
     'xcodegen': 'import sys\n',
     'codesign': textwrap.dedent('''\
         a = sys.argv[1:]
+        # FAUX_SIGNATURE_NOMMEE : la signature du cadre porte le nom du compte (comme un Developer ID individuel
+        # porte le nom legal du titulaire) ; --remove-signature l'enleve, sauf avec FAUX_RETRAIT_IMPOSSIBLE.
+        marque = b"\\0signature:" + os.environ.get("USER", "").encode() + b"\\0"
+        if os.environ.get("FAUX_SIGNATURE_NOMMEE") and a and a[-1].endswith("Sparkle.framework"):
+            binaire = os.path.join(a[-1], "Versions", "Current", "Sparkle")
+            if a[0] == "--force":
+                open(binaire, "ab").write(marque)
+            elif a[0] == "--remove-signature":
+                if os.environ.get("FAUX_RETRAIT_IMPOSSIBLE"):
+                    sys.exit(1)
+                contenu = open(binaire, "rb").read()
+                open(binaire, "wb").write(contenu.replace(marque, b""))
         if a[:2] == ["-d", "-r-"]:
-            print('designated => identifier "fr.exemple.essai" and certificate leaf = H"0123abcd"')
+            if os.environ.get("FAUSSE_IDENTITE", "").startswith("Developer ID Application"):
+                print('designated => identifier "fr.exemple.essai" and anchor apple generic and certificate '
+                      '1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate '
+                      'leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ABCDE12345')
+            else:
+                print('designated => identifier "fr.exemple.essai" and certificate leaf = H"0123abcd"')
         # Une signature par --entitlements : ses droits sont gardes, et rendus a la relecture.
         etat = os.environ["FAUX_JOURNAL"] + ".droits"
         if a[:1] == ["--force"] and "--entitlements" in a:
@@ -156,12 +190,23 @@ FAUX = {
                 print("        X509v3 Subject Alternative Name:\\n            DNS:exemple.invalid")
             if os.environ.get("FAUX_EMETTEUR"):
                 print("        Issuer: CN=Autre, emailAddress=x@exemple.invalid")
+            if os.environ.get("FAUX_EMETTEUR_APPLE"):
+                print("        Issuer: CN=Developer ID Certification Authority, OU=G2, O=Apple Inc., C=US")
         else:
             print("subject= " + sujet)
+            print("issuer= " + os.environ.get("FAUX_EMETTEUR_SUJET", "CN=Autorite Inventee"))
             print("SHA1 Fingerprint=" + ":".join(empreinte[i:i + 2] for i in range(0, 40, 2)))
         ''' % {'identite': IDENTITE, 'empreinte': EMPREINTE}),
-    'xcrun': 'import sys\n',
-    'spctl': 'import sys\n',
+    'xcrun': textwrap.dedent('''\
+        a = sys.argv[1:]
+        if a[:2] == ["notarytool", "history"] and os.environ.get("FAUX_PROFIL_MUET"):
+            sys.exit(69)
+        '''),
+    'spctl': textwrap.dedent('''\
+        if os.environ.get("FAUX_SPCTL_REFUS"):
+            sys.stderr.write("rejected\\nsource=Notarized Developer ID\\norigin=%s\\n" % os.environ["FAUSSE_IDENTITE"])
+            sys.exit(3)
+        '''),
     'ditto': 'import shutil\nshutil.copytree(sys.argv[1], sys.argv[2], symlinks=True)\n',
     'xcodebuild': textwrap.dedent('''\
         import plistlib, re
@@ -345,7 +390,9 @@ class Monde:
 
     def environnement(self, env):
         # Sans GIT_AUTHOR_* ni GIT_COMMITTER_* : le commit du flux prend l'auteur de la configuration du depot.
-        e = {k: v for k, v in GIT_ENV.items() if not k.startswith(('GIT_AUTHOR', 'GIT_COMMITTER'))}
+        # L'environnement relu a chaque publication : une variable de publication posee apres l'import n'y entre pas.
+        e = {k: v for k, v in dict(environnement_neutre(), **ISOLEMENT).items()
+             if not k.startswith(('GIT_AUTHOR', 'GIT_COMMITTER'))}
         e.update(FAUX_JOURNAL=self.journal, FAUSSE_CLE=CLE, DD=self.dd, FAUSSE_ORIGINE=self.origine,
                  HOME=self.maison, USER=COMPTE, LOGNAME=COMPTE)
         e.update(env or {})
@@ -863,10 +910,10 @@ class PublicationTests(unittest.TestCase):
         appels = self.m.appels()
         controle = [a for a in appels if a.startswith('controles.py')][0]
         self.assertLess(appels.index(controle), [i for i, a in enumerate(appels) if a.startswith('hdiutil')][0])
-        for attendu in ('/dmg/Essai Inventee.app/Contents/Info.plist',
-                        '/dmg/Essai Inventee.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle',
-                        '/dmg/Essai Inventee.app/Contents/Resources/fr.lproj/Localizable.strings',
-                        '/dmg/Sparkle-LICENSE.txt'):
+        for attendu in ('/controle-dmg/Essai Inventee.app/Contents/Info.plist',
+                        '/controle-dmg/Essai Inventee.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle',
+                        '/controle-dmg/Essai Inventee.app/Contents/Resources/fr.lproj/Localizable.strings',
+                        '/controle-dmg/Sparkle-LICENSE.txt'):
             self.assertIn(attendu, controle)
         self.assertIn('--table %s/table.json' % self.m.bin, controle)
         sortie = os.path.join(self.m.depot, 'build', 'publication', '1.2.3')
@@ -875,6 +922,37 @@ class PublicationTests(unittest.TestCase):
         for attendu in ('Applications -> /Applications', 'Sparkle-LICENSE.txt', 'Essai Inventee.app/Contents/Resources',
                         'Essai Inventee.app/Contents/Resources/fr.lproj/Localizable.strings'):
             self.assertIn(attendu, liste)
+
+    def test_controle_sans_les_signatures(self):
+        """Le controle lit une copie du contenu du .dmg dont chaque code a perdu sa signature (celle d'un Developer
+        ID individuel porte le nom legal du titulaire) : le cadre et l'app, apres leur signature et avant le
+        controle ; le contenu du .dmg garde les siennes, et la copie est retiree ensuite."""
+        self.m.publier()
+        appels = self.m.appels()
+        sortie = os.path.join(self.m.depot, 'build', 'publication', '1.2.3')
+        retraits = [a for a in appels if a.startswith('codesign --remove-signature')]
+        # Chaque code signe de l'app (le cadre, ce qu'il contient, l'app), et lui seul, perd sa signature dans la copie.
+        signes_app = [a.split('/Release/', 1)[1] for a in appels if a.startswith('codesign --force') and '/Release/' in a]
+        self.assertEqual(sorted(r.split('/controle-dmg/', 1)[1] for r in retraits), sorted(signes_app))
+        self.assertIn('Essai Inventee.app/Contents/Frameworks/Sparkle.framework', signes_app)
+        self.assertIn('Essai Inventee.app', signes_app)
+        signes = [i for i, a in enumerate(appels) if a.startswith('codesign --force')]
+        controle = [i for i, a in enumerate(appels) if a.startswith('controles.py')][0]
+        for r in retraits:
+            self.assertLess(signes[-1], appels.index(r))
+            self.assertLess(appels.index(r), controle)
+        self.assertFalse(os.path.exists(sortie + '/controle-dmg'), 'copie retiree')
+
+    def test_nom_dans_la_signature(self):
+        """Le nom du compte dans la seule signature d'un code (un Developer ID individuel y porte le nom legal du
+        titulaire) : les deux gardes lisent la copie sans signatures, et la publication passe. Si la signature ne
+        peut pas etre retiree : refus."""
+        appels = self.refuse(env={'FAUX_SIGNATURE_NOMMEE': '1', 'FAUX_RETRAIT_IMPOSSIBLE': '1'},
+                             motif='Sparkle.framework ne se retire pas')
+        self.assertFalse([a for a in appels if a.startswith(('hdiutil', 'sign_update'))], 'aucun .dmg')
+        self.m.oublier()
+        self.m.publier(env={'FAUX_SIGNATURE_NOMMEE': '1'})
+        self.assertTrue([a for a in self.m.appels() if a.startswith('sign_update')], 'publie')
 
     def test_noms_du_contenu_du_dmg_controles(self):
         """Les noms passent aussi par le controle d'anonymisation, pas seulement les contenus : le nom d'un lien, ou
@@ -932,7 +1010,7 @@ class PublicationTests(unittest.TestCase):
             self.assertNotIn('--keychain', a)
         self.assertIn('codesign --verify --deep --strict ' + app, appels)
         self.assertIn('codesign -d --extract-certificates=%s/certificat- %s' % (sortie, app), appels)
-        self.assertIn('openssl x509 -inform DER -in %s/certificat-0 -noout -subject -nameopt RFC2253 -fingerprint '
+        self.assertIn('openssl x509 -inform DER -in %s/certificat-0 -noout -subject -issuer -nameopt RFC2253 -fingerprint '
                       '-sha1' % sortie, appels)
         self.assertIn('certificate leaf', lire(os.path.join(sortie, 'exigence.txt')))
 
@@ -988,8 +1066,7 @@ class PublicationTests(unittest.TestCase):
 
     def test_notarisation_sans_levee_de_la_validation(self):
         """NOTARISER=1 (Developer ID, une equipe) : la levee n'est pas ajoutee, et refusee si Xcode l'a posee."""
-        env = {'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-essai'}
-        self.m.publier(env=env)
+        self.m.publier('--identite', P.DEVELOPER_ID, env=DEVID)
         with open(os.path.join(self.m.depot, 'build', 'publication', '1.2.3', 'droits-app.plist'), 'rb') as f:
             self.assertNotIn(P.VALIDATION_BIBLIOTHEQUES, plistlib.load(f))
 
@@ -998,8 +1075,8 @@ class PublicationTests(unittest.TestCase):
         for cas in ('validation-levee', 'validation-fausse'):
             with self.subTest(cas=cas):
                 self.m.oublier()
-                env = {'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-essai', 'FAUX_DROITS': cas}
-                appels = self.refuse(env=env, motif='disable-library-validation est present')
+                env = dict(DEVID, FAUX_DROITS=cas)
+                appels = self.refuse('--identite', P.DEVELOPER_ID, env=env, motif='disable-library-validation est present')
                 self.assertTrue([a for a in appels if a.startswith('codesign --force')], 'apres la signature')
                 self.assertFalse([a for a in appels if a.startswith(('hdiutil', 'sign_update'))], 'aucun .dmg')
 
@@ -1077,13 +1154,14 @@ class PublicationTests(unittest.TestCase):
         self.assertFalse([a for a in self.m.appels() if a.startswith(('xcrun', 'spctl'))])
 
     def test_refus_notarisation_sans_profil(self):
-        appels = self.refuse(env={'NOTARISER': '1'}, motif='PROFIL_NOTARISATION')
+        env = {k: v for k, v in DEVID.items() if k != 'PROFIL_NOTARISATION'}
+        appels = self.refuse('--identite', P.DEVELOPER_ID, env=env, motif='PROFIL_NOTARISATION')
         self.assertFalse([a for a in appels if a.startswith(('xcodebuild', 'xcrun'))], 'rien de compile ni soumis')
 
     def test_notarisation(self):
         """NOTARISER=1 : signatures horodatees, le .dmg signe, soumis, agrafe, evalue, puis signe par Sparkle (la
         signature Ed25519 porte sur le .dmg agrafe)."""
-        self.m.publier(env={'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-essai'})
+        self.m.publier('--identite', P.DEVELOPER_ID, env=DEVID)
         appels = self.m.appels()
         dmg = os.path.join(self.m.depot, 'build', 'publication', '1.2.3', 'Essai-Inventee-1.2.3.dmg')
         signe = [a for a in appels if a.startswith('codesign --force')]
@@ -1091,11 +1169,129 @@ class PublicationTests(unittest.TestCase):
         suite = [a for a in appels if a.startswith(('xcrun', 'spctl', 'sign_update')) or a.endswith(' ' + dmg)
                  and a.startswith('codesign')]
         self.assertEqual(suite, [
+            'xcrun notarytool history --keychain-profile profil-essai',
             'codesign --force --sign %s --timestamp %s' % (EMPREINTE, dmg),
             'xcrun notarytool submit %s --keychain-profile profil-essai --wait' % dmg,
             'xcrun stapler staple %s' % dmg,
             'spctl --assess --type open --context context:primary-signature --verbose %s' % dmg,
             'sign_update -p %s' % dmg])
+
+    def test_developer_id_et_notarisation_vont_ensemble(self):
+        """La notarisation demande un Developer ID, et un Developer ID la notarisation : refus avant toute
+        compilation."""
+        for extra, env in (((), {'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-essai'}),
+                           (('--identite', P.DEVELOPER_ID), {k: v for k, v in DEVID.items() if k != 'NOTARISER'})):
+            with self.subTest(extra=extra):
+                self.m.oublier()
+                appels = self.refuse(*extra, env=env, motif='va avec')
+                self.rien_compile(appels)
+
+    def test_identite_developer_id(self):
+        """DEVELOPER_ID trouve la seule identite « Developer ID Application: ... (<equipe>) » ; ni une autre sorte de
+        Developer ID, ni un nom sans equipe ; deux Developer ID : refus. Le nom complet n'est jamais affiche."""
+        ligne = '  %d) %s "%s"'
+        une = 'Policy\n' + ligne % (1, EMPREINTE, DEVID_NOM) + '\n' + ligne % (2, AUTRE_EMPREINTE, IDENTITE) + '\n'
+        self.assertEqual(P.empreinte_identite(une, P.DEVELOPER_ID), EMPREINTE)
+        for autre in ('Developer ID Installer: Titulaire Invente (ABCDE12345)',
+                      'Developer ID Application: Titulaire Invente', 'Developer ID Application: X (abcde12345)'):
+            with self.subTest(autre=autre), self.assertRaises(P.Refus) as r:
+                P.empreinte_identite(ligne % (1, EMPREINTE, autre) + '\n', P.DEVELOPER_ID)
+            self.assertNotIn('Titulaire', str(r.exception))
+        deux = une + ligne % (3, AUTRE_EMPREINTE, 'Developer ID Application: Autre (ZYXWV98765)') + '\n'
+        with self.assertRaises(P.Refus) as r:
+            P.empreinte_identite(deux, P.DEVELOPER_ID)
+        self.assertIn('une seule attendue', str(r.exception))
+        self.assertNotIn('Titulaire', str(r.exception))
+
+    def test_refus_feuille_developer_id(self):
+        """Le certificat feuille de l'app signee, en Developer ID : memes regles que celui du trousseau."""
+        env = dict(DEVID, FAUX_SUJET_FEUILLE=DEVID_SUJET.replace('OU=ABCDE12345', 'OU=ZYXWV98765'))
+        appels = self.refuse('--identite', P.DEVELOPER_ID, env=env, motif="certificat feuille de l'app")
+        self.assertFalse([a for a in appels if a.startswith(('hdiutil', 'sign_update'))], 'aucun .dmg')
+
+    def test_developer_id_masque_et_chaine_verifiee(self):
+        """Developer ID : la chaine est verifiee par codesign -R ; l'exigence (equipe en clair) est ecrite dans
+        exigence.txt, mais l'affichage ne montre ni l'equipe ni le nom du titulaire ; les droits de l'app passent au
+        controle d'anonymisation."""
+        self.m.publier('--identite', P.DEVELOPER_ID, env=DEVID)
+        appels = self.m.appels()
+        sortie = os.path.join(self.m.depot, 'build', 'publication', '1.2.3')
+        app = [a for a in appels if a.startswith('codesign --verify --deep --strict ')][0].split(' ', 4)[4]
+        self.assertIn('codesign --verify --strict -R%s %s' % (P.EXIGENCE_DEVELOPER_ID, app), appels)
+        self.assertIn('ABCDE12345', lire(os.path.join(sortie, 'exigence.txt')))
+        self.assertNotIn('ABCDE12345', self.m.dit)
+        self.assertNotIn('Titulaire Invente', self.m.dit)
+        self.assertIn('leaf[subject.OU] = <equipe>', self.m.dit)
+        controle = [a for a in appels if a.startswith('controles.py') and 'contenu-dmg.txt' in a][0]
+        self.assertIn(sortie + '/droits-app.plist', controle)
+
+    def test_auto_signe_sans_verification_de_chaine(self):
+        self.m.publier()
+        self.assertFalse([a for a in self.m.appels() if ' -R=' in a])
+
+    def test_erreur_masquee(self):
+        """Un refus de spctl (qui ecrit origin=Developer ID Application: <titulaire> (<equipe>)) : main le dit
+        sans le nom ni l'equipe."""
+        code, erreurs = self.m.main('--identite', P.DEVELOPER_ID, env=dict(DEVID, FAUX_SPCTL_REFUS='1'))
+        self.assertEqual(code, 1)
+        self.assertIn('spctl', erreurs)
+        self.assertIn('Developer ID Application: <titulaire> (<equipe>)', erreurs)
+        self.assertNotIn('ABCDE12345', erreurs)
+        self.assertNotIn('Titulaire Invente', erreurs)
+
+    def test_masquer_identite(self):
+        for brut, attendu in (
+                (DEVID_NOM, 'Developer ID Application: <titulaire> (<equipe>)'),
+                ('origin=%s\n' % DEVID_NOM, 'origin=Developer ID Application: <titulaire> (<equipe>)\n'),
+                ('certificate leaf[subject.OU] = ABCDE12345', 'certificate leaf[subject.OU] = <equipe>'),
+                ('certificate leaf[subject.OU] = "ABCDE12345"', 'certificate leaf[subject.OU] = <equipe>'),
+                ('TeamIdentifier=ABCDE12345', 'TeamIdentifier=<equipe>'),
+                ('"teamId": "ABCDE12345"', '"teamId": <equipe>'),
+                ('leaf[subject.OU]=ABCDE12345', 'leaf[subject.OU]=<equipe>'),
+                ('Djoko-cli Code Signing', 'Djoko-cli Code Signing')):
+            self.assertEqual(P.masquer_identite(brut), attendu)
+
+    def test_variables_de_publication_du_shell_ignorees(self):
+        """publier.sh exporte NOTARISER, PROFIL_NOTARISATION et IDENTITE_SIGNATURE, et lance ces tests : le monde des
+        tests ne les voit pas (sinon chaque cas auto-signe tomberait sur le refus croise)."""
+        with mock.patch.dict(os.environ, {'NOTARISER': '1', 'PROFIL_NOTARISATION': 'profil-du-shell',
+                                          'IDENTITE_SIGNATURE': P.DEVELOPER_ID}):
+            self.m.publier()
+        self.assertFalse([a for a in self.m.appels() if a.startswith('xcrun')])
+
+    def test_sujet_developer_id(self):
+        """UID et OU = l'equipe du CN, un O, un pays ; rien d'autre."""
+        self.assertTrue(P.sujet_developer_id(DEVID_SUJET))
+        self.assertTrue(P.sujet_developer_id('C=FR,O=Titulaire Invente,OU=ABCDE12345,CN=%s,UID=ABCDE12345' % DEVID_NOM))
+        self.assertTrue(P.sujet_developer_id(DEVID_SUJET.replace('Titulaire Invente', 'Inv\\C3\\A9nt\\C3\\A9\\, X')))
+        for mauvais in (DEVID_SUJET.replace('OU=ABCDE12345', 'OU=ZYXWV98765'),
+                        DEVID_SUJET.replace('UID=ABCDE12345,', ''),
+                        DEVID_SUJET + ',emailAddress=x@exemple.invalid',
+                        DEVID_SUJET.replace('C=FR', 'C=France'),
+                        DEVID_SUJET.replace('Developer ID Application', 'Developer ID Installer'),
+                        DEVID_SUJET.replace('O=Titulaire Invente,', 'O=,'),
+                        DEVID_SUJET + ',C=DE', 'CN=' + IDENTITE, ''):
+            self.assertFalse(P.sujet_developer_id(mauvais), mauvais)
+
+    def test_refus_developer_id_mal_forme(self):
+        """Un Developer ID au sujet mal forme, ou emis par une autre autorite qu'Apple : refus, avant toute
+        compilation, sans recopier le sujet."""
+        cas = [(dict(DEVID, FAUX_SUJET=DEVID_SUJET.replace('OU=ABCDE12345', 'OU=ZYXWV98765')), 'Developer ID Application'),
+               ({k: v for k, v in DEVID.items() if k != 'FAUX_EMETTEUR_SUJET'}, "autorite Developer ID d'Apple"),
+               # L'emetteur imite dans le texte d'openssl ne suffit pas : seul le champ issuer compte.
+               (dict({k: v for k, v in DEVID.items() if k != 'FAUX_EMETTEUR_SUJET'}, FAUX_EMETTEUR_APPLE='1'),
+                "autorite Developer ID d'Apple"),
+               (dict(DEVID, FAUX_EMETTEUR_SUJET='CN=Developer ID Certification Authority+OU=X,OU=G2,O=Apple Inc.,C=US'),
+                "autorite Developer ID d'Apple"),
+               (dict(DEVID, FAUX_PROFIL_MUET='1'), 'ne repond pas')]
+        for env, motif in cas:
+            with self.subTest(motif=motif):
+                self.m.oublier()
+                with self.assertRaises(P.Refus) as r:
+                    self.m.publier('--identite', P.DEVELOPER_ID, env=env)
+                self.assertIn(motif, str(r.exception))
+                self.assertNotIn('Titulaire', str(r.exception))
+                self.rien_compile(self.m.appels())
 
     # --- les verifications d'avant les tests -----------------------------------------------------------------
 

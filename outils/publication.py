@@ -17,21 +17,26 @@ Dans l'ordre :
      NOTES-VERSIONS.md a sa section ; SPARKLE_BIN est donne (hors repetition) ; la cle publique de l'app est celle
      du trousseau ; le controle d'anonymisation est present (hors repetition) ; la licence de Sparkle est la ;
      l'identite de signature est seule a ce nom dans le trousseau, et son certificat n'a pour sujet que CN=<nom>
-     (ni adresse, ni organisation, ni autre nom) ; puis les tests passent ;
+     (ni adresse, ni organisation, ni autre nom) ; ou bien, pour DEVELOPER_ID (« Developer ID Application »,
+     notarisation obligatoire, et reciproquement), la seule identite Developer ID Application du trousseau, au sujet
+     et a l'emetteur d'Apple, et le profil de notarisation repond ; puis les tests passent ;
   2. les numeros : la version, et le numero de compilation, le nombre de commits de main ;
   3. la compilation Release, ad hoc (une equipe de Local.xcconfig n'y entre pas), sans symboles de debogage dans
      les binaires (strip : la table OSO nomme les fichiers objets sous DerivedData ; le dSYM reste a part, jamais
      publie) et avec les chemins des sources ramenes a des noms neutres (-file-prefix-map) ; puis signee par
-     l'empreinte de l'identite (un certificat auto-signe stable, plus tard un Developer ID) : le code imbrique
+     l'empreinte de l'identite (un certificat auto-signe stable, ou un Developer ID) : le code imbrique
      d'abord, le runtime renforce, les droits gardes ; l'app, avec les droits poses par Xcode et, sans notarisation,
      la levee de la validation des bibliotheques (sans equipe, le runtime renforce refuse de charger les cadres de
      l'app) ; les droits de l'app signee sont relus (le bac a sable, les seuls services de Sparkle en mach-lookup,
      jamais get-task-allow, la levee de la validation des bibliotheques si et seulement si la publication n'est pas
-     notarisee) ; le certificat feuille de la signature est relu ; l'exigence de signature (codesign -d -r-) est ecrite dans exigence.txt ;
+     notarisee) ; le certificat feuille de la signature est relu, et pour un Developer ID la chaine (codesign -R) ;
+     l'exigence de signature (codesign -d -r-) est ecrite dans exigence.txt, et affichee sans le nom du titulaire
+     ni l'equipe d'un Developer ID (masquer_identite, comme les erreurs) ;
   4. le .dmg (hdiutil) : l'app, un raccourci vers Applications et la licence de Sparkle. Avant hdiutil, tout le
      contenu est refuse s'il porte un chemin personnel ($HOME, /Users/, le nom du compte) ou si le controle
-     d'anonymisation y trouve une donnee reelle ; la liste des noms du contenu (chemins relatifs, cibles des liens),
-     ecrite dans contenu-dmg.txt, passe aussi par ce controle. Avec NOTARISER=1 seulement (desactive par defaut), le .dmg signe,
+     d'anonymisation y trouve une donnee reelle (l'un et l'autre sur une copie dont chaque code a perdu sa
+     signature : celle d'un Developer ID individuel porte le nom legal du titulaire) ; la liste des noms du contenu (chemins relatifs, cibles
+     des liens), ecrite dans contenu-dmg.txt, passe aussi par ce controle. Avec NOTARISER=1 seulement (desactive par defaut), le .dmg signe,
      soumis a Apple (notarytool, profil PROFIL_NOTARISATION du trousseau), agrafe (stapler) et evalue (spctl) ;
   5. la signature Ed25519 du .dmg (sign_update de Sparkle, cle du trousseau), puis le flux : le fichier CHEMIN du
      depot (appcast.xml), qui garde toutes les versions publiees, la nouvelle en tete (relu apres l'ajout) ;
@@ -429,11 +434,23 @@ def identite_git(o, variable):
     return m.group(1), m.group(2)
 
 
+DEVELOPER_ID = 'Developer ID Application'
+
+
+def developer_id(nom):
+    """L'identite generique d'un Developer ID d'Apple. Son nom complet, « Developer ID Application: <titulaire>
+    (<equipe>) », porte le nom legal du titulaire d'un compte individuel : il n'est jamais ecrit ici ni affiche, et
+    se trouve dans le trousseau par ce prefixe (decision de Djoko du 12/10/2026 : ce nom est publie dans la signature,
+    et nulle part ailleurs)."""
+    return nom == DEVELOPER_ID
+
+
 def empreinte_identite(sortie, nom):
-    """L'empreinte SHA-1 de la seule identite de signature a ce nom exact, dans la sortie de security find-identity
-    (qui peut la lister deux fois : toutes les identites, puis les valides). Leve Refus s'il n'y en a pas, ou plus
-    d'une."""
-    empreintes = set(re.findall(r'^\s*\d+\)\s+([0-9A-F]{40})\s+"%s"' % re.escape(nom), sortie, re.M))
+    """L'empreinte SHA-1 de la seule identite de signature a ce nom exact (pour DEVELOPER_ID : de la forme
+    « Developer ID Application: ... (<equipe de 10 caracteres>) »), dans la sortie de security find-identity (qui peut
+    la lister deux fois : toutes les identites, puis les valides). Leve Refus s'il n'y en a pas, ou plus d'une."""
+    motif = re.escape(nom) + (r': [^"]+ \([A-Z0-9]{10}\)' if developer_id(nom) else '')
+    empreintes = set(re.findall(r'^\s*\d+\)\s+([0-9A-F]{40})\s+"%s"' % motif, sortie, re.M))
     if not empreintes:
         raise Refus('identite de signature introuvable dans le trousseau : %s' % nom)
     if len(empreintes) > 1:
@@ -460,16 +477,71 @@ def sujet_conforme(sujet, nom):
             and any(re.fullmatch(r'C=[A-Z]{2}', x) for x in parts))
 
 
+def champs_rfc2253(nom):
+    """Les champs d'un nom en RFC 2253 (sortie d'openssl -nameopt RFC2253), {cle: valeur}, ou None : un champ
+    double, un champ sans « = », ou un nom a plusieurs valeurs (« + » non echappe) n'est pas accepte."""
+    champs = {}
+    for part in re.split(r'(?<!\\),', nom):
+        cle, egal, valeur = part.partition('=')
+        if not egal or cle in champs or re.search(r'(?<!\\)\+', valeur):
+            return None
+        champs[cle] = valeur
+    return champs
+
+
+def sujet_developer_id(sujet):
+    """Le sujet d'un certificat Developer ID Application d'Apple, en RFC 2253 : UID et OU = l'equipe (10 caracteres),
+    CN = « Developer ID Application: <titulaire> (<equipe>) », O = le titulaire, C = un pays de deux lettres ; chacun
+    une fois, rien d'autre (ni adresse, ni autre champ)."""
+    champs = champs_rfc2253(sujet)
+    if champs is None or set(champs) != {'UID', 'CN', 'OU', 'O', 'C'} or not re.fullmatch(r'[A-Z]{2}', champs['C']):
+        return False
+    cn = re.fullmatch(r'%s: (.+) \(([A-Z0-9]{10})\)' % DEVELOPER_ID, champs['CN'])
+    return bool(cn) and champs['UID'] == champs['OU'] == cn.group(2) and bool(champs['O'])
+
+
+def emetteur_developer_id(emetteur):
+    """L'emetteur d'un certificat Developer ID Application, en RFC 2253 : l'autorite Developer ID d'Apple (profil
+    G2, ou l'ancien), et rien d'autre. La chaine elle-meme est verifiee apres la signature (EXIGENCE_DEVELOPER_ID)."""
+    champs = champs_rfc2253(emetteur)
+    return champs == {'CN': 'Developer ID Certification Authority', 'OU': 'G2', 'O': 'Apple Inc.', 'C': 'US'} or \
+        champs == {'CN': 'Developer ID Certification Authority', 'OU': 'Apple Certification Authority',
+                   'O': 'Apple Inc.', 'C': 'US'}
+
+
+# La chaine d'un Developer ID Application, verifiee par codesign sur l'app signee : ancree chez Apple, un
+# intermediaire Developer ID, une feuille Developer ID Application.
+EXIGENCE_DEVELOPER_ID = ('=anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and '
+                         'certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
+
+
+def masquer_identite(texte):
+    """Le nom legal et l'equipe d'un Developer ID, masques dans ce que l'outil affiche (exigence de signature,
+    erreurs de codesign, de spctl ou de notarytool) : ils ne vont que dans la signature (decision du 12/10/2026)."""
+    texte = re.sub(r'(%s: )[^\n"]*?( \()[A-Z0-9]{10}(\))' % DEVELOPER_ID, r'\1<titulaire>\2<equipe>\3', texte)
+    texte = re.sub(r'(subject\.OU\] ?= ?)"?[A-Z0-9]{10}"?', r'\1<equipe>', texte)
+    return re.sub(r'(\b(?:[Tt]eam ?[Ii](?:[Dd]|dentifier)|TeamIdentifier)"?\s*[=:]\s*)"?[A-Z0-9]{10}"?', r'\1<equipe>',
+                  texte)
+
+
 def verifier_certificat(o, nom, empreinte, pem=None, der=None, quoi='le certificat de signature'):
-    """Le certificat est public (il est dans chaque signature) : son sujet doit etre CN=<nom>, avec au plus un code
-    pays (sujet_conforme ; ni adresse, ni organisation), sans autre nom (subjectAltName) ni « @ » ; son empreinte, celle de l'identite.
-    Le certificat est donne en PEM (pem) ou dans un fichier DER (der). Leve Refus, sans recopier le sujet."""
+    """Le certificat est public (il est dans chaque signature). Certificat auto-signe : son sujet doit etre
+    CN=<nom>, avec au plus un code pays (sujet_conforme ; ni adresse, ni organisation). Developer ID : le sujet d'un
+    Developer ID Application (sujet_developer_id), emis par l'autorite Developer ID d'Apple (emetteur_developer_id).
+    Dans les deux cas : sans autre nom (subjectAltName) ni « @ », et l'empreinte de l'identite. Le certificat est donne
+    en PEM (pem) ou dans un fichier DER (der). Leve Refus, sans recopier le sujet."""
     base = [o.openssl, 'x509'] + (['-inform', 'DER', '-in', der] if der else []) + ['-noout']
-    tete = lancer(base + ['-subject', '-nameopt', 'RFC2253', '-fingerprint', '-sha1'], input=pem)
+    tete = lancer(base + ['-subject', '-issuer', '-nameopt', 'RFC2253', '-fingerprint', '-sha1'], input=pem)
     texte = lancer(base + ['-text'], input=pem)
     sujet = re.search(r'^subject=\s*(.*?)\s*$', tete, re.M)
+    emetteur = re.search(r'^issuer=\s*(.*?)\s*$', tete, re.M)
     lue = re.search(r'Fingerprint=([0-9A-Fa-f:]+)', tete)
-    if not sujet or not sujet_conforme(sujet.group(1), nom):
+    if developer_id(nom):
+        if not sujet or not sujet_developer_id(sujet.group(1)):
+            raise Refus("%s : son sujet doit etre celui d'un Developer ID Application (UID, CN, OU, O, C)" % quoi)
+        if not emetteur or not emetteur_developer_id(emetteur.group(1)):
+            raise Refus("%s n'est pas emis par l'autorite Developer ID d'Apple" % quoi)
+    elif not sujet or not sujet_conforme(sujet.group(1), nom):
         raise Refus('%s : son sujet doit etre seulement CN=%s, et au plus un pays (ni adresse, ni organisation)'
                     % (quoi, nom))
     if '@' in tete + texte or 'Subject Alternative Name' in texte:
@@ -563,6 +635,8 @@ def verifier(a, o, racine_git, version):
                     'publie')
     if not os.path.isfile(a.licence) or not os.path.getsize(a.licence):
         raise Refus('licence de Sparkle absente : %s' % a.licence)
+    if notariser() != developer_id(a.identite):
+        raise Refus('la notarisation (NOTARISER=1) va avec l\'identite %s, et elle seule' % DEVELOPER_ID)
     trousseau = [a.trousseau] if a.trousseau else []
     empreinte = empreinte_identite(lancer([o.security, 'find-identity', '-p', 'codesigning'] + trousseau),
                                    a.identite)
@@ -571,6 +645,9 @@ def verifier(a, o, racine_git, version):
     verifier_certificat(o, a.identite, empreinte, pem=pem)
     if notariser() and not os.environ.get('PROFIL_NOTARISATION'):
         raise Refus('NOTARISER=1 demande PROFIL_NOTARISATION, le profil de notarytool store-credentials')
+    if notariser() and subprocess.run([o.xcrun, 'notarytool', 'history', '--keychain-profile',
+                                       os.environ['PROFIL_NOTARISATION']], capture_output=True).returncode != 0:
+        raise Refus('le profil de notarisation %s ne repond pas (notarytool history)' % os.environ['PROFIL_NOTARISATION'])
     return SimpleNamespace(numero=numero, sha=sha, empreinte=empreinte, controle=controle)
 
 
@@ -609,6 +686,25 @@ def code_imbrique(app):
         liste += sorted(dedans, key=lambda p: (-p.count('/'), p))
         liste.append(cadre)
     return liste
+
+
+def copie_sans_signatures(o, scene, dossier):
+    """Une copie du contenu du .dmg pour la garde des chemins personnels et le controle d'anonymisation, chaque
+    code signe sans sa signature (codesign --remove-signature, sur la copie seulement) : la signature d'un Developer
+    ID individuel porte le nom legal du titulaire (decision de Djoko du 12/10/2026 : publie dans la signature, et
+    nulle part ailleurs). Le reste du code, les textes et les noms restent controles. Un code dont codesign ne sait
+    pas retirer la signature est refuse (Refus). Rend le dossier de la copie."""
+    shutil.rmtree(dossier, ignore_errors=True)
+    lancer([o.ditto, scene, dossier])
+    for nom in sorted(os.listdir(dossier)):
+        chemin = os.path.join(dossier, nom)
+        if nom.endswith('.app') and os.path.isdir(chemin) and not os.path.islink(chemin):
+            for code in code_imbrique(chemin) + [chemin]:
+                if subprocess.run([o.codesign, '--remove-signature', code], capture_output=True).returncode != 0:
+                    shutil.rmtree(dossier, ignore_errors=True)
+                    raise Refus("la signature de %s ne se retire pas de la copie controlee : rien n'est publie"
+                                % os.path.relpath(code, dossier))
+    return dossier
 
 
 def signer(a, o, empreinte, chemin, droits=True, fichier_droits=None):
@@ -789,7 +885,9 @@ def publier(a, o=None, maintenant=None):
     exigence = subprocess.run([o.codesign, '-d', '-r-', app], check=True, capture_output=True,
                               text=True).stdout.strip()
     ecrire(os.path.join(sortie, 'exigence.txt'), exigence + '\n')
-    dire('exigence de signature : ' + exigence)
+    dire('exigence de signature : ' + masquer_identite(exigence))
+    if developer_id(a.identite):
+        lancer([o.codesign, '--verify', '--strict', '-R' + EXIGENCE_DEVELOPER_ID, app])
 
     # 4. le .dmg : l'app, le raccourci vers Applications et la licence de Sparkle, controles avant hdiutil
     nom_dmg = '%s-%s.dmg' % (a.fichier, version)
@@ -800,16 +898,22 @@ def publier(a, o=None, maintenant=None):
     lancer([o.ditto, app, os.path.join(scene, a.nom_app + '.app')])
     os.symlink('/Applications', os.path.join(scene, 'Applications'))
     shutil.copyfile(a.licence, os.path.join(scene, os.path.basename(a.licence)))
-    trouves = chemins_personnels(scene, motifs_personnels())
+    # Les deux gardes lisent une copie dont chaque code a perdu sa signature (copie_sans_signatures).
+    copie = copie_sans_signatures(o, scene, os.path.join(sortie, 'controle-dmg'))
+    trouves = chemins_personnels(copie, motifs_personnels())
     if trouves:
+        shutil.rmtree(copie)
         raise Refus('le contenu du .dmg porte un chemin personnel (%d) : %s ; rien n\'est publie'
                     % (len(trouves), ' ; '.join('%s (%s)' % t for t in trouves[:5])))
     dire('contenu du .dmg : aucun chemin personnel')
     liste = os.path.join(sortie, 'contenu-dmg.txt')
     ecrire(liste, liste_du_contenu(scene))
-    if etat.controle and not controler(o, fichiers_ordinaires(scene) + [liste]):
-        raise Refus("le controle d'anonymisation a trouve des donnees reelles dans le contenu du .dmg : rien n'est "
-                    'publie')
+    # Les droits de l'app sont dans sa signature, que la copie n'a plus : controles a part.
+    propre = not etat.controle or controler(o, fichiers_ordinaires(copie) + [liste, fichier_droits])
+    shutil.rmtree(copie)
+    if not propre:
+        raise Refus("le controle d'anonymisation a trouve des donnees reelles dans le contenu du .dmg : rien "
+                    "n'est publie")
     if os.path.exists(dmg):
         os.remove(dmg)
     lancer([o.hdiutil, 'create', '-quiet', '-volname', '%s %s' % (a.nom_app, version), '-srcfolder', scene,
@@ -933,8 +1037,9 @@ def main(argv=None):
         print('refus : %s' % e, file=sys.stderr)
         return 1
     except subprocess.CalledProcessError as e:
-        print('echec : %s (code %d)\n%s' % (' '.join(map(shlex.quote, e.cmd)), e.returncode, (e.stderr or '')[-2000:]),
-              file=sys.stderr)
+        # Masquer avant de couper : une coupure au milieu d'un nom le laisserait en clair.
+        print(masquer_identite('echec : %s (code %d)\n' % (' '.join(map(shlex.quote, e.cmd)), e.returncode))
+              + masquer_identite(e.stderr or '')[-2000:], file=sys.stderr)
         return 1
     except OSError as e:
         print('echec : %s' % e, file=sys.stderr)
