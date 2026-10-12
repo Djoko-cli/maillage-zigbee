@@ -346,6 +346,77 @@ struct SondeReseauTests {
         await s.oublier()
     }
 
+    /// Aucune tournee ne part pendant une mise en service (constat 13 de la relecture finale) : le `wifi` fait
+    /// redemarrer la sonde, il ne doit pas tomber en pleine tournee. La tournee due pendant ce temps part a la fin.
+    @MainActor @Test func pasDeTourneePendantLaMiseEnService() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let ordre = Ordre()
+        let porte = Porte()
+        let canal = CanalRejoue { l in
+            switch l {
+            case "bonjour\n": return [SondeReseauTests.bonjourUsb]
+            case "etat\n": return [CanalRejoue.etatAttache]
+            case let x where x.hasPrefix("cle nouvelle "):
+                porte.ouvrir()  // la premiere tournee est due pendant la mise en service
+                return [SondeReseauTests.reponseCle]
+            case let x where x.hasPrefix("wifi "):
+                ordre.ajouter("wifi")
+                return [#"{"v":1,"t":"wifi","id":2,"configure":true,"nom":"4D6F6E2057696669"}"#]
+            default: return []
+            }
+        }
+        let s = SondeMaillage(preferences: p, actif: true, trousseau: TrousseauMemoire(), ouvrirCanal: { _ in canal },
+                              delaiPremiereTournee: .seconds(1),
+                              dormir: { d in
+                                  if porte.premiereAttente() { await porte.attendre() } else { try await Task.sleep(for: d) }
+                              })
+        s.surTournee = { debut in if debut { ordre.ajouter("tournee") } }
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(s.miseEnServicePossible)
+        #expect(await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse") == .cleEtWifi)
+        #expect(await SondeMaillageTests.sonder { ordre.valeurs.contains("tournee") }, "la tournee part apres")
+        #expect(ordre.valeurs.first == "wifi", "\(ordre.valeurs)")
+        await s.oublier()
+    }
+
+    /// Ordre d'evenements note par un canal et par l'app.
+    final class Ordre: Sendable {
+        private let etat = Mutex<[String]>([])
+        func ajouter(_ v: String) { etat.withLock { $0.append(v) } }
+        var valeurs: [String] { etat.withLock { $0 } }
+    }
+
+    /// Une porte : la premiere attente la franchit quand le test l'ouvre.
+    final class Porte: Sendable {
+        private struct Etat {
+            var ouverte = false
+            var premiere = true
+            var attentes: [CheckedContinuation<Void, Never>] = []
+        }
+        private let etat = Mutex(Etat())
+        /// Vrai la premiere fois seulement.
+        func premiereAttente() -> Bool { etat.withLock { e in defer { e.premiere = false }; return e.premiere } }
+        func attendre() async {
+            await withCheckedContinuation { (k: CheckedContinuation<Void, Never>) in
+                let tout = etat.withLock { e -> Bool in
+                    if e.ouverte { return true }
+                    e.attentes.append(k)
+                    return false
+                }
+                if tout { k.resume() }
+            }
+        }
+        func ouvrir() {
+            let attentes = etat.withLock { e in
+                e.ouverte = true
+                defer { e.attentes = [] }
+                return e.attentes
+            }
+            attentes.forEach { $0.resume() }
+        }
+    }
+
     @MainActor @Test func empreinteFausseRefusee() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }

@@ -175,6 +175,11 @@ final class SondeMaillage {
     @ObservationIgnored private var memoire = MemoireTournee()
     /// La prochaine tournee (attente comprise), et la tournee en cours.
     @ObservationIgnored private var boucle: Task<Void, Never>?
+    /// Une mise en service est en cours (`autoriserReseau`) : aucune tournee ne part, le `wifi` ferait redemarrer la
+    /// sonde en pleine tournee (constat 13 de la relecture finale).
+    @ObservationIgnored private var miseEnServiceEnCours = false
+    /// Une tournee est arrivee a son heure pendant la mise en service : elle part a la fin de celle-ci.
+    @ObservationIgnored private var tourneeRetenue = false
     @ObservationIgnored private var sonde: Sonde?
     /// Chemin du port de `sonde` (nil sans sonde connectee).
     @ObservationIgnored private var cheminConnecte: String?
@@ -350,9 +355,11 @@ final class SondeMaillage {
     /// sonde) : alea de l'app, cle derivee par la carte, empreinte verifiee, cle rangee dans le trousseau ; puis le
     /// Wi-Fi, sauf si la sonde garde le sien (`envoiWifi`).
     func autoriserReseau(nomWifi: String, motDePasse: String) async -> MiseEnService {
-        guard miseEnServicePossible, let s = sonde, let ieee else {
+        guard miseEnServicePossible, !miseEnServiceEnCours, let s = sonde, let ieee else {
             return .echec(String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée."))
         }
+        miseEnServiceEnCours = true
+        defer { finirMiseEnService(s) }
         let wifi = Self.envoiWifi(wifiConfigure: wifiConfigure, motDePasse: motDePasse)
         let nom = Data(nomWifi.utf8), mdp = Data(motDePasse.utf8)
         guard !wifi || (1...32).contains(nom.count), mdp.isEmpty || (8...63).contains(mdp.count) else {
@@ -380,6 +387,15 @@ final class SondeMaillage {
         } catch {
             return .echec(sansConfirmation)
         }
+    }
+
+    /// Fin d'une mise en service : la tournee arrivee a son heure entre-temps part, si la sonde est toujours celle-la
+    /// (apres un `wifi`, elle redemarre : sa reconnexion planifie de toute facon la premiere tournee).
+    private func finirMiseEnService(_ s: Sonde) {
+        miseEnServiceEnCours = false
+        guard tourneeRetenue else { return }
+        tourneeRetenue = false
+        if sonde === s { planifierTournee(dans: .zero) }
     }
 
     /// Nom donne par le dernier `bonjour` : retenu a cote du numero de serie, efface si le firmware n'en donne pas.
@@ -435,6 +451,11 @@ final class SondeMaillage {
             self.passeComplementaire = nil
             // Une passe complementaire a son propre instant ; toute autre tournee attend que le budget le permette.
             if !complementaire, !(await self.attendreBudget(s, essai: n)) { return }
+            // Pendant une mise en service, la tournee attend qu'elle finisse (`finirMiseEnService`).
+            guard !self.miseEnServiceEnCours else {
+                self.tourneeRetenue = true
+                return
+            }
             let suite = await self.tourner(s, complementaire: complementaire)
             guard !Task.isCancelled, n == self.essai, self.sonde === s else { return }
             self.planifierSuite(passeSurReports: suite)
