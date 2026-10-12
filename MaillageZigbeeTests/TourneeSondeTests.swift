@@ -177,6 +177,69 @@ struct SondeReseauTests {
         canal.fermer()
         await #expect(throws: Sonde.Erreur.fermee) { _ = try await u.value }
     }
+
+    static let bonjourUsb = #"{"v":1,"t":"bonjour","produit":"sonde-zigbee","version":"1.1.0","nom":"SONDE-01","ieee":"A000000000000001","membre":true,"role":"final","suspendue":false,"reseau":false}"#
+    static let reponseCle = #"{"v":1,"t":"cle","id":1,"cle":"62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D","empreinte":"91CB5C39"}"#
+
+    @MainActor @Test func miseEnService() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let t = TrousseauMemoire()
+        let canal = CanalRejoue { l in
+            switch l {
+            case "bonjour\n": [SondeReseauTests.bonjourUsb]
+            case "etat\n": [CanalRejoue.etatAttache]
+            case let x where x.hasPrefix("cle nouvelle "): [SondeReseauTests.reponseCle]
+            case let x where x.hasPrefix("wifi "): [#"{"v":1,"t":"wifi","id":2,"configure":true,"nom":"4D6F6E2057696669"}"#]
+            default: []
+            }
+        }
+        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+                              delaiPremiereTournee: .seconds(3600))
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(s.miseEnServicePossible)
+        let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
+        #expect(erreur == nil)
+        #expect(try t.lire(identifiant: "A000000000000001") == "62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D")
+        #expect(canal.envoyes.contains("wifi 4D6F6E2057696669 6D6F7464657061737365 2\n"))
+        #expect(s.cleReseauConnue)
+        await s.oublier()
+        #expect(t.identifiants.isEmpty, "oublier la sonde efface sa cle de ce Mac")
+    }
+
+    @MainActor @Test func empreinteFausseRefusee() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let t = TrousseauMemoire()
+        let canal = CanalRejoue { l in
+            switch l {
+            case "bonjour\n": [SondeReseauTests.bonjourUsb]
+            case "etat\n": [CanalRejoue.etatAttache]
+            case let x where x.hasPrefix("cle nouvelle "): [SondeReseauTests.reponseCle.replacingOccurrences(of: "91CB5C39", with: "00000000")]
+            default: []
+            }
+        }
+        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+                              delaiPremiereTournee: .seconds(3600))
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
+        #expect(erreur != nil)
+        #expect(t.identifiants.isEmpty)
+        #expect(!canal.envoyes.contains { $0.hasPrefix("wifi ") }, "pas de Wi-Fi sans cle valable")
+        await s.oublier()
+    }
+
+    @MainActor @Test func sonde100NonEligible() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let s = SondeMaillage(preferences: p, actif: true,
+                              ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
+                              trousseau: TrousseauMemoire(), delaiPremiereTournee: .seconds(3600))
+        await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(!s.miseEnServicePossible, "firmware 1.0.0")
+        #expect(await s.autoriserReseau(nomWifi: "X", motDePasse: "motdepasse") != nil)
+        await s.oublier()
+    }
 }
 
 /// Horloge simulee de l'app : elle n'avance que quand le test l'avance.

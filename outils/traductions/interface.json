@@ -393,5 +393,9 @@
   "USB": "USB",
   "%@ : injoignable": "%@: unreachable",
   "Réseau — sonde injoignable": "Network — probe unreachable",
-  "la sonde du réseau n'est pas la sonde retenue": "the probe on the network is not the chosen probe"
+  "la sonde du réseau n'est pas la sonde retenue": "the probe on the network is not the chosen probe",
+  "Branchez la sonde 1.1.0 en USB, hors tournée.": "Connect the probe 1.1.0 over USB, outside a round.",
+  "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères.": "Wi-Fi name of 1 to 32 bytes, password empty or 8 to 63 characters.",
+  "La sonde a rendu une clé invalide : rien n'a été enregistré.": "The probe returned an invalid key: nothing was saved.",
+  "La sonde n'a pas enregistré le Wi-Fi.": "The probe did not save the Wi-Fi."
 }

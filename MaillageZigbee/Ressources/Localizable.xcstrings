@@ -1457,6 +1457,22 @@
         }
       }
     },
+    "Branchez la sonde 1.1.0 en USB, hors tournée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect the probe 1.1.0 over USB, outside a round."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Branchez la sonde 1.1.0 en USB, hors tournée."
+          }
+        }
+      }
+    },
     "Capture enregistrée : %@" : {
       "localizations" : {
         "en" : {
@@ -2177,6 +2193,38 @@
         }
       }
     },
+    "La sonde a rendu une clé invalide : rien n'a été enregistré." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The probe returned an invalid key: nothing was saved."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sonde a rendu une clé invalide : rien n'a été enregistré."
+          }
+        }
+      }
+    },
+    "La sonde n'a pas enregistré le Wi-Fi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The probe did not save the Wi-Fi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sonde n'a pas enregistré le Wi-Fi."
+          }
+        }
+      }
+    },
     "LQI %@ / %@" : {
       "localizations" : {
         "en" : {
@@ -2749,6 +2797,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monter d'un étage"
+          }
+        }
+      }
+    },
+    "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi name of 1 to 32 bytes, password empty or 8 to 63 characters."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères."
           }
         }
       }

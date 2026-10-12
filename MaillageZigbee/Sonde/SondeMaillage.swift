@@ -93,6 +93,12 @@ final class SondeMaillage {
     }
     /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue.
     var cleReseauConnue: Bool { cleReseau() != nil }
+    /// La mise en service par l'USB est possible : la sonde retenue y est connectee, en firmware 1.1.0 ou plus, hors
+    /// tournee, son adresse longue connue.
+    var miseEnServicePossible: Bool {
+        guard acces == .usb, !tourneeEnCours, ieee != nil, case .connectee(let b) = etat else { return false }
+        return b.accepteReseau && serieEtat == serie
+    }
 
     /// Une tournee qui attend que le budget de pages de la sonde le permette.
     struct TourneeDifferee: Equatable {
@@ -273,6 +279,31 @@ final class SondeMaillage {
         oublierReleve()
         surOubli?()
         deconnecter(.sansSonde)
+    }
+
+    /// Mise en service de l'acces par le reseau (spec sonde Wi-Fi, 4.3), la cle d'abord (le Wi-Fi fait redemarrer la
+    /// sonde) : alea de l'app, cle derivee par la carte, empreinte verifiee, cle rangee dans le trousseau ; puis le
+    /// Wi-Fi. nil si tout a reussi ; sinon le message a montrer.
+    func autoriserReseau(nomWifi: String, motDePasse: String) async -> String? {
+        guard miseEnServicePossible, let s = sonde, let ieee else {
+            return String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée.")
+        }
+        let nom = Data(nomWifi.utf8), mdp = Data(motDePasse.utf8)
+        guard (1...32).contains(nom.count), mdp.isEmpty || (8...63).contains(mdp.count) else {
+            return String(localized: "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères.")
+        }
+        do {
+            let c = try await s.nouvelleCle(alea: H1.aleatoire(32))
+            guard let hexa = c.cle, let cle = H1.octets(hexa: hexa), cle.count == 32, H1.kid(cle: cle) == c.empreinte else {
+                return String(localized: "La sonde a rendu une clé invalide : rien n'a été enregistré.")
+            }
+            try trousseau.ranger(identifiant: ieee, cle: hexa)
+            let w = try await s.configurerWifi(nom: nom, motDePasse: mdp)
+            guard w.configure else { return String(localized: "La sonde n'a pas enregistré le Wi-Fi.") }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     /// Nom donne par le dernier `bonjour` : retenu a cote du numero de serie, efface si le firmware n'en donne pas.
