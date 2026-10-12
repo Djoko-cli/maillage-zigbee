@@ -46,9 +46,11 @@ public struct Bonjour: Hashable, Sendable, Codable {
     /// `final` ; nil hors adhesion.
     public let role: String?
     public let suspendue: Bool?
+    /// Wi-Fi configure (sonde 1.1.0 et plus) ; nil avant.
+    public let reseau: Bool?
 
     public init(produit: String, version: String, nom: String? = nil, ieee: String? = nil, membre: Bool? = nil,
-                role: String? = nil, suspendue: Bool? = nil) {
+                role: String? = nil, suspendue: Bool? = nil, reseau: Bool? = nil) {
         self.produit = produit
         self.version = version
         self.nom = nom
@@ -56,9 +58,17 @@ public struct Bonjour: Hashable, Sendable, Codable {
         self.membre = membre
         self.role = role
         self.suspendue = suspendue
+        self.reseau = reseau
     }
 
     public var estSonde: Bool { produit == ProtocoleSonde.produit }
+
+    /// Firmware 1.1.0 ou plus : l'acces par le reseau existe (spec sonde Wi-Fi, 4.3).
+    public var accepteReseau: Bool {
+        let n = version.split(separator: ".").map { Int($0) }
+        guard n.count >= 2, let majeur = n[0], let mineur = n[1] else { return false }
+        return majeur > 1 || (majeur == 1 && mineur >= 1)
+    }
 }
 
 /// Parent de la sonde dans `etat`.
@@ -77,8 +87,34 @@ public struct ParentSonde: Hashable, Sendable, Codable {
     }
 }
 
+/// Acces par le reseau de la sonde (`etat.reseau`, firmware 1.1.0, Wi-Fi configure) :
+/// `{"connecte":true,"canal":6,"rssi":-58,"raison":0,"sessions":1,"envois":12,"echecs":0,"reconnexions":2}`.
+public struct ReseauSonde: Hashable, Sendable, Codable {
+    public let connecte: Bool
+    public let canal: Int?
+    public let rssi: Int?
+    /// Derniere raison de deconnexion du Wi-Fi (`wifi_err_reason_t`), 0 : aucune.
+    public let raison: Int?
+    public let sessions: Int?
+    public let envois: Int?
+    public let echecs: Int?
+    public let reconnexions: Int?
+
+    public init(connecte: Bool, canal: Int? = nil, rssi: Int? = nil, raison: Int? = nil, sessions: Int? = nil,
+                envois: Int? = nil, echecs: Int? = nil, reconnexions: Int? = nil) {
+        self.connecte = connecte
+        self.canal = canal
+        self.rssi = rssi
+        self.raison = raison
+        self.sessions = sessions
+        self.envois = envois
+        self.echecs = echecs
+        self.reconnexions = reconnexions
+    }
+}
+
 /// Reponse a `etat` : adhesion, adresses, parent, reseau (PAN, EPID, canal), suspension, refus de cadence,
-/// rattachements echoues, pile.
+/// rattachements echoues, pile, acces par le reseau.
 public struct EtatSonde: Hashable, Sendable, Codable {
     public let membre: Bool
     public let recherche: Bool?
@@ -100,11 +136,13 @@ public struct EtatSonde: Hashable, Sendable, Codable {
     public let rattachementsEchoues: Int?
     /// Version de la pile Zigbee de la sonde.
     public let pile: String?
+    /// Acces par le reseau ; nil hors firmware 1.1.0 ou sans Wi-Fi configure.
+    public let reseau: ReseauSonde?
 
     public init(membre: Bool, recherche: Bool? = nil, court: String? = nil, ieee: String? = nil, role: String? = nil,
                 parent: ParentSonde? = nil, pan: String? = nil, epid: String? = nil, canal: Int? = nil,
                 suspendue: Bool = false, refusCadence: Int? = nil, rattachementsEchoues: Int? = nil,
-                pile: String? = nil) {
+                pile: String? = nil, reseau: ReseauSonde? = nil) {
         self.membre = membre
         self.recherche = recherche
         self.court = court
@@ -118,10 +156,11 @@ public struct EtatSonde: Hashable, Sendable, Codable {
         self.refusCadence = refusCadence
         self.rattachementsEchoues = rattachementsEchoues
         self.pile = pile
+        self.reseau = reseau
     }
 
     private enum CodingKeys: String, CodingKey {
-        case membre, recherche, court, ieee, role, parent, pan, epid, canal, suspendue, pile
+        case membre, recherche, court, ieee, role, parent, pan, epid, canal, suspendue, pile, reseau
         case refusCadence = "refus_cadence"
         case rattachementsEchoues = "rattachements_echoues"
     }
@@ -142,6 +181,7 @@ public struct EtatSonde: Hashable, Sendable, Codable {
         refusCadence = try c.decodeIfPresent(Int.self, forKey: .refusCadence)
         rattachementsEchoues = try c.decodeIfPresent(Int.self, forKey: .rattachementsEchoues)
         pile = try c.decodeIfPresent(String.self, forKey: .pile)
+        reseau = try c.decodeIfPresent(ReseauSonde.self, forKey: .reseau)
     }
 }
 
@@ -388,6 +428,38 @@ public struct SignalPile: Hashable, Sendable, Codable {
     public var parentPerdu: Bool { nom == "NLME_STATUS_INDICATION" && detail == 9 }
 }
 
+/// Reponse a `wifi` (USB) : `{"v":1,"t":"wifi","id":7,"configure":true,"nom":"4D6F6E2057696669"}` ; le nom du Wi-Fi en
+/// hexadecimal, jamais le mot de passe.
+public struct WifiSonde: Hashable, Sendable, Codable {
+    public let id: Int?
+    public let configure: Bool
+    public let nom: String?
+
+    public init(id: Int? = nil, configure: Bool, nom: String? = nil) {
+        self.id = id
+        self.configure = configure
+        self.nom = nom
+    }
+
+    /// Le nom en texte (UTF-8) ; nil s'il n'y en a pas ou s'il n'est pas lisible.
+    public var nomTexte: String? {
+        nom.flatMap { H1.octets(hexa: $0) }.flatMap { String(data: $0, encoding: .utf8) }
+    }
+}
+
+/// Reponse a `cle nouvelle` (la seule fois ou la cle sort de la carte) ou a `cle` (empreinte seule).
+public struct CleSonde: Hashable, Sendable, Codable {
+    public let id: Int?
+    public let cle: String?
+    public let empreinte: String?
+
+    public init(id: Int? = nil, cle: String? = nil, empreinte: String? = nil) {
+        self.id = id
+        self.cle = cle
+        self.empreinte = empreinte
+    }
+}
+
 /// Message de la sonde, d'apres son type.
 public enum MessageSonde: Hashable, Sendable {
     case bonjour(Bonjour)
@@ -400,6 +472,10 @@ public enum MessageSonde: Hashable, Sendable {
     case signal(SignalPile)
     /// Reponse a `oubli` (que l'app n'envoie jamais d'elle-meme).
     case oubli(Bool)
+    /// Reponse a `wifi` (USB seulement).
+    case wifi(WifiSonde)
+    /// Reponse a `cle` ou `cle nouvelle` (USB seulement).
+    case cle(CleSonde)
     /// `{"t":"erreur","erreur":"inconnue"}` : commande inconnue, mal formee (`syntaxe`), ligne trop longue...
     case erreur(String)
     /// Un type que l'app ne lit pas.
@@ -437,6 +513,8 @@ public enum MessageSonde: Hashable, Sendable {
             return (try? d.decode(LigneListe<EntreeRoute>.self, from: json)).flatMap { Self.valide($0) }.map { .routes($0) }
         case "signal": return (try? d.decode(SignalPile.self, from: json)).map { .signal($0) }
         case "oubli": return (try? d.decode(Oubli.self, from: json)).map { .oubli($0.ok) }
+        case "wifi": return (try? d.decode(WifiSonde.self, from: json)).map { .wifi($0) }
+        case "cle": return (try? d.decode(CleSonde.self, from: json)).map { .cle($0) }
         case "erreur": return (try? d.decode(Erreur.self, from: json)).map { .erreur($0.erreur) }
         default: return .inconnu(e.t)
         }
@@ -450,7 +528,7 @@ public enum MessageSonde: Hashable, Sendable {
 }
 
 /// Commande envoyee a la sonde. L'app n'envoie jamais `oubli`, `suspendre`, `reprendre`, `nom` ni `echecs` : aucune
-/// commande ne les ecrit.
+/// commande ne les ecrit. `wifi` et `cle nouvelle` ne partent que par l'USB, a la mise en service.
 public enum CommandeSonde: Hashable, Sendable {
     case bonjour
     case etat
@@ -459,6 +537,10 @@ public enum CommandeSonde: Hashable, Sendable {
     case table(cible: UInt16, id: Int, delaiMs: Int? = nil)
     /// Table de routage de `cible`, memes regles.
     case routes(cible: UInt16, id: Int, delaiMs: Int? = nil)
+    /// Wi-Fi de la sonde (USB seulement) : nom et mot de passe en hexadecimal, `-` pour un reseau ouvert.
+    case wifi(nom: Data, motDePasse: Data, id: Int)
+    /// Nouvelle cle de l'acces par le reseau (USB seulement) : l'alea de l'app, 32 octets.
+    case cleNouvelle(alea: Data, id: Int)
 
     /// Ligne a envoyer, fin de ligne comprise.
     public var ligne: String {
@@ -468,6 +550,10 @@ public enum CommandeSonde: Hashable, Sendable {
         case .voisins: "voisins\n"
         case let .table(cible, id, delai): Self.requete("table", cible, id, delai)
         case let .routes(cible, id, delai): Self.requete("routes", cible, id, delai)
+        case let .wifi(nom, mdp, id):
+            "wifi \(H1.hexa(nom)) \(mdp.isEmpty ? "-" : H1.hexa(mdp)) \(id)\n"
+        case let .cleNouvelle(alea, id):
+            "cle nouvelle \(H1.hexa(alea)) \(id)\n"
         }
     }
 

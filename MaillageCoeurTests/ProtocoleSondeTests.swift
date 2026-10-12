@@ -325,3 +325,58 @@ struct ProtocoleSondeTests {
         }
     }
 }
+
+@Suite("Protocole de la sonde : acces par le reseau")
+struct ProtocoleReseauTests {
+    @Test func bonjourReseau() throws {
+        let l = #"{"v":1,"t":"bonjour","produit":"sonde-zigbee","version":"1.1.0","nom":"SONDE-01","ieee":"A000000000000001","membre":true,"role":"final","suspendue":false,"reseau":true}"#
+        guard case .bonjour(let b)? = MessageSonde.lire(Data(l.utf8)) else { Issue.record("bonjour"); return }
+        #expect(b.reseau == true)
+        #expect(b.accepteReseau)
+    }
+
+    @Test func versionsAcceptees() {
+        #expect(!Bonjour(produit: "sonde-zigbee", version: "1.0.0").accepteReseau)
+        #expect(!Bonjour(produit: "sonde-zigbee", version: "1.0.9").accepteReseau)
+        #expect(Bonjour(produit: "sonde-zigbee", version: "1.1.0").accepteReseau)
+        #expect(Bonjour(produit: "sonde-zigbee", version: "1.10.2").accepteReseau)
+        #expect(Bonjour(produit: "sonde-zigbee", version: "2.0.0").accepteReseau)
+        #expect(!Bonjour(produit: "sonde-zigbee", version: "x").accepteReseau)
+    }
+
+    @Test func etatReseau() throws {
+        let l = #"{"v":1,"t":"etat","membre":true,"recherche":false,"court":"5E6F","ieee":"A000000000000001","role":"final","parent":null,"pan":"1234","epid":"A0000000000000FF","canal":25,"suspendue":false,"pile":"1.6.8","reseau":{"connecte":true,"canal":6,"rssi":-58,"raison":0,"sessions":1,"envois":12,"echecs":0,"reconnexions":2}}"#
+        guard case .etat(let e)? = MessageSonde.lire(Data(l.utf8)) else { Issue.record("etat"); return }
+        #expect(e.reseau == ReseauSonde(connecte: true, canal: 6, rssi: -58, raison: 0, sessions: 1, envois: 12, echecs: 0,
+                                        reconnexions: 2))
+    }
+
+    @Test func etatSansReseau() throws {
+        let l = #"{"v":1,"t":"etat","membre":false,"suspendue":false}"#
+        guard case .etat(let e)? = MessageSonde.lire(Data(l.utf8)) else { Issue.record("etat"); return }
+        #expect(e.reseau == nil)
+    }
+
+    @Test func wifi() throws {
+        let l = #"{"v":1,"t":"wifi","id":7,"configure":true,"nom":"4D6F6E2057696669"}"#
+        guard case .wifi(let w)? = MessageSonde.lire(Data(l.utf8)) else { Issue.record("wifi"); return }
+        #expect(w.id == 7 && w.configure && w.nomTexte == "Mon Wifi")
+    }
+
+    @Test func cle() throws {
+        let l = #"{"v":1,"t":"cle","id":3,"cle":"62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D","empreinte":"91CB5C39"}"#
+        guard case .cle(let c)? = MessageSonde.lire(Data(l.utf8)) else { Issue.record("cle"); return }
+        #expect(c.id == 3 && c.empreinte == "91CB5C39" && c.cle?.count == 64)
+    }
+
+    @Test func wifiHexaUtf8() {
+        let c = CommandeSonde.wifi(nom: Data("Café 2,4".utf8), motDePasse: Data("motdepasse".utf8), id: 7)
+        #expect(c.ligne == "wifi 436166C3A920322C34 6D6F7464657061737365 7\n")
+        #expect(CommandeSonde.wifi(nom: Data("Ouvert".utf8), motDePasse: Data(), id: 8).ligne == "wifi 4F7576657274 - 8\n")
+    }
+
+    @Test func cleNouvelle() {
+        let c = CommandeSonde.cleNouvelle(alea: Data((0..<32).map { UInt8($0) }), id: 3)
+        #expect(c.ligne == "cle nouvelle 000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F 3\n")
+    }
+}
