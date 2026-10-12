@@ -100,6 +100,9 @@ final class SondeMaillage {
     private(set) var nomWifi: String?
     /// La sonde retenue est annoncee par Bonjour sur le reseau local.
     private(set) var annoncee = false
+    /// Le nom de son instance Bonjour, celui que vise la connexion par le reseau : le nom de la sonde, ou ce nom renomme
+    /// apres un conflit (`CheminSonde.instance`).
+    @ObservationIgnored private var instanceAnnoncee: String?
     var reglageChemin: ReglageChemin = .automatique {
         didSet {
             guard reglageChemin != oldValue else { return }
@@ -306,6 +309,7 @@ final class SondeMaillage {
         preferences.removeObject(forKey: Self.cleNomWifi)
         nomWifi = nil
         annoncee = false
+        instanceAnnoncee = nil
         preferences.removeObject(forKey: Self.cleSerie)
         serie = nil
         retenirNom(nil)
@@ -569,7 +573,8 @@ final class SondeMaillage {
 
     /// Les instances `_maillage-zigbee._tcp` vues sur le reseau local (navigateur Bonjour ; les tests l'appellent).
     func annoncesChangees(_ noms: Set<String>) {
-        let vue = nom.map { noms.contains($0) } ?? false
+        instanceAnnoncee = nom.flatMap { CheminSonde.instance(de: $0, parmi: noms) }
+        let vue = instanceAnnoncee != nil
         guard vue != annoncee || (vue && acces == nil && etat != .connexion) else { return }
         annoncee = vue
         reevaluer()
@@ -632,7 +637,7 @@ final class SondeMaillage {
         guard n == essai else { return }
         // Une requete sans reponse ferme la liaison (la carte a pu oublier la session sans couper la connexion) :
         // `liaisonFermee`, puis `reevaluer`, la rouvrent.
-        let s = Sonde(canal: ouvrirReseau(nom, cle), delaiCommande: delaiCommandeReseau,
+        let s = Sonde(canal: ouvrirReseau(instanceAnnoncee ?? nom, cle), delaiCommande: delaiCommandeReseau,
                       delaiTable: delaiTable + .seconds(3), fermerSansReponse: true)
         enConnexion = s
         do {

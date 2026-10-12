@@ -197,6 +197,7 @@ static void cmdNom(const char *nom) {
   // putString rend le nombre d'octets ecrits : 0 si la NVS refuse.
   if (sPreferences.putString(kCleNom, nom) == 0) return repondreErreur("ecriture");
   snprintf(sNom, sizeof(sNom), "%s", nom);
+  reseau::renommer(sNom);
   cmdBonjour();
 }
 

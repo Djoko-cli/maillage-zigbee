@@ -41,6 +41,26 @@ enum CheminSonde {
         }
     }
 
+    /// L'instance Bonjour de la sonde `nom` parmi `instances` : son nom, sinon son nom renomme apres un conflit sur le
+    /// reseau local (« SONDE-01-2 » par la pile mDNS de l'ESP32, « SONDE-01 (2) » a la facon d'Apple) ; nil sinon.
+    static func instance(de nom: String, parmi instances: Set<String>) -> String? {
+        if instances.contains(nom) { return nom }
+        func renommee(_ i: String) -> Bool {
+            guard i.hasPrefix(nom) else { return false }
+            let reste = i.dropFirst(nom.count)
+            let numero: Substring
+            if reste.hasPrefix("-") {
+                numero = reste.dropFirst()
+            } else if reste.hasPrefix(" ("), reste.hasSuffix(")") {
+                numero = reste.dropFirst(2).dropLast()
+            } else {
+                return false
+            }
+            return !numero.isEmpty && numero.allSatisfy(\.isASCII) && numero.allSatisfy(\.isNumber)
+        }
+        return instances.filter(renommee).sorted().first
+    }
+
     /// Le chemin a prendre, ou nil (aucun possible). Automatique : l'USB si la sonde retenue est branchee, sinon le
     /// reseau si une cle est connue et la sonde annoncee par Bonjour.
     static func choisir(_ r: ReglageChemin, branchee: Bool, cleConnue: Bool, annoncee: Bool) -> Acces? {

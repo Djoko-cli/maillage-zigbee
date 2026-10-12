@@ -33,6 +33,8 @@ void demarrer(const char *nomSonde);
 // (relue de la NVS : une cle creee pendant l'attente compte), Bonjour.
 void ouvrir();
 void tour(uint32_t maintenant);
+// Nouveau nom de la sonde (commande nom) : l'annonce Bonjour est refaite sous ce nom.
+void renommer(const char *nomSonde);
 bool requete(Portail::Requete *r);
 void repondre(uint8_t session, uint32_t rid, const uint8_t *ligne, size_t n);
 void diffuser(const uint8_t *ligne, size_t n);

@@ -34,6 +34,10 @@ bool sAFermer[Portail::kConnexions] = {};
 bool sLance = false;    // demarrer() : connexion au Wi-Fi lancee
 bool sDemarre = false;  // ouvrir() : serveur et Bonjour
 bool sMdns = false;
+// Dernier essai de MDNS.begin en echec : un nouvel essai toutes les kRelanceMdnsMs, pas a chaque tour de loop().
+bool sMdnsEchoue = false;
+uint32_t sMdnsEssai = 0;
+constexpr uint32_t kRelanceMdnsMs = 10000;
 char sNomSonde[33] = {0};
 char sHote[40] = {0};
 uint8_t sNomWifi[32];
@@ -81,7 +85,11 @@ void nomHote(const char *nom) {
 
 void annoncer() {
   if (sMdns || WiFi.status() != WL_CONNECTED) return;
-  if (!MDNS.begin(sHote)) return;
+  const uint32_t maintenant = millis();
+  if (sMdnsEchoue && maintenant - sMdnsEssai < kRelanceMdnsMs) return;
+  sMdnsEssai = maintenant;
+  sMdnsEchoue = !MDNS.begin(sHote);
+  if (sMdnsEchoue) return;
   MDNS.setInstanceName(sNomSonde);
   MDNS.addService("_maillage-zigbee", "_tcp", kPort);
   MDNS.addServiceTxt("_maillage-zigbee", "_tcp", "v", "1");
@@ -204,6 +212,16 @@ void tour(uint32_t maintenant) {
       sPortail.recevoir(i, tampon, (size_t)n, maintenant, aleatoire, sSortie);
   }
   sPortail.expirer(maintenant, sSortie);
+}
+
+void renommer(const char *nomSonde) {
+  snprintf(sNomSonde, sizeof(sNomSonde), "%s", nomSonde);
+  nomHote(nomSonde);
+  // L'annonce porte le nom de la sonde : elle est refaite sous le nouveau (au tour suivant), sans quoi l'app, qui
+  // cherche l'instance par le nom de bonjour, ne trouverait plus la sonde par le reseau.
+  if (sMdns) MDNS.end();
+  sMdns = false;
+  sMdnsEchoue = false;
 }
 
 bool requete(Portail::Requete *r) { return sDemarre && sPortail.requete(r); }

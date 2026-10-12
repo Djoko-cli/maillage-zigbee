@@ -128,6 +128,24 @@ struct SondeParReseauTests {
         await s.oublier()
     }
 
+    /// Un conflit de noms sur le reseau local renomme l'instance Bonjour de la sonde (« SONDE-01-2 » par la pile mDNS
+    /// de l'ESP32, « SONDE-01 (2) » a la facon d'Apple) : elle reste trouvee, et la connexion vise l'instance annoncee
+    /// (constat 12 de la relecture finale). Un autre nom ne la remplace pas.
+    @Test(arguments: ["SONDE-01-2", "SONDE-01 (2)"]) func instanceRenommee(_ instance: String) async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let o = Compteur()
+        let s = Self.faire(p, ouvertures: o)
+        s.portsChanges([])
+        s.annoncesChangees(["SONDE-012", "AUTRE-01"])
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(o.noms.isEmpty && !s.annoncee, "ni un autre nom, ni un prefixe")
+        s.annoncesChangees([instance])
+        #expect(await SondeMaillageTests.sonder { s.acces == .reseau }, "etat \(s.etat)")
+        #expect(o.noms == [instance])
+        await s.oublier()
+    }
+
     @Test func reglageUsbSeulement() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }
