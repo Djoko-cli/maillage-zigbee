@@ -247,13 +247,13 @@ final class CanalTemoin: CanalSonde {
 
 /// Chaque test borne a une minute : une attente sans fin echoue au lieu de bloquer la suite.
 @Suite("Sonde USB : commandes et reponses", .timeLimit(.minutes(1)))
-struct SondeUSBTests {
+struct SondeTests {
     /// bonjour et etat, dans l'ordre.
     @Test func bonjourEtat() async throws {
         let canal = CanalRejoue { l in
             l == "bonjour\n" ? [CanalRejoue.bonjour] : l == "etat\n" ? [CanalRejoue.etatDetache] : []
         }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         let b = try await s.bonjour()
         #expect(b.estSonde && b.version == "1.0.0")
@@ -264,23 +264,23 @@ struct SondeUSBTests {
 
     /// Sans reponse de la sonde : `delai` apres le delai donne et la marge.
     @Test func delai() async throws {
-        let s = SondeUSB(canal: CanalRejoue { _ in [] }, delaiCommande: .milliseconds(50))
+        let s = Sonde(canal: CanalRejoue { _ in [] }, delaiCommande: .milliseconds(50))
         try await s.demarrer {}
-        await #expect(throws: SondeUSB.Erreur.sansReponse("bonjour")) { try await s.bonjour() }
-        await #expect(throws: SondeUSB.Erreur.sansReponse("etat")) { try await s.etat() }
+        await #expect(throws: Sonde.Erreur.sansReponse("bonjour")) { try await s.bonjour() }
+        await #expect(throws: Sonde.Erreur.sansReponse("etat")) { try await s.etat() }
     }
 
     /// Liaison fermee : les attentes sont liberees, les commandes suivantes refusees.
     @Test func fermeture() async throws {
         let canal = CanalRejoue { _ in [] }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         let fermee = Mutex(false)
         try await s.demarrer { fermee.withLock { $0 = true } }
         let requete = Task { try await s.bonjour() }
         try await Task.sleep(for: .milliseconds(50))
         canal.fermer()
-        await #expect(throws: SondeUSB.Erreur.fermee) { _ = try await requete.value }
-        await #expect(throws: SondeUSB.Erreur.fermee) { _ = try await s.etat() }
+        await #expect(throws: Sonde.Erreur.fermee) { _ = try await requete.value }
+        await #expect(throws: Sonde.Erreur.fermee) { _ = try await s.etat() }
         try await Task.sleep(for: .milliseconds(50))
         #expect(fermee.withLock { $0 })
     }
@@ -289,16 +289,16 @@ struct SondeUSBTests {
     /// attendre le delai, et le message le dit.
     @Test(.timeLimit(.minutes(1)), arguments: ["etat"])
     func commandeOccupee(_ commande: String) async throws {
-        let s = SondeUSB(canal: CanalRejoue { l in
+        let s = Sonde(canal: CanalRejoue { l in
             l == commande + "\n" ? [#"{"v":1,"t":"\#(commande)","erreur":"occupee"}"#] : []
         })
         try await s.demarrer {}
         let debut = ContinuousClock.now
-        await #expect(throws: SondeUSB.Erreur.occupee(commande)) {
+        await #expect(throws: Sonde.Erreur.occupee(commande)) {
             _ = try await s.etat()
         }
-        #expect(ContinuousClock.now - debut < SondeUSB.delaiCommandeUSB)
-        #expect(SondeUSB.Erreur.occupee(commande).localizedDescription
+        #expect(ContinuousClock.now - debut < Sonde.delaiCommandeUSB)
+        #expect(Sonde.Erreur.occupee(commande).localizedDescription
                 == String(localized: "la sonde est occupée et n'a pas répondu à « \(commande) »"))
     }
 
@@ -306,21 +306,21 @@ struct SondeUSBTests {
     /// suite (et non `occupee`, ni `sansReponse`).
     @Test(.timeLimit(.minutes(1)), arguments: ["etat"])
     func commandeRefusee(_ commande: String) async throws {
-        let s = SondeUSB(canal: CanalRejoue { l in
+        let s = Sonde(canal: CanalRejoue { l in
             l == commande + "\n" ? [#"{"v":1,"t":"\#(commande)","erreur":"pas de pile"}"#] : []
         })
         try await s.demarrer {}
         let debut = ContinuousClock.now
-        await #expect(throws: SondeUSB.Erreur.refusee("pas de pile")) {
+        await #expect(throws: Sonde.Erreur.refusee("pas de pile")) {
             _ = try await s.etat()
         }
-        #expect(ContinuousClock.now - debut < SondeUSB.delaiCommandeUSB)
+        #expect(ContinuousClock.now - debut < Sonde.delaiCommandeUSB)
     }
 
     /// Un bonjour non demande : la sonde vient de redemarrer.
     @Test func bonjourSpontane() async throws {
         let canal = CanalRejoue { _ in [] }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         canal.emettre([CanalRejoue.bonjour])
         try await Task.sleep(for: .milliseconds(50))
@@ -331,7 +331,7 @@ struct SondeUSBTests {
     /// quand le canal le finit en differe.
     @Test func fermerAttendLaFinDuFlux() async throws {
         let journal = JournalCanaux()
-        let s = SondeUSB(canal: CanalTemoin("1", journal: journal, fermetureDifferee: .milliseconds(50)))
+        let s = Sonde(canal: CanalTemoin("1", journal: journal, fermetureDifferee: .milliseconds(50)))
         try await s.demarrer {}
         await s.fermer()
         #expect(journal.cycle == ["ouvrir 1", "fermer 1", "fin 1"])
@@ -341,9 +341,9 @@ struct SondeUSBTests {
     /// Fermee avant d'avoir demarre (connexion abandonnee) : le canal ne s'ouvre plus.
     @Test func fermeeAvantDeDemarrer() async throws {
         let journal = JournalCanaux()
-        let s = SondeUSB(canal: CanalTemoin("1", journal: journal))
+        let s = Sonde(canal: CanalTemoin("1", journal: journal))
         await s.fermer()
-        await #expect(throws: SondeUSB.Erreur.fermee) { try await s.demarrer {} }
+        await #expect(throws: Sonde.Erreur.fermee) { try await s.demarrer {} }
         #expect(journal.cycle.isEmpty)
     }
 
@@ -353,7 +353,7 @@ struct SondeUSBTests {
     @Test(.timeLimit(.minutes(1)), arguments: ["bonjour", "etat"])
     func echeanceDUneRequeteServie(_ commande: String) async throws {
         let canal = CanalRejoue { _ in [] }
-        let s = SondeUSB(canal: canal, delaiCommande: .milliseconds(800))
+        let s = Sonde(canal: canal, delaiCommande: .milliseconds(800))
         try await s.demarrer {}
         let reponse = commande == "bonjour" ? CanalRejoue.bonjour : CanalRejoue.etatDetache
         @Sendable func requete() async throws {
@@ -886,8 +886,8 @@ struct SondeMaillageTests {
         let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
         let debut = ContinuousClock.now
         await s.connecter(Self.port, choisi: true)
-        #expect(s.erreurTournee == SondeUSB.Erreur.occupee("etat").localizedDescription)
-        #expect(ContinuousClock.now - debut < SondeUSB.delaiCommandeUSB)
+        #expect(s.erreurTournee == Sonde.Erreur.occupee("etat").localizedDescription)
+        #expect(ContinuousClock.now - debut < Sonde.delaiCommandeUSB)
         await s.oublier()
     }
 
@@ -952,5 +952,48 @@ struct SondeMaillageTests {
         s.debuterTournee()
         await s.oublier()
         #expect(!s.tourneeEnCours && suite.last == "fin", "l'oubli arrete la tournee")
+    }
+}
+
+@Suite("Sonde : mise en service par l'USB (wifi, cle)", .timeLimit(.minutes(1)))
+struct MiseEnServiceTests {
+    @Test func nouvelleCle() async throws {
+        let canal = CanalRejoue { l in
+            l.hasPrefix("cle nouvelle ")
+                ? [#"{"v":1,"t":"cle","id":1,"cle":"62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D","empreinte":"91CB5C39"}"#]
+                : []
+        }
+        let s = Sonde(canal: canal)
+        try await s.demarrer {}
+        let c = try await s.nouvelleCle(alea: Data((0..<32).map { UInt8($0) }))
+        #expect(c.empreinte == "91CB5C39")
+        #expect(canal.envoyes == ["cle nouvelle 000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F 1\n"])
+    }
+
+    @Test func configurerWifi() async throws {
+        let canal = CanalRejoue { l in
+            l.hasPrefix("wifi ") ? [#"{"v":1,"t":"wifi","id":1,"configure":true,"nom":"4D6F6E2057696669"}"#] : []
+        }
+        let s = Sonde(canal: canal)
+        try await s.demarrer {}
+        let w = try await s.configurerWifi(nom: Data("Mon Wifi".utf8), motDePasse: Data("motdepasse".utf8))
+        #expect(w.configure && w.nomTexte == "Mon Wifi")
+    }
+
+    @Test func refusSertLaCommandeQuiAttend() async throws {
+        let canal = CanalRejoue { l in l.hasPrefix("cle ") ? [#"{"v":1,"t":"erreur","erreur":"ecriture"}"#] : [] }
+        let s = Sonde(canal: canal)
+        try await s.demarrer {}
+        await #expect(throws: Sonde.Erreur.refusee("ecriture")) {
+            _ = try await s.nouvelleCle(alea: Data(repeating: 1, count: 32))
+        }
+    }
+
+    @Test func sansReponse() async throws {
+        let s = Sonde(canal: CanalRejoue { _ in [] }, delaiCommande: .milliseconds(100))
+        try await s.demarrer {}
+        await #expect(throws: Sonde.Erreur.sansReponse("wifi")) {
+            _ = try await s.configurerWifi(nom: Data("X".utf8), motDePasse: Data())
+        }
     }
 }

@@ -67,11 +67,11 @@ private struct FileAttentes<Valeur: Sendable> {
     }
 }
 
-/// Sonde branchee en USB : envoie les commandes et apparie les reponses. `bonjour`, `etat` et `voisins`, sans id, par
+/// La sonde, par l'USB ou par le reseau (le canal) : envoie les commandes et apparie les reponses. `bonjour`, `etat` et `voisins`, sans id, par
 /// ordre ; `table` et `routes` par id **et** cible, une seule a la fois (la sonde repondrait `occupee`), leurs lignes
 /// `suite` reunies jusqu'a la derniere. Chaque requete a sa propre echeance : 3 s pour les commandes locales, 125 s pour
 /// une table (la sonde en borne une a 120 s). Les lignes `signal` ne font qu'avancer un compteur.
-actor SondeUSB: InterlocuteurSonde {
+actor Sonde: InterlocuteurSonde {
     enum Erreur: Error, LocalizedError, Equatable {
         case fermee
         case sansReponse(String)
@@ -125,6 +125,8 @@ actor SondeUSB: InterlocuteurSonde {
     private var attenteEtat = FileAttentes<Result<EtatSonde, Erreur>>()
     private var attenteBonjour = FileAttentes<Bonjour>()
     private var attenteVoisins = FileAttentes<Result<[VoisinDeLaSonde], Erreur>>()
+    private var attenteWifi = FileAttentes<Result<WifiSonde, Erreur>>()
+    private var attenteCle = FileAttentes<Result<CleSonde, Erreur>>()
     private var fusionVoisins = FusionLignes<VoisinDeLaSonde>()
     private var enCours: EnCours?
     private var echeanceReseau: Task<Void, Never>?
@@ -137,7 +139,7 @@ actor SondeUSB: InterlocuteurSonde {
     private(set) var signaux = 0
     private(set) var pertesParent = 0
 
-    init(canal: any CanalSonde, delaiCommande: Duration = SondeUSB.delaiCommandeUSB,
+    init(canal: any CanalSonde, delaiCommande: Duration = Sonde.delaiCommandeUSB,
          delaiTable: Duration = ProtocoleSonde.echeanceTable) {
         self.canal = canal
         self.delaiCommande = delaiCommande
@@ -214,6 +216,40 @@ actor SondeUSB: InterlocuteurSonde {
         }
         guard let v else { throw fermee ? Erreur.fermee : Erreur.sansReponse("voisins") }
         return try v.get()
+    }
+
+    /// Wi-Fi de la sonde (USB, mise en service) : elle repond puis redemarre pour l'appliquer.
+    func configurerWifi(nom: Data, motDePasse: Data) async throws -> WifiSonde {
+        guard !fermee else { throw Erreur.fermee }
+        let jeton = nouveauJeton()
+        let id = nouvelId()
+        let r = await withCheckedContinuation { c in
+            attenteWifi.ajouter(jeton, c)
+            canal.envoyer(CommandeSonde.wifi(nom: nom, motDePasse: motDePasse, id: id).ligne)
+            Task {
+                try? await Task.sleep(for: self.delaiCommande)
+                self.attenteWifi.expirer(jeton)
+            }
+        }
+        guard let r else { throw fermee ? Erreur.fermee : Erreur.sansReponse("wifi") }
+        return try r.get()
+    }
+
+    /// Nouvelle cle de l'acces par le reseau (USB, mise en service) : la seule fois ou la cle sort de la carte.
+    func nouvelleCle(alea: Data) async throws -> CleSonde {
+        guard !fermee else { throw Erreur.fermee }
+        let jeton = nouveauJeton()
+        let id = nouvelId()
+        let r = await withCheckedContinuation { c in
+            attenteCle.ajouter(jeton, c)
+            canal.envoyer(CommandeSonde.cleNouvelle(alea: alea, id: id).ligne)
+            Task {
+                try? await Task.sleep(for: self.delaiCommande)
+                self.attenteCle.expirer(jeton)
+            }
+        }
+        guard let r else { throw fermee ? Erreur.fermee : Erreur.sansReponse("cle") }
+        return try r.get()
     }
 
     /// La table des voisins de `cible` ; nil sans reponse dans `delaiTable`. Leve `occupee` si une requete reseau est
@@ -317,11 +353,19 @@ actor SondeUSB: InterlocuteurSonde {
             } else {
                 enCours = .routes(id: id, cible: cible, fusion, k)
             }
+        case .wifi(let w)?:
+            attenteWifi.servir(.success(w))
+        case .cle(let c)?:
+            attenteCle.servir(.success(c))
         case .erreur(let e)?:
             // Erreur generale (`syntaxe`, `inconnue`, ligne trop longue) : elle repond a la requete reseau en cours,
-            // sinon a la plus ancienne commande sans id qui attend.
+            // sinon a la plus ancienne commande sans id qui attend (`cle nouvelle`, `wifi`, `etat`, puis `voisins`).
             if let r = enCours {
                 finirReseau(id: r.id, erreur: e)
+            } else if !attenteCle.estVide {
+                attenteCle.servir(.failure(Self.refus("cle", e)))
+            } else if !attenteWifi.estVide {
+                attenteWifi.servir(.failure(Self.refus("wifi", e)))
             } else if !attenteEtat.estVide {
                 attenteEtat.servir(.failure(Self.refus("etat", e)))
             } else {
@@ -349,6 +393,8 @@ actor SondeUSB: InterlocuteurSonde {
         attenteEtat.liberer()
         attenteBonjour.liberer()
         attenteVoisins.liberer()
+        attenteWifi.liberer()
+        attenteCle.liberer()
         if let r = enCours { finirReseau(id: r.id, erreur: nil) }
     }
 }

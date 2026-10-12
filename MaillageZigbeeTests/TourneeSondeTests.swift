@@ -58,7 +58,7 @@ enum SondeRejouee {
 
 /// Chaque test borne a une minute : une attente sans fin echoue au lieu de bloquer la suite.
 @Suite("Sonde USB : requetes reseau appariees par id et cible", .timeLimit(.minutes(1)))
-struct SondeUSBReseauTests {
+struct SondeReseauTests {
     /// Une table sur deux lignes `suite`, reunies ; une ligne d'un autre id ou d'une autre cible est ignoree ; les id
     /// partent de 1 et suivent.
     @Test func tableAppariee() async throws {
@@ -69,7 +69,7 @@ struct SondeUSBReseauTests {
             let autreCible = #"{"v":1,"t":"table","id":\#(id),"cible":"2B3C","ok":false,"erreur":"delai"}"#
             return [autreId, autreCible] + SondeRejouee.repondre(l)
         }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         let r = try #require(try await s.table(0x1A2B))
         #expect(r.ok && r.id == 1 && r.cible == "1A2B" && r.liste.count == 2 && r.complete)
@@ -85,11 +85,11 @@ struct SondeUSBReseauTests {
     /// premiere est servie ensuite.
     @Test func uneSeuleRequeteReseau() async throws {
         let canal = CanalRejoue { _ in [] }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         let premiere = Task { try await s.table(0x1A2B) }
         try await Task.sleep(for: .milliseconds(50))
-        await #expect(throws: SondeUSB.Erreur.occupee("routes")) { _ = try await s.routes(0x0000) }
+        await #expect(throws: Sonde.Erreur.occupee("routes")) { _ = try await s.routes(0x0000) }
         #expect(canal.envoyes == ["table 1A2B 1\n"])
         canal.emettre(SondeRejouee.repondre("table 1A2B 1"))
         #expect(try await premiere.value?.ok == true)
@@ -98,11 +98,11 @@ struct SondeUSBReseauTests {
     /// Sans reponse dans l'echeance : nil, et la requete suivante peut partir.
     @Test func echeanceDUneTable() async throws {
         let canal = CanalRejoue { l in l.hasPrefix("table 0000") ? SondeRejouee.repondre(l) : [] }
-        let s = SondeUSB(canal: canal, delaiTable: .milliseconds(100))
+        let s = Sonde(canal: canal, delaiTable: .milliseconds(100))
         try await s.demarrer {}
         #expect(try await s.table(0x1A2B) == nil)
         #expect(try await s.table(0x0000)?.ok == true)
-        #expect(SondeUSB(canal: canal).delaiTable == .seconds(125), "125 s par defaut : la sonde borne une table a 120 s")
+        #expect(Sonde(canal: canal).delaiTable == .seconds(125), "125 s par defaut : la sonde borne une table a 120 s")
     }
 
     /// Echec de la sonde (`non_membre`), erreur generale (`syntaxe`) : un echec de la requete, tout de suite.
@@ -111,7 +111,7 @@ struct SondeUSBReseauTests {
             l.hasPrefix("table") ? [#"{"v":1,"t":"table","id":1,"cible":"1A2B","ok":false,"erreur":"non_membre"}"#]
                 : [#"{"v":1,"t":"erreur","erreur":"syntaxe"}"#]
         }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         let r = try #require(try await s.table(0x1A2B))
         #expect(!r.ok && r.erreur == "non_membre")
@@ -121,12 +121,12 @@ struct SondeUSBReseauTests {
 
     /// `voisins` : la table de la sonde ; `occupee` tout de suite.
     @Test func voisins() async throws {
-        let s = SondeUSB(canal: CanalRejoue(repondre: SondeRejouee.repondre))
+        let s = Sonde(canal: CanalRejoue(repondre: SondeRejouee.repondre))
         try await s.demarrer {}
         #expect(try await s.voisins().map(\.court) == ["1A2B"])
-        let occupee = SondeUSB(canal: CanalRejoue { _ in [#"{"v":1,"t":"voisins","erreur":"occupee"}"#] })
+        let occupee = Sonde(canal: CanalRejoue { _ in [#"{"v":1,"t":"voisins","erreur":"occupee"}"#] })
         try await occupee.demarrer {}
-        await #expect(throws: SondeUSB.Erreur.occupee("voisins")) { _ = try await occupee.voisins() }
+        await #expect(throws: Sonde.Erreur.occupee("voisins")) { _ = try await occupee.voisins() }
     }
 
     /// Relecture finale, M4 : une reponse `voisins` dont la derniere ligne manque expire ; ses lignes recues ne
@@ -141,9 +141,9 @@ struct SondeUSBReseauTests {
                 return p ? [partielle] : [SondeRejouee.voisins]
             }
         }
-        let s = SondeUSB(canal: canal, delaiCommande: .milliseconds(100))
+        let s = Sonde(canal: canal, delaiCommande: .milliseconds(100))
         try await s.demarrer {}
-        await #expect(throws: SondeUSB.Erreur.sansReponse("voisins")) { _ = try await s.voisins() }
+        await #expect(throws: Sonde.Erreur.sansReponse("voisins")) { _ = try await s.voisins() }
         #expect(try await s.voisins().map(\.court) == ["1A2B"])
     }
 
@@ -153,7 +153,7 @@ struct SondeUSBReseauTests {
             l == "etat\n" ? [#"{"v":1,"t":"signal","signal":"0x32","nom":"NLME_STATUS_INDICATION","ok":true,"detail":9}"#,
                              SondeRejouee.etat] : []
         }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         #expect(try await s.etat().membre)
         canal.emettre([#"{"v":1,"t":"signal","signal":"0x01","nom":"ZDO_SIGNAL_DEFAULT_START","ok":true,"detail":0}"#])
@@ -166,7 +166,7 @@ struct SondeUSBReseauTests {
     /// l'echeance ; la liaison fermee pendant une table : `fermee`.
     @Test func redemarrageEtFermeture() async throws {
         let canal = CanalRejoue { _ in [] }
-        let s = SondeUSB(canal: canal)
+        let s = Sonde(canal: canal)
         try await s.demarrer {}
         let t = Task { try await s.table(0x1A2B) }
         try await Task.sleep(for: .milliseconds(50))
@@ -175,7 +175,7 @@ struct SondeUSBReseauTests {
         let u = Task { try await s.table(0x1A2B) }
         try await Task.sleep(for: .milliseconds(50))
         canal.fermer()
-        await #expect(throws: SondeUSB.Erreur.fermee) { _ = try await u.value }
+        await #expect(throws: Sonde.Erreur.fermee) { _ = try await u.value }
     }
 }
 

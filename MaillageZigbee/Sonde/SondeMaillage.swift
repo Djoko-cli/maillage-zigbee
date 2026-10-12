@@ -112,11 +112,11 @@ final class SondeMaillage {
     @ObservationIgnored private var memoire = MemoireTournee()
     /// La prochaine tournee (attente comprise), et la tournee en cours.
     @ObservationIgnored private var boucle: Task<Void, Never>?
-    @ObservationIgnored private var sonde: SondeUSB?
+    @ObservationIgnored private var sonde: Sonde?
     /// Chemin du port de `sonde` (nil sans sonde connectee).
     @ObservationIgnored private var cheminConnecte: String?
     /// Liaison d'une connexion en cours, avant sa verification : `deconnecter` la ferme aussi.
-    @ObservationIgnored private var enConnexion: SondeUSB?
+    @ObservationIgnored private var enConnexion: Sonde?
     /// Numero d'essai, incremente par `deconnecter` : une connexion dont le numero a change est perimee et ne touche
     /// plus a rien.
     @ObservationIgnored private var essai = 0
@@ -280,7 +280,7 @@ final class SondeMaillage {
     /// Attend, si besoin, que le budget de pages couvre les tables de voisins (quand elles sont dues) et les routes du pont
     /// de la tournee qui va partir (`MemoireTournee.instantProchaineTournee`), en le montrant (`tourneeDifferee`).
     /// L'instant est recalcule apres chaque attente. Rend faux si le plan a ete annule ou remplace entre-temps.
-    private func attendreBudget(_ s: SondeUSB, essai n: Int) async -> Bool {
+    private func attendreBudget(_ s: Sonde, essai n: Int) async -> Bool {
         while let instant = memoire.instantProchaineTournee(a: horloge()) {
             let maintenant = horloge()
             tourneeDifferee = TourneeDifferee(instant: instant, complete: memoire.tablesDues)
@@ -308,7 +308,7 @@ final class SondeMaillage {
     /// l'etat lu de la sonde. Perimee (sonde deconnectee entre-temps), elle ne touche plus a rien.
     /// Rend vrai si une passe complementaire peut la suivre : la tournee a eu lieu, et, pour une passe, elle a lu des
     /// routes.
-    private func tourner(_ s: SondeUSB, complementaire: Bool) async -> Bool {
+    private func tourner(_ s: Sonde, complementaire: Bool) async -> Bool {
         debuterTournee()
         guard tourneeEnCours else { return false }
         let debut = horloge()
@@ -419,7 +419,7 @@ final class SondeMaillage {
         // Tant que l'ancienne liaison tient le port, TIOCEXCL refuse de le rouvrir.
         await fermetures?.value
         guard n == essai else { return }
-        let s = SondeUSB(canal: ouvrirCanal(port.chemin), delaiTable: delaiTable)
+        let s = Sonde(canal: ouvrirCanal(port.chemin), delaiTable: delaiTable)
         enConnexion = s
         do {
             try await s.demarrer { [weak self] in
@@ -468,13 +468,13 @@ final class SondeMaillage {
 
     /// `etat` de la sonde connectee ; rien n'est retenu si la liaison n'est plus la sienne. Une liaison fermee est
     /// laissee a `liaisonFermee`.
-    private func lireEtat(_ s: SondeUSB) async {
+    private func lireEtat(_ s: Sonde) async {
         do {
             let e = try await s.etat()
             guard s === sonde else { return }
             etatSonde = e
             erreurTournee = nil
-        } catch SondeUSB.Erreur.fermee {
+        } catch Sonde.Erreur.fermee {
             // La liaison est fermee : `liaisonFermee` s'en occupe.
         } catch {
             guard s === sonde else { return }
@@ -508,7 +508,7 @@ final class SondeMaillage {
         }
     }
 
-    private func liaisonFermee(_ s: SondeUSB) {
+    private func liaisonFermee(_ s: Sonde) {
         guard sonde === s else { return }
         deconnecter(.absente)
     }
