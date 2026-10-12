@@ -24,6 +24,8 @@ final class SondeMaillage {
         case sansSonde
         /// La sonde retenue n'est pas branchee.
         case absente
+        /// Le reseau est le chemin choisi, mais la sonde ne repond pas (Wi-Fi coupe, cle refusee).
+        case injoignable
         case connexion
         case connectee(Bonjour)
         /// Le port choisi n'est pas une sonde, ou ne repond pas.
@@ -35,6 +37,8 @@ final class SondeMaillage {
     static let cleSerie = "sondeSerieUSB"
     /// Nom de la sonde retenue, donne par la carte (`bonjour`).
     static let cleNom = "sondeNom"
+    /// Adresse longue de la sonde retenue (compte de sa cle dans le trousseau), donnee par `bonjour` en USB.
+    static let cleIeee = "sondeIeee"
     /// Journal des pages envoyees a la sonde dans les 10 dernieres minutes : `[instant, pages, instant, pages...]`
     /// (`BudgetPages.enregistrable`).
     static let cleJournalPages = "sondeJournalPages"
@@ -43,6 +47,10 @@ final class SondeMaillage {
     /// Nouvel essai d'une connexion automatique en echec : une sonde qui demarre en plus de 3 s (bonjour sans reponse)
     /// n'attend pas l'evenement USB suivant.
     static let delaiNouvelEssai: Duration = .seconds(5)
+    /// Nouvel essai de la connexion par le reseau, tant que le reseau reste le chemin choisi.
+    static let delaiReessaiReseau: Duration = .seconds(60)
+    /// Relecture d'`etat` hors tournee : la session H1 de la sonde est oubliee apres 10 min sans message.
+    static let periodeEntretien: Duration = .seconds(240)
     /// Premiere tournee apres la connexion : le temps que la sonde se rattache si elle vient de demarrer.
     static let delaiPremiereTournee: Duration = .seconds(10)
     /// Une tournee toutes les 15 minutes (spec de l'app, section 6).
@@ -70,6 +78,21 @@ final class SondeMaillage {
     private(set) var bilan: BilanTournee?
     /// Heure de la passe complementaire programmee ; nil sans passe programmee (une seule a la fois).
     private(set) var passeComplementaire: Date?
+    /// Par ou passe la sonde connectee ; nil sans sonde connectee.
+    private(set) var acces: Acces?
+    /// Adresse longue de la sonde retenue (compte de sa cle dans le trousseau) ; nil avant sa premiere connexion USB.
+    private(set) var ieee: String?
+    /// La sonde retenue est annoncee par Bonjour sur le reseau local.
+    private(set) var annoncee = false
+    var reglageChemin: ReglageChemin = .automatique {
+        didSet {
+            guard reglageChemin != oldValue else { return }
+            if actif { preferences.set(reglageChemin.rawValue, forKey: CheminSonde.cleReglage) }
+            reevaluer()
+        }
+    }
+    /// Une cle de l'acces par le reseau est dans le trousseau pour la sonde retenue.
+    var cleReseauConnue: Bool { cleReseau() != nil }
 
     /// Une tournee qui attend que le budget de pages de la sonde le permette.
     struct TourneeDifferee: Equatable {
@@ -94,6 +117,15 @@ final class SondeMaillage {
     @ObservationIgnored private let preferences: UserDefaults
     @ObservationIgnored private let actif: Bool
     @ObservationIgnored private let ouvrirCanal: (String) -> any CanalSonde
+    @ObservationIgnored private let trousseau: any TrousseauCles
+    @ObservationIgnored private let ouvrirReseau: (String, Data) -> any CanalSonde
+    @ObservationIgnored private let delaiReessaiReseau: Duration
+    @ObservationIgnored private let periodeEntretien: Duration
+    /// Nouvel essai planifie d'une connexion par le reseau en echec.
+    @ObservationIgnored private var reessaiReseau: Task<Void, Never>?
+    /// Relecture periodique d'`etat` de la sonde connectee par le reseau.
+    @ObservationIgnored private var entretien: Task<Void, Never>?
+    @ObservationIgnored private var navigateur: NavigateurBonjour?
     @ObservationIgnored private let delaiNouvelEssai: Duration
     /// Nouvel essai planifie d'une connexion automatique en echec.
     @ObservationIgnored private var nouvelEssai: Task<Void, Never>?
@@ -128,6 +160,12 @@ final class SondeMaillage {
     /// `actif` faux (mode demo, tests) : ni port, ni preferences lues.
     init(preferences: UserDefaults = .standard, actif: Bool,
          ouvrirCanal: @escaping (String) -> any CanalSonde = { CanalSerie(liaison: LiaisonSerie(chemin: $0)) },
+         trousseau: any TrousseauCles = TrousseauSysteme(service: CheminSonde.serviceTrousseau),
+         ouvrirReseau: @escaping (String, Data) -> any CanalSonde = {
+             CanalReseau(transport: TransportTCP(service: $0), cle: $1, delaiPoigneeDeMain: .seconds(15))
+         },
+         delaiReessaiReseau: Duration = SondeMaillage.delaiReessaiReseau,
+         periodeEntretien: Duration = SondeMaillage.periodeEntretien,
          delaiNouvelEssai: Duration = SondeMaillage.delaiNouvelEssai,
          delaiPremiereTournee: Duration = SondeMaillage.delaiPremiereTournee,
          periodeTournees: Duration = SondeMaillage.periodeTournees,
@@ -138,6 +176,10 @@ final class SondeMaillage {
         self.preferences = preferences
         self.actif = actif
         self.ouvrirCanal = ouvrirCanal
+        self.trousseau = trousseau
+        self.ouvrirReseau = ouvrirReseau
+        self.delaiReessaiReseau = delaiReessaiReseau
+        self.periodeEntretien = periodeEntretien
         self.delaiNouvelEssai = delaiNouvelEssai
         self.delaiPremiereTournee = delaiPremiereTournee
         self.periodeTournees = periodeTournees
@@ -147,6 +189,10 @@ final class SondeMaillage {
         self.dormir = dormir
         serie = actif ? preferences.string(forKey: Self.cleSerie) : nil
         nom = actif ? preferences.string(forKey: Self.cleNom) : nil
+        ieee = actif ? preferences.string(forKey: Self.cleIeee) : nil
+        reglageChemin = actif
+            ? ReglageChemin(rawValue: preferences.string(forKey: CheminSonde.cleReglage) ?? "") ?? .automatique
+            : .automatique
         memoire = nouvelleMemoire()
     }
 
@@ -175,7 +221,7 @@ final class SondeMaillage {
     var nomEtat: String? {
         switch etat {
         case .sansSonde: nil
-        case .absente: nom
+        case .absente, .injoignable: nom
         case .connexion, .connectee, .refusee, .erreur: serie != nil && serieEtat == serie ? nom : nil
         }
     }
@@ -198,6 +244,13 @@ final class SondeMaillage {
         p.demarrer()
         surveillantPorts = p
         portsChanges(PortsUSB.lister())
+        let n = NavigateurBonjour(type: "_maillage-zigbee._tcp")
+        n.surChangement = { [weak self, weak n] in
+            guard let self, let n else { return }
+            self.annoncesChangees(Set(n.instances.keys))
+        }
+        n.demarrer()
+        navigateur = n
     }
 
     /// Choix d'un port dans les Reglages : retenu seulement s'il repond en sonde. Le port de la sonde deja connectee
@@ -210,6 +263,10 @@ final class SondeMaillage {
     /// Oublie la sonde retenue (numero de serie, nom), son releve et son maillage dans le graphe (`surOubli`), et ferme
     /// la liaison.
     func oublier() async {
+        if let ieee { try? trousseau.oublier(identifiant: ieee) }
+        preferences.removeObject(forKey: Self.cleIeee)
+        ieee = nil
+        annoncee = false
         preferences.removeObject(forKey: Self.cleSerie)
         serie = nil
         retenirNom(nil)
@@ -395,11 +452,122 @@ final class SondeMaillage {
     func portsChanges(_ liste: [PortUSB]) {
         ports = liste.filter(\.estEspressif)
         guard let serie else { return }
-        if let p = ports.first(where: { $0.serie == serie }) {
+        if reglageChemin != .reseau, let p = ports.first(where: { $0.serie == serie }) {
             // `lancerConnexion` passe tout de suite a `.connexion` : un second appel n'en lance pas d'autre.
-            if sonde == nil && etat != .connexion { lancerConnexion(p, choisi: false) }
-        } else if (sonde != nil || etat != .absente) && !versUnAutrePort {
-            deconnecter(.absente)
+            if (sonde == nil || acces == .reseau) && etat != .connexion { lancerConnexion(p, choisi: false) }
+        } else if acces != .reseau && !versUnAutrePort {
+            if sonde != nil || etat != .absente { deconnecter(.absente) }
+            reevaluer()
+        }
+    }
+
+    /// Les instances `_maillage-zigbee._tcp` vues sur le reseau local (navigateur Bonjour ; les tests l'appellent).
+    func annoncesChangees(_ noms: Set<String>) {
+        let vue = nom.map { noms.contains($0) } ?? false
+        guard vue != annoncee || (vue && acces == nil && etat != .connexion) else { return }
+        annoncee = vue
+        reevaluer()
+    }
+
+    /// La cle de l'acces par le reseau de la sonde retenue, depuis le trousseau ; nil sans sonde, sans adresse longue
+    /// ou sans cle.
+    private func cleReseau() -> Data? {
+        guard let ieee, let hexa = try? trousseau.lire(identifiant: ieee) else { return nil }
+        return H1.octets(hexa: hexa)
+    }
+
+    /// Applique le chemin choisi (spec sonde Wi-Fi, 4.2) apres un changement de ports, d'annonces ou de reglage.
+    private func reevaluer() {
+        guard actif, serie != nil else { return }
+        let port = ports.first { $0.serie == serie }
+        switch CheminSonde.choisir(reglageChemin, branchee: port != nil, cleConnue: cleReseauConnue, annoncee: annoncee) {
+        case .usb?:
+            guard let port, acces != .usb, etat != .connexion else { return }
+            lancerConnexion(port, choisi: false)
+        case .reseau?:
+            guard acces != .reseau, etat != .connexion else { return }
+            deconnecter(.connexion)
+            serieEtat = serie
+            let n = essai
+            Task {
+                guard n == essai else { return }
+                await connecterReseau()
+            }
+        case nil:
+            if (sonde != nil || etat == .connexion || etat == .injoignable) && !versUnAutrePort { deconnecter(.absente) }
+        }
+    }
+
+    /// Connexion par le reseau a la sonde retenue (spec sonde Wi-Fi, 4.1 et 4.2) : `bonjour` doit dire la sonde Zigbee et
+    /// son adresse longue celle retenue.
+    func connecterReseau() async {
+        guard actif, let nom, let cle = cleReseau() else { return }
+        deconnecter(.connexion)
+        // La connexion concerne la sonde retenue (sans port) : `versUnAutrePort` reste faux, `nomEtat` donne son nom.
+        serieEtat = serie
+        let n = essai
+        await fermetures?.value
+        guard n == essai else { return }
+        let s = Sonde(canal: ouvrirReseau(nom, cle), delaiCommande: Sonde.delaiCommandeUSB + .seconds(3),
+                      delaiTable: delaiTable + .seconds(3))
+        enConnexion = s
+        do {
+            try await s.demarrer { [weak self] in
+                Task { @MainActor in self?.liaisonFermee(s) }
+            }
+            let b = try await s.bonjour()
+            guard n == essai else {
+                await s.fermer()
+                return
+            }
+            guard b.estSonde, b.ieee == ieee else {
+                await s.fermer()
+                guard n == essai else { return }
+                enConnexion = nil
+                etat = .refusee(String(localized: "la sonde du réseau n'est pas la sonde retenue"))
+                return
+            }
+            enConnexion = nil
+            sonde = s
+            acces = .reseau
+            etat = .connectee(b)
+            retenirNom(b.nom)
+            await lireEtat(s)
+            guard n == essai, s === sonde else { return }
+            planifierTournee(dans: delaiPremiereTournee)
+            entretenir(s)
+        } catch {
+            await s.fermer()
+            guard n == essai else { return }
+            enConnexion = nil
+            etat = .injoignable
+            planifierReessaiReseau()
+        }
+    }
+
+    /// Relit `etat` toutes les `periodeEntretien` hors tournee : la session H1 de la sonde reste vivante entre deux
+    /// tournees (elle est oubliee apres 10 min sans message).
+    private func entretenir(_ s: Sonde) {
+        entretien?.cancel()
+        let periode = periodeEntretien
+        entretien = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: periode)
+                guard let self, !Task.isCancelled, s === self.sonde else { return }
+                if !self.tourneeEnCours { await self.lireEtat(s) }
+            }
+        }
+    }
+
+    private func planifierReessaiReseau() {
+        reessaiReseau?.cancel()
+        let n = essai
+        let delai = delaiReessaiReseau
+        reessaiReseau = Task { [weak self] in
+            try? await Task.sleep(for: delai)
+            guard !Task.isCancelled, let self, n == self.essai, self.etat == .injoignable else { return }
+            self.etat = .absente
+            self.reevaluer()
         }
     }
 
@@ -444,6 +612,7 @@ final class SondeMaillage {
             enConnexion = nil
             sonde = s
             cheminConnecte = port.chemin
+            acces = .usb
             etat = .connectee(b)
             if choisi, let serieUSB = port.serie {
                 // Le releve etait celui d'une autre sonde.
@@ -454,6 +623,10 @@ final class SondeMaillage {
             // Le nom va avec la sonde retenue (un port sans numero de serie ne l'est pas).
             let retenue = port.serie != nil && port.serie == serie
             retenirNom(retenue ? b.nom : nil)
+            if retenue, let i = b.ieee {
+                preferences.set(i, forKey: Self.cleIeee)
+                ieee = i
+            }
             await lireEtat(s)
             guard n == essai, s === sonde else { return }
             planifierTournee(dans: delaiPremiereTournee)
@@ -510,7 +683,11 @@ final class SondeMaillage {
 
     private func liaisonFermee(_ s: Sonde) {
         guard sonde === s else { return }
+        let etaitReseau = acces == .reseau
         deconnecter(.absente)
+        // Une sonde du reseau coupee est retentee si elle reste annoncee ; une liaison USB fermee attend, comme avant,
+        // l'evenement USB suivant.
+        if etaitReseau { reevaluer() }
     }
 
     /// Ferme sans attendre la liaison connectee et celle d'une connexion en cours, qui devient perimee ; `connecter`
@@ -529,8 +706,13 @@ final class SondeMaillage {
                 await precedentes?.value
             }
         }
+        entretien?.cancel()
+        entretien = nil
+        reessaiReseau?.cancel()
+        reessaiReseau = nil
         sonde = nil
         enConnexion = nil
+        acces = nil
         cheminConnecte = nil
         serieEtat = port?.serie
         etat = nouveau

@@ -303,6 +303,7 @@ struct FenetreReglages: View {
         let texte = switch e {
         case .sansSonde: String(localized: "aucune sonde choisie")
         case .absente: String(localized: "absente (débranchée ?)")
+        case .injoignable: String(localized: "Réseau — sonde injoignable")
         case .connexion: String(localized: "connexion…")
         case .connectee: String(localized: "connectée")
         case .refusee(let m): String(localized: "refusée : \(m)")

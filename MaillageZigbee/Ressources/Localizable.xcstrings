@@ -145,6 +145,22 @@
         }
       }
     },
+    "%@ : injoignable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: unreachable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : injoignable"
+          }
+        }
+      }
+    },
     "%@ : passe complémentaire à %@" : {
       "localizations" : {
         "en" : {
@@ -3761,6 +3777,22 @@
         }
       }
     },
+    "Réseau — sonde injoignable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network — probe unreachable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réseau — sonde injoignable"
+          }
+        }
+      }
+    },
     "Réseau seulement" : {
       "localizations" : {
         "en" : {
@@ -5229,6 +5261,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "la sonde"
+          }
+        }
+      }
+    },
+    "la sonde du réseau n'est pas la sonde retenue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the probe on the network is not the chosen probe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la sonde du réseau n'est pas la sonde retenue"
           }
         }
       }

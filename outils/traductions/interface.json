@@ -390,5 +390,8 @@
   "Automatique": "Automatic",
   "USB seulement": "USB only",
   "Réseau seulement": "Network only",
-  "USB": "USB"
+  "USB": "USB",
+  "%@ : injoignable": "%@: unreachable",
+  "Réseau — sonde injoignable": "Network — probe unreachable",
+  "la sonde du réseau n'est pas la sonde retenue": "the probe on the network is not the chosen probe"
 }

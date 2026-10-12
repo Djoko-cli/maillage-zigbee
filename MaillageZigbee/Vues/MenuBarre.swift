@@ -154,6 +154,7 @@ struct MenuBarre: View {
         switch e {
         case .sansSonde: return nil
         case .absente: return String(localized: "\(n) : absente")
+        case .injoignable: return String(localized: "\(n) : injoignable")
         case .connexion: return String(localized: "\(n) : connexion…")
         case .connectee:
             if let avancement { return TexteTournee.menu(avancement, nom: n) }
