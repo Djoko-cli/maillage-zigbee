@@ -87,6 +87,18 @@ int main() {
     CHECK(v.teinte(4000) == (Rgb{24, 0, 0}), "nouvelle identification : le tour repart du rouge");
   }
 
+  // Sonde neuve (jamais membre) : bleu rapide 250/250 ; un rattachement
+  // garde la pulsation lente.
+  {
+    Voyant n;
+    n.chercher(true, 1000, true);
+    CHECK(n.teinte(1000) == kBleu(24) && n.teinte(1249) == kBleu(24), "neuve : bleu 250 ms");
+    CHECK(n.teinte(1250) == kNoir && n.teinte(1499) == kNoir && n.teinte(1500) == kBleu(24), "neuve : noir 250 ms, et ainsi de suite");
+    n.chercher(true, 2000, false);
+    // Meme debut (1000) : 1 s plus tard le sommet, 1,5 s plus tard la moitie.
+    CHECK(n.teinte(2000) == kBleu(24) && n.teinte(2500) == kBleu(12), "rattachement : pulsation lente");
+  }
+
   // Recherche : pulsation bleue de 2 s, du noir au plein et retour.
   Voyant v;
   v.chercher(true, 1000);

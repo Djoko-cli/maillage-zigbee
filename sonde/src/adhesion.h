@@ -60,6 +60,10 @@ class Adhesion {
   // Nombre d'entrees dans l'etat membre depuis le demarrage (la LED montre
   // deux eclairs verts a chacune).
   uint32_t adhesions() const { return adhesions_; }
+  // Neuve : premier demarrage (usine), jamais membre depuis (la LED clignote
+  // vite en bleu, pas la pulsation lente d'un rattachement). Faux tant que la
+  // pile n'a rien dit, et apres un redemarrage avec un reseau en memoire.
+  bool neuve() const { return neuve_; }
   // Rattachements echoues depuis la derniere fois que la sonde etait membre.
   uint32_t echecsRattachement() const { return echecs_; }
 
@@ -75,4 +79,5 @@ class Adhesion {
   uint32_t adhesions_ = 0;
   uint32_t echecs_ = 0;
   bool oubliDemande_ = false;
+  bool neuve_ = false;
 };

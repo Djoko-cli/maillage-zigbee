@@ -2,6 +2,7 @@
 
 void Adhesion::devenirMembre() {
   etat_ = Etat::kMembre;
+  neuve_ = false;
   prevue_ = Action::kRien;
   adhesions_++;
   echecs_ = 0;
@@ -9,6 +10,7 @@ void Adhesion::devenirMembre() {
 
 void Adhesion::premierDemarrage(bool ok, uint32_t t) {
   if (etat_ == Etat::kDepart) return;
+  neuve_ = true;
   if (ok) {
     etat_ = Etat::kRecherche;
     prevoir(Action::kChercher, t);

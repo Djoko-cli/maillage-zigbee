@@ -713,7 +713,7 @@ static void voyantTour(uint32_t maintenant) {
     sAdhesionsVues = sAdhesion.adhesions();
     sVoyant.adherer(maintenant);
   }
-  sVoyant.chercher(sAdhesion.cherche(), maintenant);
+  sVoyant.chercher(sAdhesion.cherche(), maintenant, sAdhesion.neuve());
   sVoyant.suspendre(sSuspendue, maintenant);
   // « Configure » se lit dans la NVS : une fois par seconde suffit (un Wi-Fi
   // mis en place ne prend effet qu'au redemarrage de toute facon).

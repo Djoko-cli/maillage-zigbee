@@ -9,7 +9,12 @@
 //     en 2 s, par pas de 40 ms), pendant toute l'identification, et au moins
 //     un tour complet : le pont Hue peut n'identifier qu'un instant (banc du
 //     12/10 : un eclair rouge, puis la lueur du repos) ;
-//  2. recherche d'un reseau ou rattachement : pulsation bleue lente (2 s) ;
+//  2. hors de son reseau, en bleu (« deux bleus », choix de Majid du 12/10,
+//     commun aux quatre cartes) :
+//     - jamais membre (sonde neuve, usine) : clignotement rapide, 250 ms
+//       allume, 250 ms eteint, comme le pont Halo ;
+//     - rattachement (parent perdu, redemarrage) : pulsation bleue lente,
+//       0 -> 24 -> 0 sur 2 s ;
 //  3. adhesion : deux eclairs verts rapides (100 ms, pause, 100 ms) ;
 //  4. suspendue : un bref eclair orange (100 ms) toutes les 5 s, le premier
 //     tout de suite, aussi apres un redemarrage ;
@@ -43,6 +48,7 @@ class Voyant {
   static constexpr uint32_t kArcMs = 2000;  // un tour de roue de l'arc-en-ciel
   static constexpr uint32_t kPasMs = 40;    // pas de l'arc-en-ciel (25 images/s)
   static constexpr uint32_t kPulsationMs = 2000;  // periode de la pulsation bleue
+  static constexpr uint32_t kNeuveMs = 250;       // sonde neuve : demi-periode du bleu rapide
   static constexpr uint32_t kVertMs = 100;      // chaque eclair vert, et la pause entre eux
   static constexpr uint32_t kBrefMs = 100;      // bref eclair orange de la suspension...
   static constexpr uint32_t kPeriodeMs = 5000;  // ... toutes les 5 s
@@ -63,9 +69,10 @@ class Voyant {
     }
     ident_ = actif;
   }
-  void chercher(bool actif, uint32_t t) {
+  void chercher(bool actif, uint32_t t, bool neuve = false) {
     if (actif && !cherche_) debutPulsation_ = t;
     cherche_ = actif;
+    neuve_ = neuve;
   }
   void adherer(uint32_t t) {
     adhesion_ = true;
@@ -95,6 +102,7 @@ class Voyant {
     }
     if (cherche_) {
       repos_ = false;
+      if (neuve_) return {0, 0, ((t - debutPulsation_) / kNeuveMs) % 2 == 0 ? kVoyantMax : (uint8_t)0};
       const uint32_t phase = (t - debutPulsation_) % kPulsationMs;
       const uint32_t demi = kPulsationMs / 2;
       const uint32_t montee = phase < demi ? phase : kPulsationMs - phase;
@@ -163,6 +171,7 @@ class Voyant {
   bool tourIdent_ = false;  // premier tour de roue pas encore fini
   uint32_t debutIdent_ = 0;
   bool cherche_ = false;
+  bool neuve_ = false;  // recherche d'une sonde jamais membre : bleu rapide
   uint32_t debutPulsation_ = 0;
   bool adhesion_ = false;
   uint32_t debutAdhesion_ = 0;

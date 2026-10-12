@@ -10,20 +10,23 @@ int main() {
   // Premier demarrage (usine) : chercher tout de suite, puis toutes les 30 s.
   Adhesion a;
   CHECK(a.etat() == E::kDemarrage && a.cherche() && !a.membre() && a.tour(0) == A::kRien, "au demarrage");
+  CHECK(!a.neuve(), "neuve seulement quand la pile le dit");
   a.premierDemarrage(true, 100);
+  CHECK(a.neuve(), "premier demarrage : neuve");
   CHECK(a.etat() == E::kRecherche && a.tour(100) == A::kChercher, "chercher tout de suite");
   CHECK(a.tour(100) == A::kRien, "rendue une seule fois");
   a.recherche(false, 2000);
-  CHECK(a.etat() == E::kAttente && a.cherche(), "aucun reseau ouvert : attente");
+  CHECK(a.etat() == E::kAttente && a.cherche() && a.neuve(), "aucun reseau ouvert : attente, toujours neuve");
   CHECK(a.tour(31999) == A::kRien && a.tour(32000) == A::kChercher, "30 s plus tard, chercher encore");
   CHECK(a.tour(91999) == A::kRien && a.tour(92000) == A::kChercher, "filet : sans signal, encore 60 s plus tard");
   a.recherche(true, 93000);
   CHECK(a.membre() && !a.cherche() && a.adhesions() == 1 && a.tour(200000) == A::kRien, "adhesion");
+  CHECK(!a.neuve(), "membre : plus neuve");
 
   // Parent perdu : 10 s pour que la pile se rattache seule, puis rattacher
   // toutes les 30 s.
   a.parentPerdu(300000);
-  CHECK(a.etat() == E::kRattachement && !a.membre() && a.cherche(), "parent perdu");
+  CHECK(a.etat() == E::kRattachement && !a.membre() && a.cherche() && !a.neuve(), "parent perdu : rattachement, pas neuve");
   a.parentPerdu(305000);
   CHECK(a.tour(309999) == A::kRien && a.tour(310000) == A::kRattacher, "rattacher 10 s apres la premiere perte");
   CHECK(a.tour(339999) == A::kRien && a.tour(340000) == A::kRattacher, "puis toutes les 30 s");
