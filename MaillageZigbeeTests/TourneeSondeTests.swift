@@ -202,6 +202,9 @@ struct SondeReseauTests {
         #expect(erreur == nil)
         #expect(try t.lire(identifiant: "A000000000000001") == "62215DE7BDDCEA7E2C4047FF6BB94F8D18262FC8B3F3648134BB7D44158FF84D")
         #expect(canal.envoyes.contains("wifi 4D6F6E2057696669 6D6F7464657061737365 2\n"))
+        let iCle = canal.envoyes.firstIndex { $0.hasPrefix("cle nouvelle ") }
+        let iWifi = canal.envoyes.firstIndex { $0.hasPrefix("wifi ") }
+        #expect(iCle != nil && iWifi != nil && iCle! < iWifi!, "la cle d'abord, le Wi-Fi ensuite")
         #expect(s.cleReseauConnue)
         await s.oublier()
         #expect(t.identifiants.isEmpty, "oublier la sonde efface sa cle de ce Mac")
@@ -222,8 +225,10 @@ struct SondeReseauTests {
         let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
                               delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
+        #expect(s.miseEnServicePossible, "sinon le refus viendrait de l'eligibilite, pas de l'empreinte")
         let erreur = await s.autoriserReseau(nomWifi: "Mon Wifi", motDePasse: "motdepasse")
-        #expect(erreur != nil)
+        #expect(canal.envoyes.contains { $0.hasPrefix("cle nouvelle ") })
+        #expect(erreur == String(localized: "La sonde a rendu une clé invalide : rien n'a été enregistré."))
         #expect(t.identifiants.isEmpty)
         #expect(!canal.envoyes.contains { $0.hasPrefix("wifi ") }, "pas de Wi-Fi sans cle valable")
         await s.oublier()
@@ -232,12 +237,16 @@ struct SondeReseauTests {
     @MainActor @Test func sonde100NonEligible() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }
-        let s = SondeMaillage(preferences: p, actif: true,
-                              ouvrirCanal: { _ in CanalRejoue { CanalRejoue.sondeMinimale($0) } },
-                              trousseau: TrousseauMemoire(), delaiPremiereTournee: .seconds(3600))
+        let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
+        let t = TrousseauMemoire()
+        let s = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal },
+                              trousseau: t, delaiPremiereTournee: .seconds(3600))
         await s.connecter(SondeMaillageTests.port, choisi: true)
         #expect(!s.miseEnServicePossible, "firmware 1.0.0")
-        #expect(await s.autoriserReseau(nomWifi: "X", motDePasse: "motdepasse") != nil)
+        let erreur = await s.autoriserReseau(nomWifi: "X", motDePasse: "motdepasse")
+        #expect(erreur == String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée."))
+        #expect(!canal.envoyes.contains { $0.hasPrefix("cle ") || $0.hasPrefix("wifi ") })
+        #expect(t.identifiants.isEmpty)
         await s.oublier()
     }
 }
