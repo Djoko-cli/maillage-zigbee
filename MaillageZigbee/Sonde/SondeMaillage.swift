@@ -60,6 +60,9 @@ final class SondeMaillage {
     static let delaiReessaiReseau: Duration = .seconds(60)
     /// Attente de `bonjour`, `etat` et `voisins` par le reseau : celle de l'USB, plus 3 s (spec sonde Wi-Fi, 4.1).
     static let delaiCommandeReseau: Duration = Sonde.delaiCommandeUSB + .seconds(3)
+    /// Resolution Bonjour, connexion TCP et poignee de main H1 : le canal reseau se ferme s'il n'a pas de session
+    /// apres ce delai (decision de la tache 13).
+    static let delaiPoigneeDeMain: Duration = .seconds(15)
     /// Relecture d'`etat` hors tournee : la session H1 de la sonde est oubliee apres 10 min sans message.
     static let periodeEntretien: Duration = .seconds(240)
     /// Premiere tournee apres la connexion : le temps que la sonde se rattache si elle vient de demarrer.
@@ -190,7 +193,8 @@ final class SondeMaillage {
     init(preferences: UserDefaults = .standard, actif: Bool, trousseau: any TrousseauCles,
          ouvrirCanal: @escaping (String) -> any CanalSonde = { CanalSerie(liaison: LiaisonSerie(chemin: $0)) },
          ouvrirReseau: @escaping (String, Data) -> any CanalSonde = {
-             CanalReseau(transport: TransportTCP(service: $0), cle: $1, delaiPoigneeDeMain: .seconds(15))
+             CanalReseau(transport: TransportTCP(service: $0), cle: $1,
+                         delaiPoigneeDeMain: SondeMaillage.delaiPoigneeDeMain)
          },
          delaiReessaiReseau: Duration = SondeMaillage.delaiReessaiReseau,
          delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau,
@@ -635,7 +639,9 @@ final class SondeMaillage {
             try await s.demarrer { [weak self] in
                 Task { @MainActor in self?.liaisonFermee(s) }
             }
-            let b = try await s.bonjour()
+            // Le premier `bonjour` part avant la poignee de main (le canal le garde jusqu'a la session) : il attend
+            // son delai en plus de celui de la poignee de main, sans quoi ces 15 s ne serviraient pas (constat 8).
+            let b = try await s.bonjour(delai: Self.delaiPoigneeDeMain + delaiCommandeReseau)
             guard n == essai else {
                 await s.fermer()
                 return

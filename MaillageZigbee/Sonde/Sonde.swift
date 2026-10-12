@@ -178,14 +178,17 @@ actor Sonde: InterlocuteurSonde {
         await lecture.value
     }
 
-    func bonjour() async throws -> Bonjour {
+    /// `delai` : l'attente de la reponse, `delaiCommande` par defaut ; plus longue pour le premier `bonjour` par le
+    /// reseau, qui attend aussi la connexion et la poignee de main.
+    func bonjour(delai: Duration? = nil) async throws -> Bonjour {
         guard !fermee else { throw Erreur.fermee }
         let jeton = nouveauJeton()
+        let attente = delai ?? delaiCommande
         let b = await withCheckedContinuation { c in
             attenteBonjour.ajouter(jeton, c)
             canal.envoyer(CommandeSonde.bonjour.ligne)
             Task {
-                try? await Task.sleep(for: self.delaiCommande)
+                try? await Task.sleep(for: attente)
                 if self.attenteBonjour.expirer(jeton) != nil { self.sansReponse() }
             }
         }

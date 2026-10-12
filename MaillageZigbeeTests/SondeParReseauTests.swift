@@ -22,7 +22,8 @@ struct SondeParReseauTests {
 
     /// Une sonde retenue (serie, nom, adresse longue), la cle dans un trousseau en memoire.
     static func faire(_ p: UserDefaults, cle: Bool = true, reponses: @escaping @Sendable (String) -> [String] = sondeReseau,
-                      muette: Bool = false, lente: Duration? = nil, ouvertures: Compteur = Compteur(),
+                      muette: Bool = false, lente: Duration? = nil, lentPour: Set<String>? = nil,
+                      ouvertures: Compteur = Compteur(),
                       trousseau: TrousseauMemoire? = nil,
                       periodeEntretien: Duration = SondeMaillage.periodeEntretien,
                       delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau) -> SondeMaillage {
@@ -35,7 +36,7 @@ struct SondeParReseauTests {
                              ouvrirReseau: { nom, _ in
                                  ouvertures.ajouter(nom)
                                  if muette { return CanalFerme() }
-                                 if let lente { return CanalLent(delai: lente, repondre: reponses) }
+                                 if let lente { return CanalLent(delai: lente, lignes: lentPour, repondre: reponses) }
                                  return CanalRejoue(repondre: reponses)
                              },
                              delaiReessaiReseau: .milliseconds(100),
@@ -112,6 +113,18 @@ struct SondeParReseauTests {
         s.annoncesChangees(["SONDE-01"])
         #expect(await SondeMaillageTests.sonder { s.etat == .absente && !s.cleReseauConnue }, "etat \(s.etat)")
         #expect(o.noms.isEmpty)
+        await s.oublier()
+    }
+
+    /// Le premier `bonjour` par le reseau part pendant la resolution Bonjour, la connexion TCP et la poignee de main :
+    /// il attend leur delai en plus du sien (constat 8 de la relecture finale), pas le seul delai d'une commande.
+    @Test func premierBonjourAttendLaPoigneeDeMain() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let s = Self.faire(p, lente: .milliseconds(400), lentPour: ["bonjour\n"], delaiCommandeReseau: .milliseconds(150))
+        s.portsChanges([])
+        s.annoncesChangees(["SONDE-01"])
+        #expect(await SondeMaillageTests.sonder { s.acces == .reseau }, "etat \(s.etat)")
         await s.oublier()
     }
 
@@ -214,14 +227,17 @@ struct CanalFerme: CanalSonde {
     func fermer() {}
 }
 
-/// Un canal qui repond comme `CanalRejoue`, mais apres `delai` (une sonde lente a joindre par le reseau).
+/// Un canal qui repond comme `CanalRejoue`, mais apres `delai` (une sonde lente a joindre par le reseau) ; seulement aux
+/// `lignes` donnees, tout de suite aux autres.
 final class CanalLent: CanalSonde {
     private let canal = CanalRejoue { _ in [] }
     private let delai: Duration
+    private let lignes: Set<String>?
     private let repondre: @Sendable (String) -> [String]
 
-    init(delai: Duration, repondre: @escaping @Sendable (String) -> [String]) {
+    init(delai: Duration, lignes: Set<String>? = nil, repondre: @escaping @Sendable (String) -> [String]) {
         self.delai = delai
+        self.lignes = lignes
         self.repondre = repondre
     }
 
@@ -229,6 +245,7 @@ final class CanalLent: CanalSonde {
 
     func envoyer(_ ligne: String) {
         let reponses = repondre(ligne)
+        guard lignes?.contains(ligne) ?? true else { return canal.emettre(reponses) }
         Task { [canal, delai] in
             try? await Task.sleep(for: delai)
             canal.emettre(reponses)
