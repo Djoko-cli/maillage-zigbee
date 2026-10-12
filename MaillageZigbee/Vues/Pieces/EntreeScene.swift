@@ -48,7 +48,7 @@ struct EntreeScene: Equatable {
         self.chefs = chefs
         appareils = parId
         apparences = Dictionary(scene.noeuds.map { n in
-            (n.id, DessinNoeud.apparence(n, etat: parId[n.id]?.etat))
+            (n.id, DessinNoeud.apparence(n, etat: parId[n.id]?.etat, sonde: n.id == maillage?.sonde))
         }, uniquingKeysWith: { a, _ in a })
     }
 

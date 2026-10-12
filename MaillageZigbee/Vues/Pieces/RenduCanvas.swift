@@ -216,7 +216,7 @@ enum RenduCanvas {
             g.opacity = d.opacite * d.focus
             DessinNoeud.dessiner(&g, centre: d.centre, rayon: d.rayon, apparence: a, palette: palette)
             if d.noeud == image.selection {
-                DessinNoeud.dessinerSelection(&g, centre: d.centre, rayon: d.rayon, palette: palette)
+                DessinNoeud.dessinerSelection(&g, centre: d.centre, rayon: d.rayon, apparence: a, palette: palette)
             }
         }
     }

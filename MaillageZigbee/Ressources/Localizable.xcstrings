@@ -6289,6 +6289,22 @@
         }
       }
     },
+    "sonde" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "probe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sonde"
+          }
+        }
+      }
+    },
     "sur batterie" : {
       "localizations" : {
         "en" : {

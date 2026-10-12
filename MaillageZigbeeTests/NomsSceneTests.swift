@@ -23,6 +23,40 @@ struct NomsSceneTests {
         return (s, EntreeScene(surveillance: s, places: PlacesGardees()))
     }
 
+    /// La sonde porte ses ondes (`Apparence.sonde`) : le noeud dont l'adresse longue est celle de la sonde du maillage, et
+    /// lui seul ; un autre noeud, non. Sans sonde dans le maillage, personne. Le maillage relu au lancement
+    /// (`dernier-maillage.json`) la garde aussi.
+    @Test func ondesDeLaSonde() throws {
+        let (_, e) = try Self.demo()
+        #expect(e.apparences[I.sonde]?.sonde == true, "la sonde a ses ondes")
+        #expect(e.apparences[I.sonde]?.forme == .pastille, "sa pastille, flanquee d'ondes")
+        #expect(e.apparences.filter { $0.value.sonde }.map(\.key) == [I.sonde], "elle seule")
+        #expect(e.apparences[I.lampeBureau]?.sonde == false && e.apparences[I.pont]?.sonde == false)
+        // Un maillage dont la sonde est une autre adresse : ses ondes vont a ce noeud-la.
+        var autre = MaillageDemo.maillage
+        autre.sonde = I.interrupteurSalon
+        let s = Surveillance(mode: .direct, dossier: nil)
+        s.recevoir(autre, a: Date())
+        let e2 = EntreeScene(surveillance: s, places: PlacesGardees())
+        #expect(e2.apparences.filter { $0.value.sonde }.map(\.key) == [I.interrupteurSalon])
+        // Sans sonde dans le maillage : aucune onde.
+        var sans = MaillageDemo.maillage
+        sans.sonde = nil
+        s.recevoir(sans, a: Date())
+        #expect(EntreeScene(surveillance: s, places: PlacesGardees()).apparences.values.allSatisfy { !$0.sonde })
+        // Le maillage relu au lancement.
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        Surveillance(mode: .direct, dossier: dossier).recevoir(MaillageDemo.maillage, a: Date())
+        let relu = Surveillance(mode: .direct, dossier: dossier)
+        relu.demarrer()
+        defer { relu.arreter() }
+        #expect(relu.maillageRelu)
+        let e3 = EntreeScene(surveillance: relu, places: PlacesGardees())
+        #expect(e3.apparences[I.sonde]?.sonde == true && e3.apparences[I.lampeBureau]?.sonde == false,
+                "le maillage relu garde la sonde")
+    }
+
     /// Libelle d'un noeud : le nom coupe a 40 caracteres, la couronne du coordinateur, ☾ endormi, ⚠︎ disparu ; la
     /// pastille d'une batterie faible. Un noeud que le pont ne connait pas porte son adresse longue ; la sonde, « Sonde ».
     @Test func libelles() throws {

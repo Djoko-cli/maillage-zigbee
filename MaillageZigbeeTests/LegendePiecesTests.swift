@@ -24,6 +24,7 @@ struct LegendePiecesTests {
             (Lecture(couleurs: ["A0000000000000FD": .routeurInconnu], inconnus: ["A0000000000000FD"]), [.nonIdentifie]),
             (Lecture(couleurs: ["A0000000000000FC": .appareil(.inconnu)], inconnus: ["A0000000000000FC"]), [.nonIdentifie]),
             (Lecture(chefs: ["A000000000000001"]), [.coordinateur]),
+            (Lecture(sondes: ["A0000000000000FE"]), [.sonde]),
             (Lecture(couleurs: ["A000000000000021": .appareil(.joignable)]), [.joignable]),
             (Lecture(couleurs: ["A000000000000022": .appareil(.injoignable)]), [.injoignable]),
             (Lecture(couleurs: ["A000000000000023": .appareil(.disparu)]), [.disparu]),
@@ -51,7 +52,7 @@ struct LegendePiecesTests {
     @Test func groupesEtOrdre() {
         let tout = Lecture(couleurs: ["a": .routeur, "c": .appareil(.joignable), "d": .appareil(.injoignable),
                                       "f": .appareil(.disparu)],
-                           inconnus: ["g"], chefs: ["a"], endormis: ["c"], piles: ["c"],
+                           inconnus: ["g"], chefs: ["a"], sondes: ["c"], endormis: ["c"], piles: ["c"],
                            liens: [Self.radio(3), Self.radio(2), Self.radio(1), Self.radio(nil),
                                    ScenePieces.Lien(de: "c", vers: "a", genre: .parent),
                                    ScenePieces.Lien(de: "g", vers: "a", genre: .parent, suppose: true),
@@ -96,8 +97,8 @@ struct LegendePiecesTests {
     @Test func legendeDeLaDemo() throws {
         let (s, e) = try NomsSceneTests.demo()
         let avec = LegendePieces.entrees(Lecture(e, ailleurs: false))
-        #expect(avec == [.routeur, .nonIdentifie, .coordinateur, .joignable, .disparu, .endormi, .pile, .bonne, .moyenne,
-                         .faible, .versParent, .parentDAvant])
+        #expect(avec == [.routeur, .nonIdentifie, .coordinateur, .joignable, .disparu, .endormi, .pile, .sonde, .bonne,
+                         .moyenne, .faible, .versParent, .parentDAvant])
         #expect(LegendePieces.entrees(Lecture(e, ailleurs: true)).contains(.ailleurs))
         // En mode « chemins » (celui de la fenetre par defaut) : les chemins lus et supposes, les voisins entendus.
         let chemins = LegendePieces.entrees(Lecture(e, ailleurs: false, mode: .chemins))
@@ -247,7 +248,15 @@ struct LegendePiecesTests {
         let (_, e) = try NomsSceneTests.demo()
         var vues = Set<Entree>()
         for n in e.scene.noeuds {
-            let a = try #require(e.apparences[n.id])
+            var a = try #require(e.apparences[n.id])
+            // La sonde : ses ondes ont leur entree, la legende les montre sur une pastille d'appareil joignable.
+            if a.sonde {
+                vues.insert(.sonde)
+                #expect(LegendePieces.signe(.sonde) == .noeud(DessinNoeud.Apparence(forme: .pastille, couleur: .appareil(.joignable),
+                                                                                   sonde: true),
+                                                              rayon: LegendePieces.rayonAppareil))
+                a.sonde = false
+            }
             let entree: Entree? = switch a.couleur {
             case .routeur: .routeur
             case .routeurInconnu: .nonIdentifie
@@ -266,7 +275,7 @@ struct LegendePiecesTests {
                     == .noeud(attendue, rayon: routeur ? LegendePieces.rayonRouteur : LegendePieces.rayonAppareil),
                     "\(n.id) : la meme apparence que dans la scene")
         }
-        #expect(vues == [.routeur, .nonIdentifie, .joignable, .disparu])
+        #expect(vues == [.routeur, .nonIdentifie, .joignable, .disparu, .sonde])
         #expect(LegendePieces.signe(.injoignable)
                 == .noeud(DessinNoeud.apparenceAppareil(.injoignable), rayon: LegendePieces.rayonAppareil))
         // La couronne et la lune : celles des noms de la scene, seules (`couronneEtLuneSansPastille`).
@@ -337,6 +346,31 @@ struct LegendePiecesTests {
         }
         try memes(.pastille("12 %")) {
             DessinNoeud.dessinerPastille(&$0, "12 %", gauche: CGPoint(x: 20, y: 17), palette: p)
+        }
+    }
+
+    /// Les ondes de la sonde : de l'encre en plus, de part et d'autre de la pastille (a 3 et 6 points d'elle), par rapport
+    /// a la meme pastille sans `sonde` (dont le halo deborde un peu) ; rien de plus au-dessus ni au-dessous, ni de corde
+    /// sous la pastille (chaque arc part de son propre point).
+    @Test func ondesDessinees() throws {
+        let p = Palette(sombre: true)
+        func opacite(_ a: DessinNoeud.Apparence, dx: Double, dy: Double) throws -> Int {
+            let image = try Self.pixels(Canvas { ctx, _ in
+                DessinNoeud.dessiner(&ctx, centre: CGPoint(x: 30, y: 17), rayon: 7, apparence: a, palette: p)
+            }.frame(width: 60, height: 34))
+            let x = Int((30 + dx) * 2), y = Int((17 + dy) * 2)
+            return Int(image.octets[(y * image.largeur + x) * 4 + 3])
+        }
+        let avec = DessinNoeud.apparenceSonde
+        let sans = DessinNoeud.apparenceAppareil(.joignable)
+        for cote in [-1.0, 1.0] {
+            for ecart in [10.0, 13.0] {
+                let plus = try opacite(avec, dx: cote * ecart, dy: 0) - opacite(sans, dx: cote * ecart, dy: 0)
+                #expect(plus > 100, "une onde a \(ecart) pt du centre, de chaque cote (\(plus))")
+            }
+        }
+        for dy in [-10.0, -13.0, 10.0, 13.0] {
+            #expect(try opacite(avec, dx: 0, dy: dy) == opacite(sans, dx: 0, dy: dy), "rien au-dessus ni au-dessous (\(dy))")
         }
     }
 
@@ -461,9 +495,10 @@ struct LegendePiecesTests {
             let reference = SigneLegende.taille(LegendePieces.signe(noeud))
             #expect(place.width == reference.width, "\(glyphe) : la largeur d'un noeud (\(place.width) au lieu de \(reference.width))")
         }
-        // Les groupes de la couronne et de la lune : une colonne de signes commune, la pile mise a part.
+        // Les groupes de la couronne et de la lune : une colonne de signes commune, la pile et la sonde (ses ondes) mises a
+        // part.
         for groupe in [LegendePieces.Groupe.routeurs, .appareils] {
-            let largeurs = Set(groupe.entrees.filter { $0 != .pile }.map { SigneLegende.taille(LegendePieces.signe($0)).width })
+            let largeurs = Set(groupe.entrees.filter { $0 != .pile && $0 != .sonde }.map { SigneLegende.taille(LegendePieces.signe($0)).width })
             #expect(largeurs.count == 1, "\(groupe) : une colonne de signes commune (\(largeurs))")
         }
         // Le glyphe est centre sur sa place, comme un noeud : le milieu de son encre, a un pixel pres.

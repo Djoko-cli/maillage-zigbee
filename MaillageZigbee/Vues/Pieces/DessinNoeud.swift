@@ -4,7 +4,7 @@ import SwiftUI
 /// Dessin d'un noeud, le meme que celui du graphe d'avant (spec de la vue par pieces, section 5) :
 /// routeur en sphere brillante (degrade du blanc vers sa couleur, decale en haut a gauche) avec un
 /// halo, appareil en pastille pleine de la couleur de son etat avec un halo, appareil disparu en
-/// anneau ; anneau blanc de la selection ; pastille orange d'une batterie faible.
+/// anneau ; ondes de part et d'autre de la sonde ; anneau blanc de la selection ; pastille orange d'une batterie faible.
 enum DessinNoeud {
     /// Couleur d'un noeud, resolue par la palette au dessin.
     enum Couleur: Hashable {
@@ -25,16 +25,27 @@ enum DessinNoeud {
     struct Apparence: Hashable {
         var forme: Forme
         var couleur: Couleur
+        /// Les ondes de la sonde elle-meme.
+        var sonde = false
     }
 
     /// Apparence d'un noeud : sphere pour le coordinateur ou un routeur, pastille pour un appareil final, anneau pour un
-    /// appareil disparu. `etat` : celui de l'appareil. La legende reprend les memes (`apparenceRouteur`,
-    /// `apparenceAppareil`).
-    static func apparence(_ n: ScenePieces.Noeud, etat: EtatAffiche?) -> Apparence {
-        switch n.genre {
+    /// appareil disparu. `etat` : celui de l'appareil ; `sonde` : le noeud est la sonde elle-meme (ses ondes). La
+    /// legende reprend les memes (`apparenceRouteur`, `apparenceAppareil`).
+    static func apparence(_ n: ScenePieces.Noeud, etat: EtatAffiche?, sonde: Bool = false) -> Apparence {
+        var a = switch n.genre {
         case .centre, .routeur: apparenceRouteur(centre: n.genre == .centre, inconnu: n.inconnu)
         case .appareil: apparenceAppareil(n.inconnu ? .inconnu : etat)
         }
+        a.sonde = sonde
+        return a
+    }
+
+    /// La sonde : un appareil joignable et ses ondes, tel que la legende le montre.
+    static var apparenceSonde: Apparence {
+        var a = apparenceAppareil(.joignable)
+        a.sonde = true
+        return a
     }
 
     /// Un routeur : sphere brillante, au halo de 10 pour le coordinateur, de 5 sinon ; grise si le pont ne le connait
@@ -48,6 +59,11 @@ enum DessinNoeud {
         let e = etat ?? .inconnu
         return Apparence(forme: e == .disparu ? .anneau : .pastille, couleur: .appareil(e))
     }
+
+    /// Les ondes de la sonde : de chaque cote, deux arcs de 70 degres, a 3 et 6 points de sa pastille, de 1,2 point, de
+    /// la couleur de son etat (le second plus pale) ; elles s'etendent de `ecartOndes` au-dela d'elle.
+    static let epaisseurOndes: CGFloat = 1.2
+    static let ecartOndes: CGFloat = 6 + epaisseurOndes / 2
 
     static func couleur(_ c: Couleur, palette: Palette) -> Color {
         switch c {
@@ -78,11 +94,26 @@ enum DessinNoeud {
         case .anneau:
             ctx.stroke(Path(ellipseIn: rect), with: .color(couleur), lineWidth: 2)
         }
+        if apparence.sonde {
+            for (ecart, opacite) in [(CGFloat(3), 0.9), (6, 0.55)] {
+                var ondes = Path()
+                for milieu in [0.0, 180.0] {
+                    // Chaque arc a part : sans ce saut, `addArc` relierait la fin du premier au debut du second.
+                    let debut = Angle.degrees(milieu - 35).radians
+                    ondes.move(to: CGPoint(x: c.x + (r + ecart) * cos(debut), y: c.y + (r + ecart) * sin(debut)))
+                    ondes.addArc(center: c, radius: r + ecart, startAngle: .degrees(milieu - 35),
+                                 endAngle: .degrees(milieu + 35), clockwise: false)
+                }
+                ctx.stroke(ondes, with: .color(couleur.opacity(opacite)),
+                           style: StrokeStyle(lineWidth: epaisseurOndes, lineCap: .round))
+            }
+        }
     }
 
-    /// Anneau du noeud selectionne, 4 points autour de sa pastille.
-    static func dessinerSelection(_ ctx: inout GraphicsContext, centre c: CGPoint, rayon r: CGFloat, palette: Palette) {
-        let a = r + 4
+    /// Anneau du noeud selectionne, 4 points autour de sa pastille, ou des ondes de la sonde.
+    static func dessinerSelection(_ ctx: inout GraphicsContext, centre c: CGPoint, rayon r: CGFloat, apparence: Apparence,
+                                  palette: Palette) {
+        let a = r + 4 + (apparence.sonde ? ecartOndes : 0)
         ctx.stroke(Path(ellipseIn: CGRect(x: c.x - a, y: c.y - a, width: 2 * a, height: 2 * a)),
                    with: .color(palette.selection), lineWidth: 2)
     }

@@ -55,6 +55,7 @@ extension LegendePieces {
         case .coordinateur: .glyphe(LibellesNoeuds.couronne, routeur: true)
         case .joignable: .noeud(DessinNoeud.apparenceAppareil(.joignable), rayon: rayonAppareil)
         case .injoignable: .noeud(DessinNoeud.apparenceAppareil(.injoignable), rayon: rayonAppareil)
+        case .sonde: .noeud(DessinNoeud.apparenceSonde, rayon: rayonAppareil)
         case .disparu: .noeud(DessinNoeud.apparenceAppareil(.disparu), rayon: rayonAppareil)
         case .endormi: .glyphe(LibellesNoeuds.lune, routeur: false)
         case .pile: .pastille(exemplePile)
@@ -108,10 +109,12 @@ struct SigneLegende: View {
         2 * (routeur ? LegendePieces.rayonRouteur : LegendePieces.rayonAppareil)
     }
 
-    /// La place du signe.
+    /// La place du signe ; la sonde, ses ondes en largeur (comme la pile, elle garde sa place).
     static func taille(_ s: LegendePieces.Signe) -> CGSize {
         switch s {
-        case .noeud(_, let rayon): CGSize(width: 2 * rayon, height: 2 * rayon)
+        case .noeud(let apparence, let rayon):
+            apparence.sonde ? CGSize(width: 2 * (rayon + DessinNoeud.ecartOndes), height: 2 * rayon)
+                            : CGSize(width: 2 * rayon, height: 2 * rayon)
         case .lienRadio, .lienEnfant, .chemin, .voisin: CGSize(width: longueurLien, height: 2)
         case .nom(let texte, let routeur): mesure.noeud(LibellesNoeuds.Libelle(texte: texte), routeur: routeur)
         case .glyphe(let texte, let routeur):

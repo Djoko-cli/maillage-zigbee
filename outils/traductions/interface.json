@@ -414,5 +414,6 @@
   "autorisé · clé %@": "allowed · key %@",
   "non autorisé": "not allowed",
   "Régénérer une clé": "Regenerate a key",
-  "La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas.": "The key goes over USB, with the probe plugged in, and stays in this Mac's keychain. With the \"Wi-Fi\" link, the probe can be unplugged and powered elsewhere. The Wi-Fi password goes straight to the probe: the app does not keep it."
+  "La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas.": "The key goes over USB, with the probe plugged in, and stays in this Mac's keychain. With the \"Wi-Fi\" link, the probe can be unplugged and powered elsewhere. The Wi-Fi password goes straight to the probe: the app does not keep it.",
+  "sonde": "probe"
 }
