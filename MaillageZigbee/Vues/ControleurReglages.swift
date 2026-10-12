@@ -42,7 +42,7 @@ final class ControleurReglages {
         NSApp.activate()
     }
 
-    private func creerFenetre() -> NSWindow {
+    func creerFenetre() -> NSWindow {
         let onglets = OngletsReglages()
         onglets.tabStyle = .toolbar
         for o in OngletReglages.allCases {
@@ -94,23 +94,44 @@ final class OngletsReglages: NSTabViewController {
         return (tabViewItems[selectedTabViewItemIndex].identifier as? String).flatMap(OngletReglages.init(rawValue:))
     }
 
-    /// La page de cet onglet a change de hauteur : la fenetre suit, si c'est la page visible.
+    /// La page de cet onglet a change de hauteur : la fenetre suit, si c'est la page visible. Le changement est annonce
+    /// pendant la mise en page de SwiftUI, quand `fittingSize` rend (0, 0) ou une taille d'avant (mesure du 12/10 : un
+    /// aller-retour Wi-Fi / Automatique laissait la fenetre a sa hauteur d'avant, sans autre appel pour la corriger) :
+    /// la taille est donc lue au tour suivant de la boucle, une fois la mise en page finie.
     func contenuChange(de onglet: OngletReglages) {
         guard tabViewItems.indices.contains(selectedTabViewItemIndex),
               tabViewItems[selectedTabViewItemIndex].identifier as? String == onglet.rawValue else { return }
-        ajuster(animer: view.window?.isVisible == true)
+        planifierAjustement(essais: Self.essaisAjustement)
+    }
+
+    /// Nombre de relectures de la taille de la page, au tour suivant de la boucle, quand elle n'est pas encore connue.
+    private static let essaisAjustement = 5
+    private var ajustementPlanifie = false
+
+    /// Un seul ajustement attend a la fois : les changements annonces d'ici la le partagent.
+    private func planifierAjustement(essais: Int) {
+        guard !ajustementPlanifie else { return }
+        ajustementPlanifie = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            ajustementPlanifie = false
+            let connue = ajuster(animer: view.window?.isVisible == true)
+            if !connue && essais > 1 { planifierAjustement(essais: essais - 1) }
+        }
     }
 
     /// Donne a la fenetre la taille ideale de la page choisie (sa `fittingSize` : la page est
     /// collee en haut et peut s'etirer, mais sa taille ideale est celle de son contenu). Le bord
     /// du haut ne bouge pas ; l'animation prend la duree standard de macOS pour ce changement.
-    func ajuster(animer: Bool) {
+    /// Rend faux si la page n'a pas encore de taille (mise en page pas finie).
+    @discardableResult
+    func ajuster(animer: Bool) -> Bool {
         guard let fenetre = view.window, tabViewItems.indices.contains(selectedTabViewItemIndex),
-              let page = tabViewItems[selectedTabViewItemIndex].viewController else { return }
+              let page = tabViewItems[selectedTabViewItemIndex].viewController else { return true }
         let voulu = page.view.fittingSize
         let actuel = fenetre.contentLayoutRect.size
-        guard voulu.height > 0, voulu.width > 0,
-              abs(voulu.height - actuel.height) > 0.5 || abs(voulu.width - actuel.width) > 0.5 else { return }
+        guard voulu.height > 0, voulu.width > 0 else { return false }
+        guard abs(voulu.height - actuel.height) > 0.5 || abs(voulu.width - actuel.width) > 0.5 else { return true }
         var cadre = fenetre.frame
         cadre.origin.y -= voulu.height - actuel.height
         cadre.size.height += voulu.height - actuel.height
@@ -123,5 +144,6 @@ final class OngletsReglages: NSTabViewController {
         } else {
             fenetre.setFrame(cadre, display: true)
         }
+        return true
     }
 }
