@@ -182,7 +182,7 @@ void tour(uint32_t maintenant) {
       sClients[libre] = nouveau;
       sClients[libre].setNoDelay(true);
       sOccupe[libre] = true;
-      sPortail.ouverte(libre);
+      sPortail.ouverte(libre, maintenant);
     }
   }
   static uint8_t tampon[512];
@@ -198,7 +198,7 @@ void tour(uint32_t maintenant) {
     while ((n = sClients[i].read(tampon, sizeof(tampon))) > 0)
       sPortail.recevoir(i, tampon, (size_t)n, maintenant, aleatoire, sSortie);
   }
-  sPortail.expirer(maintenant);
+  sPortail.expirer(maintenant, sSortie);
 }
 
 bool requete(Portail::Requete *r) { return sDemarre && sPortail.requete(r); }

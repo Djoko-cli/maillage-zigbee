@@ -83,7 +83,7 @@ void recevoir(Portail &p, uint8_t c, const std::string &s, uint32_t now, Fausse 
 
 // Poignee de main complete sur la connexion c ; true si la session est etablie.
 bool etablir(Portail &p, Fausse &f, Client &cl, uint8_t c, const char *na, uint32_t now) {
-  p.ouverte(c);
+  p.ouverte(c, now);
   const size_t avant = f.lignes[c].size();
   recevoir(p, c, cl.salut(na), now, f);
   if (f.lignes[c].size() != avant + 1 || !cl.defi(f.lignes[c].back(), na)) return false;
@@ -122,7 +122,7 @@ int main() {
     Fausse f;
     p.cle(gCle);
     Client cl{gCle};
-    p.ouverte(1);
+    p.ouverte(1, 0);
     const std::string s = cl.salut(kNa1);
     recevoir(p, 1, s.substr(0, 10), 10, f);
     CHECK(f.lignes[1].empty(), "rien avant LF");
@@ -135,7 +135,7 @@ int main() {
     Fausse f;
     p.cle(gCle);
     Client intrus{gAutre};
-    p.ouverte(0);
+    p.ouverte(0, 0);
     recevoir(p, 0, intrus.salut(kNa1), 10, f);
     CHECK(f.lignes[0].empty(), "aucune reponse a une autre cle");
     CHECK(p.refus() == 1, "refus compte");
@@ -145,7 +145,7 @@ int main() {
     Portail p;
     Fausse f;
     Client cl{gCle};
-    p.ouverte(0);
+    p.ouverte(0, 0);
     recevoir(p, 0, cl.salut(kNa1), 10, f);
     CHECK(f.lignes[0].empty(), "aucune reponse sans cle");
   }
@@ -154,7 +154,7 @@ int main() {
     Portail p;
     Fausse f;
     p.cle(gCle);
-    p.ouverte(2);
+    p.ouverte(2, 0);
     recevoir(p, 2, std::string(Portail::kLigneMax + 1, 'x'), 10, f);
     CHECK(f.fermee[2], "fermee");
     CHECK(p.fermetures() == 1, "fermeture comptee");
@@ -164,7 +164,7 @@ int main() {
     Portail p;
     Fausse f;
     p.cle(gCle);
-    p.ouverte(2);
+    p.ouverte(2, 0);
     recevoir(p, 2, std::string(Portail::kLigneMax, 'x') + "\n", 10, f);
     CHECK(!f.fermee[2], "ligne a la limite non fermee");
     CHECK(p.fermetures() == 0, "pas de fermeture a la limite");
@@ -249,7 +249,7 @@ int main() {
     p.cle(gCle);
     Client a{gCle};
     CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
-    p.ouverte(1);
+    p.ouverte(1, 0);
     const size_t n0 = f.lignes[0].size(), n1 = f.lignes[1].size();
     const uint32_t avant = p.refus();
     recevoir(p, 1, a.message("2 etat"), 1004, f);
@@ -268,7 +268,7 @@ int main() {
     Client a{gCle};
     CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
     p.fermee(0);
-    p.ouverte(1);
+    p.ouverte(1, 0);
     const size_t n1 = f.lignes[1].size();
     const uint32_t avant = p.refus();
     recevoir(p, 1, a.message("2 etat"), 1004, f);
@@ -287,7 +287,7 @@ int main() {
     CHECK(etablir(p, f, b, 1, kNa2, 1100), "b");
     recevoir(p, 0, a.message("2 etat"), 1200, f);
     p.fermee(0);
-    p.ouverte(2);
+    p.ouverte(2, 0);
     const size_t avantD = f.lignes[2].size();
     recevoir(p, 2, d.salut(kNa3), 2300, f);  // hors de la fenetre des DEFI de a et b
     CHECK(f.lignes[2].size() == avantD + 1 && d.defi(f.lignes[2].back(), kNa3), "d etablit");
@@ -306,7 +306,7 @@ int main() {
     CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
     CHECK(etablir(p, f, b, 1, kNa2, 1100), "b");
     recevoir(p, 0, a.message("2 etat"), 1004, f);
-    p.ouverte(2);
+    p.ouverte(2, 0);
     const size_t avantD = f.lignes[2].size();
     recevoir(p, 2, d.salut(kNa3), 31010, f);
     CHECK(f.lignes[2].size() == avantD + 1 && d.defi(f.lignes[2].back(), kNa3), "d etablit");
@@ -324,10 +324,112 @@ int main() {
     Client a{gCle};
     CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
     recevoir(p, 0, a.message("2 etat"), 1004, f);
-    p.expirer(1004 + h1::kForgetMs);
+    p.expirer(1004 + h1::kForgetMs, f);
     CHECK(p.sessions() == 0, "session oubliee");
     Portail::Requete r;
     CHECK(!p.requete(&r), "requete de la session oubliee purgee");
+  }
+
+  {  // oublieeFermee : la connexion d'une session oubliee est fermee (l'app voit la fin et se reconnecte)
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    const uint32_t avant = p.fermetures();
+    p.expirer(1001 + h1::kForgetMs, f);
+    CHECK(f.fermee[0], "connexion de la session oubliee fermee");
+    CHECK(p.fermetures() == avant + 1, "fermeture comptee");
+    recevoir(p, 0, a.message("2 etat"), 1005 + h1::kForgetMs, f);
+    Portail::Requete r;
+    CHECK(!p.requete(&r), "plus rien n'est lu sur la connexion fermee");
+  }
+
+  {  // repriseFermee : la connexion de la session evincee est fermee ; celle du nouveau client reste
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle}, b{gCle}, d{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    CHECK(etablir(p, f, b, 1, kNa2, 1100), "b");
+    p.ouverte(2, 31000);
+    recevoir(p, 2, d.salut(kNa3), 31010, f);
+    CHECK(d.defi(f.lignes[2].back(), kNa3), "d recoit son DEFI");
+    recevoir(p, 2, d.message("1 bonjour"), 31011, f);
+    CHECK(f.fermee[0], "la connexion de a, evincee, est fermee");
+    CHECK(!f.fermee[1] && !f.fermee[2], "b et d gardent la leur");
+    CHECK(p.sessions() == 2, "deux sessions : b et d");
+    const char *l = "\x1e{\"v\":1,\"t\":\"etat\"}\n";
+    Portail::Requete r;
+    CHECK(p.requete(&r) && r.session == 0, "la requete de d");
+    CHECK(p.repondre(r.session, r.rid, (const uint8_t *)l, strlen(l), f), "d recoit sa reponse");
+    CHECK(d.ouvrir(f.lignes[2].back()) == "1 {\"v\":1,\"t\":\"etat\"}", "reponse scellee pour d");
+  }
+
+  {  // sansPoigneeDeMain : une connexion sans session est fermee apres kSansSessionMs
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    p.ouverte(1, 5000);
+    p.expirer(5000 + Portail::kSansSessionMs - 1, f);
+    CHECK(!f.fermee[1], "encore ouverte juste avant le delai");
+    p.expirer(5000 + Portail::kSansSessionMs, f);
+    CHECK(f.fermee[1], "fermee au delai");
+    CHECK(p.fermetures() == 1, "fermeture comptee");
+  }
+
+  {  // salutSansSuite : un SALUT, un DEFI, puis plus rien : fermee comme sans poignee de main
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    p.ouverte(0, 5000);
+    recevoir(p, 0, a.salut(kNa1), 5001, f);
+    CHECK(f.lignes[0].size() == 1, "DEFI emis");
+    p.expirer(5000 + Portail::kSansSessionMs, f);
+    CHECK(f.fermee[0], "fermee sans premier message");
+  }
+
+  {  // mauvaiseCleFermee : un client sans la cle n'occupe pas une place
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client intrus{gAutre};
+    p.ouverte(2, 5000);
+    for (uint32_t t = 5000; t < 5000 + Portail::kSansSessionMs; t += 1000) recevoir(p, 2, intrus.salut(kNa1), t, f);
+    p.expirer(5000 + Portail::kSansSessionMs, f);
+    CHECK(f.fermee[2], "fermee malgre ses lignes");
+  }
+
+  {  // sessionGardee : une session etablie n'est pas fermee par le delai sans poignee de main
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");
+    p.expirer(1000 + Portail::kSansSessionMs + 1, f);
+    CHECK(!f.fermee[0], "session etablie gardee");
+  }
+
+  {  // muette : une session qui se tait depuis kMuetteMs perd sa connexion ; un message la garde
+    static_assert(Portail::kMuetteMs > 240000, "au-dela de la periode d'entretien de l'app");
+    static_assert(Portail::kMuetteMs < h1::kForgetMs, "avant l'oubli de la session");
+    Portail p;
+    Fausse f;
+    p.cle(gCle);
+    Client a{gCle};
+    CHECK(etablir(p, f, a, 0, kNa1, 1000), "a");  // dernier message a 1001
+    p.expirer(1001 + Portail::kMuetteMs - 1, f);
+    CHECK(!f.fermee[0], "encore ouverte juste avant le delai");
+    const uint32_t t = 1001 + Portail::kMuetteMs - 1;
+    recevoir(p, 0, a.message("2 etat"), t, f);
+    Portail::Requete r;
+    CHECK(p.requete(&r) && r.rid == 2, "requete servie");
+    p.expirer(t + Portail::kMuetteMs - 1, f);
+    CHECK(!f.fermee[0], "le message a repousse le delai");
+    p.expirer(t + Portail::kMuetteMs, f);
+    CHECK(f.fermee[0], "fermee apres kMuetteMs de silence");
+    CHECK(p.sessions() == 0, "la session tombe avec sa connexion");
   }
   return bilan("test_portail");
 }

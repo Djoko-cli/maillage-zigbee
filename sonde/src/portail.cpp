@@ -8,10 +8,24 @@ bool Portail::cle(const uint8_t *psk) {
   return table_.setKey(psk);
 }
 
-void Portail::ouverte(uint8_t c) {
+void Portail::ouverte(uint8_t c, uint32_t maintenant) {
   if (c >= kConnexions) return;
   cx_[c].ouverte = true;
   cx_[c].long_ = 0;
+  cx_[c].depuis = maintenant;
+  cx_[c].activite = maintenant;
+}
+
+void Portail::couper(uint8_t c, Sortie &s) {
+  fermetures_++;
+  s.fermer(c);
+  fermee(c);
+}
+
+bool Portail::aSession(uint8_t c) const {
+  for (uint8_t i = 0; i < h1::kSlots; i++)
+    if (connexionDe_[i] == c) return true;
+  return false;
 }
 
 void Portail::fermee(uint8_t c) {
@@ -52,9 +66,7 @@ void Portail::recevoir(uint8_t c, const uint8_t *octets, size_t n, uint32_t main
       continue;
     }
     if (x.long_ == kLigneMax) {
-      fermetures_++;
-      s.fermer(c);
-      fermee(c);
+      couper(c, s);
       return;
     }
     x.tampon[x.long_++] = o;
@@ -86,14 +98,19 @@ void Portail::ligne(uint8_t c, const uint8_t *l, size_t n, uint32_t maintenant, 
     return;
   }
   // Une session ne parle que sur la connexion ou elle a ete promue : une
-  // place reprise (frais) prend la connexion et perd les requetes de l'ancienne.
+  // place reprise (frais) prend la connexion et perd les requetes de l'ancienne,
+  // dont la connexion est fermee (sa session n'existe plus : sans cela, son
+  // client resterait connecte a une session muette).
   if (frais) {
+    const uint8_t ancienne = connexionDe_[slot];
     connexionDe_[slot] = c;
     purger(slot);
+    if (ancienne != kAucune && ancienne != c && cx_[ancienne].ouverte) couper(ancienne, s);
   } else if (connexionDe_[slot] != c) {
     refus_++;
     return;
   }
+  cx_[c].activite = maintenant;
   Requete r;
   r.session = slot;
   if (!lireRequete(p.payload, p.payloadLen, &r.rid, r.commande) || nombre_ == kFile) {
@@ -133,13 +150,21 @@ void Portail::diffuser(const uint8_t *ligne, size_t n, Sortie &s) {
   for (uint8_t i = 0; i < h1::kSlots; i++) repondre(i, 0, ligne, n, s);
 }
 
-void Portail::expirer(uint32_t maintenant) {
+void Portail::expirer(uint32_t maintenant, Sortie &s) {
   const uint8_t liberes = table_.expire(maintenant);
   for (uint8_t i = 0; i < h1::kSlots; i++)
     if (liberes & (1u << i)) {
+      const uint8_t c = connexionDe_[i];
       connexionDe_[i] = kAucune;
       purger(i);
+      if (c != kAucune && cx_[c].ouverte) couper(c, s);
     }
+  for (uint8_t c = 0; c < kConnexions; c++) {
+    if (!cx_[c].ouverte) continue;
+    const bool muette = aSession(c) ? maintenant - cx_[c].activite >= kMuetteMs
+                                    : maintenant - cx_[c].depuis >= kSansSessionMs;
+    if (muette) couper(c, s);
+  }
 }
 
 uint8_t Portail::sessions() const {
