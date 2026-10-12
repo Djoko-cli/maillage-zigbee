@@ -23,6 +23,8 @@ static constexpr uint16_t kPort = 5481;
 
 void gardeDemarrage();
 bool configure();
+// Vrai si le Wi-Fi est connecte, adresse IP obtenue.
+bool connecte();
 void demarrer(const char *nomSonde);
 void tour(uint32_t maintenant);
 bool requete(Portail::Requete *r);

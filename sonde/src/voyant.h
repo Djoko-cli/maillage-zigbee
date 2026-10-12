@@ -3,14 +3,25 @@
 //  LED de la carte (WS2812 de la SuperMini, sur IO8 ; spec de la sonde,
 //  section 1)
 //
-//  La teinte a montrer a chaque instant, par ordre de priorite :
-//  1. identification demandee par l'app Hue : blanc, 500 ms allume, 500 ms
-//     eteint ;
+//  La couleur a montrer a chaque instant, par ordre de priorite (meme voyant
+//  que le pont Amaran : status_led.cpp, memes couleurs, memes durees) :
+//  1. identification demandee par l'app Hue : arc-en-ciel (un tour de roue
+//     en 2 s, par pas de 40 ms), pendant toute l'identification ;
 //  2. recherche d'un reseau ou rattachement : pulsation bleue lente (2 s) ;
 //  3. adhesion : deux eclairs verts rapides (100 ms, pause, 100 ms) ;
 //  4. suspendue : un bref eclair orange (100 ms) toutes les 5 s, le premier
 //     tout de suite, aussi apres un redemarrage ;
-//  5. sinon, la lampe Hue : blanc tres faible si allumee, eteinte sinon.
+//  5. Wi-Fi configure mais non connecte : orange lent (1 s allume, 1 s
+//     eteint), des le demarrage ; jamais sans Wi-Fi configure (sonde 1.0.0) ;
+//  6. sinon, le repos :
+//     - lampe Hue allumee : lueur blanche fixe tres faible (propre a Zigbee) ;
+//     - lampe eteinte : brefs eclats blancs, une lueur de 600 ms (montee puis
+//       descente, sommet 8/255) toutes les 10 s.
+//  Choix d'ordre : la suspension et l'adhesion passent avant l'orange Wi-Fi.
+//  Ce sont des evenements brefs et rares, lies a une action de l'utilisateur
+//  ou a la pile Zigbee ; l'orange lent, lui, revient entre deux. Et sans
+//  Wi-Fi la sonde garde son role, donc le message « suspendue » doit rester
+//  lisible.
 //  main.cpp la pilote dans loop() seulement, jamais depuis un rappel de la
 //  pile Zigbee (qui ne fait que poser des drapeaux).
 //
@@ -23,16 +34,24 @@
 
 class Voyant {
  public:
-  enum Couleur : uint8_t { kNoire, kBlanche, kBleue, kVerte, kOrange, kVeille };
-  static constexpr uint32_t kIdentMs = 500;     // demi-periode du clignotement d'identification
+  // Plafond par canal, comme Amaran (kMax) : faible intensite.
+  static constexpr uint8_t kVoyantMax = 24;
+  static constexpr uint8_t kLueurMax = 8;   // sommet de la lueur blanche
+  static constexpr uint8_t kVeille = 2;     // lampe Hue allumee : blanc fixe tres faible
+  static constexpr uint32_t kArcMs = 2000;  // un tour de roue de l'arc-en-ciel
+  static constexpr uint32_t kPasMs = 40;    // pas de l'arc-en-ciel (25 images/s)
   static constexpr uint32_t kPulsationMs = 2000;  // periode de la pulsation bleue
   static constexpr uint32_t kVertMs = 100;      // chaque eclair vert, et la pause entre eux
   static constexpr uint32_t kBrefMs = 100;      // bref eclair orange de la suspension...
   static constexpr uint32_t kPeriodeMs = 5000;  // ... toutes les 5 s
+  static constexpr uint32_t kSansWifiMs = 1000;  // orange lent : demi-periode
+  static constexpr uint32_t kLueurPeriodeMs = 10000;  // une lueur toutes les 10 s...
+  static constexpr uint32_t kLueurMs = 600;           // ... de 600 ms (montee puis descente)
 
-  struct Teinte {
-    Couleur couleur;
-    uint8_t niveau;  // 0 a 255 : fraction de l'intensite maximale de la couleur
+  struct Rgb {
+    uint8_t r = 0, g = 0, b = 0;
+    bool operator==(const Rgb &o) const { return r == o.r && g == o.g && b == o.b; }
+    bool operator!=(const Rgb &o) const { return !(*this == o); }
   };
 
   void identifier(bool actif, uint32_t t) {
@@ -52,18 +71,34 @@ class Voyant {
     suspendue_ = actif;
   }
   void allumer(bool actif) { lampe_ = actif; }
+  // Wi-Fi configure (NVS) et connecte (adresse IP). L'orange lent commence par
+  // un temps allume, des que la situation « configure, pas connecte » apparait.
+  void wifi(bool configure, bool connecte, uint32_t t) {
+    const bool sans = configure && !connecte;
+    if (sans && !sansWifi_) debutSansWifi_ = t;
+    sansWifi_ = sans;
+  }
 
-  Teinte teinte(uint32_t t) {
-    if (ident_) return {((t - debutIdent_) / kIdentMs) % 2 == 0 ? kBlanche : kNoire, 255};
+  Rgb teinte(uint32_t t) {
+    if (ident_) {
+      repos_ = false;
+      // Par pas de kPasMs : la couleur ne change que 25 fois par seconde.
+      const uint32_t phase = (t - debutIdent_) / kPasMs * kPasMs % kArcMs;
+      return roue((uint16_t)(phase * 768 / kArcMs));
+    }
     if (cherche_) {
+      repos_ = false;
       const uint32_t phase = (t - debutPulsation_) % kPulsationMs;
       const uint32_t demi = kPulsationMs / 2;
       const uint32_t montee = phase < demi ? phase : kPulsationMs - phase;
-      return {kBleue, (uint8_t)(montee * 255 / demi)};
+      return {0, 0, (uint8_t)(montee * kVoyantMax / demi)};
     }
     if (adhesion_) {
       const uint32_t e = t - debutAdhesion_;
-      if (e < 3 * kVertMs) return {e / kVertMs == 1 ? kNoire : kVerte, 255};
+      if (e < 3 * kVertMs) {
+        repos_ = false;
+        return e / kVertMs == 1 ? Rgb{} : Rgb{0, kVoyantMax, 0};
+      }
       adhesion_ = false;
     }
     if (suspendue_) {
@@ -71,16 +106,52 @@ class Voyant {
       // encore a venir (prochain_ n'est jamais a plus d'une periode en avance).
       const uint32_t e = t - prochain_;
       if (e < 0x80000000u) {
-        if (e % kPeriodeMs < kBrefMs) return {kOrange, 255};
+        if (e % kPeriodeMs < kBrefMs) {
+          repos_ = false;
+          return orange();
+        }
         // Eclair fini (plusieurs si loop() a ete retenue) : le suivant, sur la
         // meme grille de 5 s.
         prochain_ += (e / kPeriodeMs + 1) * kPeriodeMs;
       }
     }
-    return {lampe_ ? kVeille : kNoire, 255};
+    if (sansWifi_) {
+      repos_ = false;
+      return (t - debutSansWifi_) / kSansWifiMs % 2 == 0 ? orange() : Rgb{};
+    }
+    // Repos. La premiere lueur vient tout de suite, comme « en ligne » chez
+    // Amaran : au retour au repos (fin de l'orange, de l'identification...),
+    // elle confirme que la sonde est rentree dans son etat normal. La grille de
+    // 10 s part de ce moment.
+    if (!repos_) {
+      repos_ = true;
+      debutRepos_ = t;
+    }
+    if (lampe_) return {kVeille, kVeille, kVeille};
+    const uint32_t ph = (t - debutRepos_) % kLueurPeriodeMs;
+    if (ph >= kLueurMs) return {};
+    // Triangle 0 -> kLueurMax -> 0 sur kLueurMs.
+    const uint32_t demi = kLueurMs / 2;
+    const uint32_t x = ph < demi ? ph : kLueurMs - ph;
+    const uint8_t v = (uint8_t)((kLueurMax * x + demi / 2) / demi);
+    return {v, v, v};
   }
 
  private:
+  // Orange : le vert d'une WS2812 parait bien plus fort que son rouge.
+  static Rgb orange() { return {kVoyantMax, kVoyantMax / 4, 0}; }
+  // Roue des couleurs a l'intensite kVoyantMax : hue 0..767 (rouge, vert, bleu).
+  static Rgb roue(uint16_t hue) {
+    hue %= 768;
+    const uint8_t haut = (uint8_t)((hue % 256) * kVoyantMax / 255);
+    const uint8_t bas = (uint8_t)(kVoyantMax - haut);
+    switch (hue / 256) {
+      case 0: return {bas, haut, 0};
+      case 1: return {0, bas, haut};
+      default: return {haut, 0, bas};
+    }
+  }
+
   bool ident_ = false;
   uint32_t debutIdent_ = 0;
   bool cherche_ = false;
@@ -89,5 +160,9 @@ class Voyant {
   uint32_t debutAdhesion_ = 0;
   bool suspendue_ = false;
   uint32_t prochain_ = 0;  // debut du prochain bref eclair, ou de celui en cours
+  bool sansWifi_ = false;
+  uint32_t debutSansWifi_ = 0;
+  bool repos_ = false;  // au repos au dernier appel
+  uint32_t debutRepos_ = 0;
   bool lampe_ = false;
 };

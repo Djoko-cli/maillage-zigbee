@@ -696,10 +696,9 @@ static void evenements(uint32_t maintenant) {
 //  LED de la carte
 // ---------------------------------------------------------------------------
 
-// WS2812 de la SuperMini, sur IO8 : faible intensite, 24/255 au plus par
-// canal, comme la sonde Thread ; orange : un quart de vert.
+// WS2812 de la SuperMini, sur IO8 : faible intensite (Voyant::kVoyantMax, 24
+// par canal au plus, comme Amaran et la sonde Thread).
 static constexpr uint8_t kBrocheVoyant = 8;
-static constexpr uint8_t kVoyantMax = 24;
 static uint32_t sVoyantEcrit = 0xFFFFFFFFu;  // RGB ecrit ; rien encore
 
 static void ecrireVoyant(uint8_t r, uint8_t g, uint8_t b) {
@@ -716,16 +715,19 @@ static void voyantTour(uint32_t maintenant) {
   }
   sVoyant.chercher(sAdhesion.cherche(), maintenant);
   sVoyant.suspendre(sSuspendue, maintenant);
-  const Voyant::Teinte t = sVoyant.teinte(maintenant);
-  const uint8_t m = (uint8_t)(kVoyantMax * t.niveau / 255);
-  switch (t.couleur) {
-    case Voyant::kBlanche: ecrireVoyant(m, m, m); break;
-    case Voyant::kBleue: ecrireVoyant(0, 0, m); break;
-    case Voyant::kVerte: ecrireVoyant(0, m, 0); break;
-    case Voyant::kOrange: ecrireVoyant(m, m / 4, 0); break;
-    case Voyant::kVeille: ecrireVoyant(2, 2, 2); break;
-    default: ecrireVoyant(0, 0, 0); break;
+  // « Configure » se lit dans la NVS : une fois par seconde suffit (un Wi-Fi
+  // mis en place ne prend effet qu'au redemarrage de toute facon).
+  static bool configure = false;
+  static bool configureVu = false;
+  static uint32_t configureLu = 0;
+  if (!configureVu || maintenant - configureLu >= 1000) {
+    configure = reseau::configure();
+    configureLu = maintenant;
+    configureVu = true;
   }
+  sVoyant.wifi(configure, reseau::connecte(), maintenant);
+  const Voyant::Rgb c = sVoyant.teinte(maintenant);
+  ecrireVoyant(c.r, c.g, c.b);
 }
 
 // ---------------------------------------------------------------------------

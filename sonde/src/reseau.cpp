@@ -108,6 +108,8 @@ bool configure() {
   return oui;
 }
 
+bool connecte() { return WiFi.status() == WL_CONNECTED; }
+
 void gardeDemarrage() {
   if (!configure()) return;
   const esp_reset_reason_t r = esp_reset_reason();

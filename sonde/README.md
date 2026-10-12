@@ -85,10 +85,12 @@ jamais la sonde. Pour la retirer : la supprimer dans l'app Hue, ou envoyer
 
 ## LED
 
-Par ordre de priorité : identification demandée par l'app Hue (blanc, 500 ms
-sur 500 ms) ; recherche ou rattachement (pulsation bleue) ; adhésion (deux
-éclairs verts) ; suspendue (bref éclair orange toutes les 5 s) ; sinon la
-lampe Hue (blanc très faible si elle est allumée).
+Même voyant que le pont Amaran, par ordre de priorité : identification
+demandée par l'app Hue (arc-en-ciel) ; recherche ou rattachement (pulsation
+bleue) ; adhésion (deux éclairs verts) ; suspendue (bref éclair orange toutes
+les 5 s) ; Wi-Fi configuré mais non connecté (orange lent, 1 s sur 1 s) ;
+sinon le repos : blanc très faible fixe si la lampe Hue est allumée, sinon une
+brève lueur blanche toutes les 10 s.
 
 ## Parler à la sonde
 
