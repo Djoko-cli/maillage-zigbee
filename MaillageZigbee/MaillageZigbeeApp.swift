@@ -70,7 +70,10 @@ struct MaillageZigbeeApp: App {
             d.surEchecReseau = { [weak b] in b?.relancer() }
             d.demarrer()
             b.demarrer()
-            sm.surMaillage = { [weak s] m, recu in s?.recevoir(m, a: recu) }
+            // Incomplet : la tournee qui vient de finir a reporte des routes (son bilan est pose avant le maillage).
+            sm.surMaillage = { [weak s, weak sm] m, recu in
+                s?.recevoir(m, a: recu, incomplet: (sm?.bilan?.routesReportees ?? 0) > 0)
+            }
             sm.surTournee = { [weak s] enCours in s?.tourneeEnCours = enCours }
             sm.surOubli = { [weak s] in s?.oublierMaillage() }
             sm.demarrer()

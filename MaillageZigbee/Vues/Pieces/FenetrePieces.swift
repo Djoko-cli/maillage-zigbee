@@ -187,7 +187,9 @@ struct FenetrePieces: View {
                 }
                 // « Ancien » ne depend que de l'heure : lu ici, dans la `TimelineView`, il suit l'horloge.
                 HautPieces(moteur: moteur, troisD: $troisD, sansPieces: entree?.scene.sansPiecesMaison == true,
-                           ancien: surveillance.maillageAncien, feux: feux) { margeHautMesuree = Self.margeHaut(bas: $0) }
+                           ancien: surveillance.maillageAncien,
+                           incomplet: surveillance.maillageIncomplet && surveillance.maillageAffiche != nil,
+                           feux: feux) { margeHautMesuree = Self.margeHaut(bas: $0) }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 VStack(alignment: .leading, spacing: Self.espacement) {
                     Spacer()

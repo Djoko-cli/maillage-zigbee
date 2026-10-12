@@ -2497,6 +2497,38 @@
         }
       }
     },
+    "Maillage incomplet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incomplete mesh"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage incomplet"
+          }
+        }
+      }
+    },
+    "Maillage incomplet · passe complémentaire à %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incomplete mesh · follow-up pass at %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage incomplet · passe complémentaire à %@"
+          }
+        }
+      }
+    },
     "Maillage Zigbee" : {
       "localizations" : {
         "en" : {

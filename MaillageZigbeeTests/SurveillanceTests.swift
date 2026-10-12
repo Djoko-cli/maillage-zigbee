@@ -136,6 +136,104 @@ struct SurveillanceTests {
         #expect(try CodageJSON.decodeur().decode(MaillageZigbee.self, from: capture) == MaillageDemo.maillage)
     }
 
+    /// Le dernier maillage est garde sur disque (mode direct, avec un dossier) a chaque reception, avec sa date de
+    /// reception et s'il est incomplet ; une nouvelle surveillance sur le meme dossier le relit au demarrage, avant
+    /// toute tournee. Un maillage relu de plus de 16 min est « ancien ».
+    @Test func dernierMaillageGarde() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let fichier = dossier.appendingPathComponent("dernier-maillage.json")
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        #expect(!FileManager.default.fileExists(atPath: fichier.path))
+        let recu = Date(timeIntervalSince1970: 1_790_000_000)
+        s.recevoir(MaillageDemo.maillage, a: recu, incomplet: true)
+        #expect(s.maillageIncomplet)
+        #expect(FileManager.default.fileExists(atPath: fichier.path))
+
+        let relu = Surveillance(mode: .direct, dossier: dossier)
+        #expect(relu.maillage == nil && !relu.maillageIncomplet, "rien avant le demarrage")
+        relu.demarrer()
+        defer { relu.arreter() }
+        #expect(relu.maillage == MaillageDemo.maillage)
+        #expect(relu.maillageRecu == recu)
+        #expect(relu.maillageIncomplet)
+        #expect(relu.fraicheurMaillage(a: recu.addingTimeInterval(20 * 60)) == .ancien, "la pastille « ancien » s'applique")
+
+        // Le maillage suivant, complet, remplace le fichier.
+        s.recevoir(MaillageDemo.maillage, a: recu.addingTimeInterval(900), incomplet: false)
+        #expect(!s.maillageIncomplet)
+        let suivant = Surveillance(mode: .direct, dossier: dossier)
+        suivant.demarrer()
+        defer { suivant.arreter() }
+        #expect(suivant.maillageRecu == recu.addingTimeInterval(900) && !suivant.maillageIncomplet)
+    }
+
+    /// Un maillage relu au lancement est montre quel que soit son age (apres une nuit, c'est le cas vise), avec la
+    /// pastille « ancien », jusqu'a la premiere tournee qui le remplace ; la peremption de 45 min reprend ensuite pour
+    /// un maillage recu pendant que l'app tourne.
+    @Test func maillageReluMontreQuelQueSoitSonAge() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let recu = Date(timeIntervalSince1970: 1_790_000_000)
+        Surveillance(mode: .direct, dossier: dossier).recevoir(MaillageDemo.maillage, a: recu)
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        s.demarrer()
+        defer { s.arreter() }
+        let nuit = recu.addingTimeInterval(10 * 3600)
+        #expect(s.fraicheurMaillage(a: nuit) == .ancien, "jamais perime tant qu'il est relu")
+        #expect(Surveillance.fraicheur(recu, maintenant: nuit) == .perime, "la regle normale, elle, ne change pas")
+        #expect(s.maillageRelu && s.maillageAffiche == MaillageDemo.maillage && s.aUnReseau)
+        // La premiere tournee le remplace : la regle des 45 min reprend.
+        s.recevoir(MaillageDemo.maillage, a: Date().addingTimeInterval(-50 * 60))
+        #expect(!s.maillageRelu && s.maillageAffiche == nil, "recu il y a 50 min : perime")
+        s.recevoir(MaillageDemo.maillage, a: Date())
+        #expect(s.maillageAffiche == MaillageDemo.maillage && !s.maillageAncien)
+    }
+
+    /// Un fichier du dernier maillage illisible est ignore, sans erreur : comme s'il n'y en avait pas. Le maillage
+    /// suivant le remplace.
+    @Test func dernierMaillageIllisible() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        try FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+        let fichier = dossier.appendingPathComponent("dernier-maillage.json")
+        try Data("{ pas du json".utf8).write(to: fichier)
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        s.demarrer()
+        defer { s.arreter() }
+        #expect(s.maillage == nil && s.maillageRecu == nil && !s.maillageIncomplet)
+        s.recevoir(MaillageDemo.maillage, a: MaillageDemo.fin)
+        let relu = Surveillance(mode: .direct, dossier: dossier)
+        relu.demarrer()
+        defer { relu.arreter() }
+        #expect(relu.maillage == MaillageDemo.maillage && relu.maillageRecu == MaillageDemo.fin)
+    }
+
+    /// La sonde oubliee efface aussi le maillage garde.
+    @Test func sondeOublieeEffaceLeMaillageGarde() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let fichier = dossier.appendingPathComponent("dernier-maillage.json")
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        s.recevoir(MaillageDemo.maillage, a: MaillageDemo.fin, incomplet: true)
+        #expect(FileManager.default.fileExists(atPath: fichier.path))
+        s.oublierMaillage()
+        #expect(!FileManager.default.fileExists(atPath: fichier.path) && !s.maillageIncomplet)
+    }
+
+    /// La demo n'ecrit rien sur disque, ni le maillage garde ; sans dossier non plus.
+    @Test func demoNeGardeAucunMaillage() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let demo = Surveillance(mode: .demo, dossier: dossier)
+        demo.demarrer()
+        demo.recevoir(MaillageDemo.maillage, a: MaillageDemo.fin, incomplet: true)
+        #expect(!FileManager.default.fileExists(atPath: dossier.path), "aucun fichier en demo")
+        let sans = Surveillance(mode: .direct, dossier: nil)
+        sans.recevoir(MaillageDemo.maillage, a: MaillageDemo.fin, incomplet: true)
+        #expect(sans.maillage == MaillageDemo.maillage, "en memoire seulement")
+    }
+
     /// La sonde oubliee : son maillage part tout de suite, et le suivant est un point de depart ; l'historique reste.
     @Test func sondeOubliee() {
         let s = Surveillance(mode: .direct, dossier: nil)

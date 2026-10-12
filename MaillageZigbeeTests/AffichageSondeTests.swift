@@ -207,6 +207,23 @@ struct AffichageSondeTests {
         #expect(FenetreReglages.libellePort(sansSerie, serieRetenue: nil, nom: "SONDE-01") == "usbmodemFACTICE03")
     }
 
+    /// L'indicateur « Maillage incomplet » : avec l'heure de la passe complementaire programmee ; sans heure quand le
+    /// maillage est marque incomplet et qu'aucune passe n'est programmee ; rien sinon, et rien pendant une tournee.
+    @Test func texteMaillageIncomplet() {
+        let passe = Date(timeIntervalSince1970: 1_790_000_000)
+        let heure = TexteTournee.heure(passe)
+        #expect(TexteTournee.texteIncomplet(passe: passe, incomplet: true, tourneeEnCours: false)
+                == String(localized: "Maillage incomplet · passe complémentaire à \(heure)"))
+        #expect(TexteTournee.texteIncomplet(passe: passe, incomplet: false, tourneeEnCours: false)
+                == String(localized: "Maillage incomplet · passe complémentaire à \(heure)"), "la passe programmee suffit")
+        #expect(TexteTournee.texteIncomplet(passe: nil, incomplet: true, tourneeEnCours: false)
+                == String(localized: "Maillage incomplet"))
+        #expect(TexteTournee.texteIncomplet(passe: nil, incomplet: false, tourneeEnCours: false) == nil)
+        #expect(TexteTournee.texteIncomplet(passe: passe, incomplet: true, tourneeEnCours: true) == nil,
+                "l'indicateur de tournee a la priorite")
+        #expect(TexteTournee.texteIncomplet(passe: nil, incomplet: true, tourneeEnCours: true) == nil)
+    }
+
     /// Textes de l'avancement : libelles d'etape distincts ; « etape · fait/total », l'etape
     /// seule quand elle n'a rien a faire ; duree en m:ss dans la barre du graphe, en unites
     /// dans les Reglages.

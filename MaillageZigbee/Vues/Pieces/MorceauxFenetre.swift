@@ -115,6 +115,22 @@ struct IndicateurTournee: View {
     }
 }
 
+/// « Maillage incomplet » (avec l'heure de la passe complementaire programmee), a la place de la ligne de la tournee
+/// quand aucune ne tourne : texte discret, de la hauteur de la ligne (`hauteur`, mesuree sur son gabarit) pour que la
+/// colonne ne bouge pas quand l'une prend la place de l'autre.
+struct IndicateurIncomplet: View {
+    let texte: String
+    let hauteur: CGFloat?
+
+    var body: some View {
+        Text(texte)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(height: hauteur)
+    }
+}
+
 /// Ecran d'attente, quand il n'y a pas de reseau a dessiner : ni maillage, ni appareil du pont.
 struct EtatVide: View {
     var body: some View {

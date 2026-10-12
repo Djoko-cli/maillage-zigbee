@@ -277,6 +277,8 @@ struct HautPieces: View {
     var sansPieces = false
     /// Le releve de la sonde est ancien : sa pastille est a cote de la ligne de niveau.
     var ancien = false
+    /// Le maillage affiche a ete marque incomplet : « Maillage incomplet » prend la place de la ligne de la tournee.
+    var incomplet = false
     var feux = CadreFeux.defaut
     /// Le bas du haut de la fenetre, dans l'espace de la vue, la place d'une ligne de tournee absente comprise.
     var surBas: (CGFloat) -> Void = { _ in }
@@ -297,7 +299,10 @@ struct HautPieces: View {
     var body: some View {
         let tournee = LigneTournee.place(serie: sonde.serie, debut: sonde.debutTournee)
         // Hors tournee, une sonde retenue : la marge du haut compte la ligne absente et son espacement.
-        let reserve = tournee == .comptee ? (hauteurTournee ?? 0) + FenetrePieces.espacement : 0
+        // L'indicateur du maillage incomplet prend cette place (de la meme hauteur) : rien ne saute.
+        let texteIncomplet = TexteTournee.texteIncomplet(passe: sonde.passeComplementaire, incomplet: incomplet,
+                                                         tourneeEnCours: tournee == .montree)
+        let reserve = tournee == .comptee && texteIncomplet == nil ? (hauteurTournee ?? 0) + FenetrePieces.espacement : 0
         VStack(alignment: .leading, spacing: FenetrePieces.espacement) {
             // Chaque capsule garde la largeur de son contenu (`fixedSize`) : la bande vide prend la place qui
             // reste. Sans cela, les trois se la partagent et la capsule du reseau tronque ses boutons.
@@ -325,6 +330,10 @@ struct HautPieces: View {
                         LigneTournee()
                             .transition(apparition.transitionAnimee)
                     }
+                    if let texteIncomplet {
+                        IndicateurIncomplet(texte: texteIncomplet, hauteur: hauteurTournee)
+                            .transition(apparition.transitionAnimee)
+                    }
                     if sansPieces {
                         BandeauSansPieces()
                             .transition(apparition.transitionAnimee)
@@ -337,6 +346,7 @@ struct HautPieces: View {
             .animation(Apparition.animationDuConteneur(.top, reduire: reduire), value: sansPieces)
             .animation(Apparition.animationDuConteneur(.top, reduire: reduire), value: tournee == .montree)
             .animation(Apparition.animationDuConteneur(.top, reduire: reduire), value: ancien)
+            .animation(Apparition.animationDuConteneur(.top, reduire: reduire), value: texteIncomplet != nil)
             .background(alignment: .topLeading) {
                 if tournee != .aucune {
                     LigneTournee.gabarit

@@ -972,6 +972,48 @@ struct FenetrePiecesTests {
         await sonde.oublier()
     }
 
+    /// « Maillage incomplet » : il prend, hors tournee, la place de la ligne de la tournee (de sa hauteur) ; la marge du
+    /// haut ne change pas quand il parait, ni quand une tournee le remplace, et la colonne a la meme hauteur dans les
+    /// deux cas.
+    @Test(.timeLimit(.minutes(1))) func maillageIncompletSansBouger() async throws {
+        let (p, domaine) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, domaine) }
+        let canal = CanalRejoue { CanalRejoue.sondeMinimale($0) }
+        let sonde = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal })
+        let demo = NomsSceneTests.surveillanceDemo()
+        let (fenetre, moteur) = try Self.fenetre(demo, taille: CGSize(width: 1100, height: 760), preferences: p,
+                                                 sonde: sonde)
+        defer { Self.fermer(fenetre) }
+        func colonne() throws -> CGRect { try #require(moteur.cadresInterface["colonne"], "la colonne") }
+        func stable() async throws {
+            try await MoteurPiecesTests.attendre { moteur.pret && moteur.cadresInterface["colonne"] != nil && !moteur.margesEnRoute }
+            try await Task.sleep(for: .milliseconds(400))
+        }
+        await sonde.connecter(SondeMaillageTests.port, choisi: true)
+        sonde.debuterTournee()
+        sonde.finirTournee(nil)
+        try await stable()
+        let sans = try colonne()
+        let marge = moteur.marges.haut
+        let ligne = NSHostingView(rootView: IndicateurTournee(avancement: LigneTournee.premierPas, debut: nil)).fittingSize.height
+        // Le maillage affiche est marque incomplet : l'indicateur parait.
+        demo.recevoir(MaillageDemo.maillage, a: MaillageDemo.fin, incomplet: true)
+        try await MoteurPiecesTests.attendre { (try? colonne().height) ?? 0 > sans.height + 1 }
+        try await stable()
+        let avec = try colonne()
+        #expect(abs(avec.height - sans.height - (ligne + FenetrePieces.espacement)) < 0.5,
+                "l'indicateur a la hauteur de la ligne de la tournee : \(sans.height) -> \(avec.height)")
+        #expect(avec.minY == sans.minY && moteur.marges.haut == marge, "ni la colonne ni la marge ne bougent : \(moteur.marges.haut)")
+        #expect(!moteur.margesEnRoute, "la scene ne se recadre pas")
+        // Une tournee commence : sa ligne prend la place de l'indicateur, sans rien changer.
+        sonde.debuterTournee()
+        try await stable()
+        let pendant = try colonne()
+        #expect(abs(pendant.height - avec.height) < 0.5, "meme hauteur : \(avec.height) -> \(pendant.height)")
+        #expect(moteur.marges.haut == marge)
+        await sonde.oublier()
+    }
+
     /// Le vrai plein ecran (reverification du 02/10 : le bouton vert ne faisait qu'agrandir la fenetre) : SwiftUI pose
     /// a la fenetre d'une app de la barre des menus `fullScreenAuxiliary` ou `fullScreenNone` (releve dans l'app, en
     /// demo), et la vue le remplace par `fullScreenPrimary`, a chaque fois. En plein ecran (ronde finale du 02/10), la
