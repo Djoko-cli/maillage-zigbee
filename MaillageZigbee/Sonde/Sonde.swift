@@ -117,6 +117,11 @@ actor Sonde: InterlocuteurSonde {
     private let canal: any CanalSonde
     nonisolated let delaiCommande: Duration
     nonisolated let delaiTable: Duration
+    /// Une requete sans reponse dans son delai ferme le canal (liaison par le reseau) : la sonde se tait quand elle a
+    /// oublie la session H1, alors que la connexion TCP vit encore ; fermee, la liaison est rouverte par l'app.
+    /// L'echeance d'une table (celle de la sonde, 120 s, plus la marge de l'app) est la plus longue : une sonde qui
+    /// vit repond toujours avant, au moins par une erreur `delai`.
+    nonisolated let fermerSansReponse: Bool
     /// Jetons des attentes des commandes sans id (jamais envoyes a la sonde).
     private var prochainJeton = 1
     /// Id des requetes reseau : de 1 a chaque connexion (spec de la sonde, section 2).
@@ -140,10 +145,11 @@ actor Sonde: InterlocuteurSonde {
     private(set) var pertesParent = 0
 
     init(canal: any CanalSonde, delaiCommande: Duration = Sonde.delaiCommandeUSB,
-         delaiTable: Duration = ProtocoleSonde.echeanceTable) {
+         delaiTable: Duration = ProtocoleSonde.echeanceTable, fermerSansReponse: Bool = false) {
         self.canal = canal
         self.delaiCommande = delaiCommande
         self.delaiTable = delaiTable
+        self.fermerSansReponse = fermerSansReponse
     }
 
     /// Ouvre le canal et lit ses lignes ; `surFermeture` quand il se ferme.
@@ -180,7 +186,7 @@ actor Sonde: InterlocuteurSonde {
             canal.envoyer(CommandeSonde.bonjour.ligne)
             Task {
                 try? await Task.sleep(for: self.delaiCommande)
-                self.attenteBonjour.expirer(jeton)
+                if self.attenteBonjour.expirer(jeton) != nil { self.sansReponse() }
             }
         }
         guard let b else { throw fermee ? Erreur.fermee : Erreur.sansReponse("bonjour") }
@@ -195,7 +201,7 @@ actor Sonde: InterlocuteurSonde {
             canal.envoyer(CommandeSonde.etat.ligne)
             Task {
                 try? await Task.sleep(for: self.delaiCommande)
-                self.attenteEtat.expirer(jeton)
+                if self.attenteEtat.expirer(jeton) != nil { self.sansReponse() }
             }
         }
         guard let e else { throw fermee ? Erreur.fermee : Erreur.sansReponse("etat") }
@@ -211,7 +217,10 @@ actor Sonde: InterlocuteurSonde {
             Task {
                 try? await Task.sleep(for: self.delaiCommande)
                 // Expiree sans reponse : ses lignes deja recues (sans la derniere) ne s'ajoutent pas a la suivante.
-                if self.attenteVoisins.expirer(jeton) != nil { self.fusionVoisins = FusionLignes() }
+                if self.attenteVoisins.expirer(jeton) != nil {
+                    self.fusionVoisins = FusionLignes()
+                    self.sansReponse()
+                }
             }
         }
         guard let v else { throw fermee ? Erreur.fermee : Erreur.sansReponse("voisins") }
@@ -228,7 +237,7 @@ actor Sonde: InterlocuteurSonde {
             canal.envoyer(CommandeSonde.wifi(nom: nom, motDePasse: motDePasse, id: id).ligne)
             Task {
                 try? await Task.sleep(for: self.delaiCommande)
-                self.attenteWifi.expirer(jeton)
+                if self.attenteWifi.expirer(jeton) != nil { self.sansReponse() }
             }
         }
         guard let r else { throw fermee ? Erreur.fermee : Erreur.sansReponse("wifi") }
@@ -245,7 +254,7 @@ actor Sonde: InterlocuteurSonde {
             canal.envoyer(CommandeSonde.cleNouvelle(alea: alea, id: id).ligne)
             Task {
                 try? await Task.sleep(for: self.delaiCommande)
-                self.attenteCle.expirer(jeton)
+                if self.attenteCle.expirer(jeton) != nil { self.sansReponse() }
             }
         }
         guard let r else { throw fermee ? Erreur.fermee : Erreur.sansReponse("cle") }
@@ -292,17 +301,26 @@ actor Sonde: InterlocuteurSonde {
         echeanceReseau = Task {
             try? await Task.sleep(for: delai)
             guard !Task.isCancelled else { return }
-            self.finirReseau(id: id, erreur: nil)
+            if self.finirReseau(id: id, erreur: nil) { self.sansReponse() }
         }
     }
 
-    /// Finit la requete reseau `id` (si c'est encore elle) : un echec, ou nil.
-    private func finirReseau(id: Int, erreur: String?) {
-        guard let e = enCours, e.id == id else { return }
+    /// Finit la requete reseau `id` (si c'est encore elle) : un echec, ou nil. Vrai si elle etait en cours.
+    @discardableResult
+    private func finirReseau(id: Int, erreur: String?) -> Bool {
+        guard let e = enCours, e.id == id else { return false }
         enCours = nil
         echeanceReseau?.cancel()
         echeanceReseau = nil
         e.finir(erreur)
+        return true
+    }
+
+    /// Une requete est restee sans reponse dans son delai : la liaison est tenue pour morte et fermee si
+    /// `fermerSansReponse` (le flux finit, `surFermeture` previent l'app).
+    private func sansReponse() {
+        guard fermerSansReponse, !fermee else { return }
+        canal.fermer()
     }
 
     private func nouveauJeton() -> Int {

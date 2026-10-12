@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import MaillageCoeur
 import Testing
 @testable import MaillageZigbee
@@ -21,7 +22,9 @@ struct SondeParReseauTests {
 
     /// Une sonde retenue (serie, nom, adresse longue), la cle dans un trousseau en memoire.
     static func faire(_ p: UserDefaults, cle: Bool = true, reponses: @escaping @Sendable (String) -> [String] = sondeReseau,
-                      muette: Bool = false, ouvertures: Compteur = Compteur()) -> SondeMaillage {
+                      muette: Bool = false, ouvertures: Compteur = Compteur(),
+                      periodeEntretien: Duration = SondeMaillage.periodeEntretien,
+                      delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau) -> SondeMaillage {
         p.set("A0:00:00:00:00:01", forKey: SondeMaillage.cleSerie)
         p.set("SONDE-01", forKey: SondeMaillage.cleNom)
         p.set("A000000000000001", forKey: SondeMaillage.cleIeee)
@@ -33,6 +36,8 @@ struct SondeParReseauTests {
                                  return muette ? CanalFerme() : CanalRejoue(repondre: reponses)
                              },
                              delaiReessaiReseau: .milliseconds(100),
+                             delaiCommandeReseau: delaiCommandeReseau,
+                             periodeEntretien: periodeEntretien,
                              delaiPremiereTournee: .seconds(3600))
     }
 
@@ -120,6 +125,23 @@ struct SondeParReseauTests {
         await s.oublier()
     }
 
+    /// La carte a oublie la session (Mac en veille) sans fermer la connexion : la sonde se tait. Une requete sans
+    /// reponse dans son delai ferme la liaison, et l'app se reconnecte (constat 3 de la relecture finale).
+    @Test func liaisonMuetteRouverte() async throws {
+        let (p, d) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, d) }
+        let o = Compteur()
+        let muette = Interrupteur()
+        let s = Self.faire(p, reponses: { muette.leve ? [] : SondeParReseauTests.sondeReseau($0) }, ouvertures: o,
+                           periodeEntretien: .milliseconds(100), delaiCommandeReseau: .milliseconds(200))
+        s.portsChanges([])
+        s.annoncesChangees(["SONDE-01"])
+        #expect(await SondeMaillageTests.sonder { s.acces == .reseau })
+        muette.lever()
+        #expect(await SondeMaillageTests.sonder { o.noms.count >= 2 }, "liaison fermee puis rouverte")
+        await s.oublier()
+    }
+
     @Test func reconnexionApresCoupure() async throws {
         let (p, d) = try SondeMaillageTests.preferences()
         defer { SondeMaillageTests.nettoyer(p, d) }
@@ -141,6 +163,13 @@ struct CanalFerme: CanalSonde {
     func ouvrir() throws -> AsyncStream<Data> { AsyncStream { $0.finish() } }
     func envoyer(_ ligne: String) {}
     func fermer() {}
+}
+
+/// Un drapeau partage entre le test et un canal rejoue.
+final class Interrupteur: Sendable {
+    private let etat = Mutex(false)
+    func lever() { etat.withLock { $0 = true } }
+    var leve: Bool { etat.withLock { $0 } }
 }
 
 /// Noms des services ouverts par le reseau, dans l'ordre.

@@ -58,6 +58,8 @@ final class SondeMaillage {
     static let delaiNouvelEssai: Duration = .seconds(5)
     /// Nouvel essai de la connexion par le reseau, tant que le reseau reste le chemin choisi.
     static let delaiReessaiReseau: Duration = .seconds(60)
+    /// Attente de `bonjour`, `etat` et `voisins` par le reseau : celle de l'USB, plus 3 s (spec sonde Wi-Fi, 4.1).
+    static let delaiCommandeReseau: Duration = Sonde.delaiCommandeUSB + .seconds(3)
     /// Relecture d'`etat` hors tournee : la session H1 de la sonde est oubliee apres 10 min sans message.
     static let periodeEntretien: Duration = .seconds(240)
     /// Premiere tournee apres la connexion : le temps que la sonde se rattache si elle vient de demarrer.
@@ -141,6 +143,8 @@ final class SondeMaillage {
     @ObservationIgnored private let trousseau: any TrousseauCles
     @ObservationIgnored private let ouvrirReseau: (String, Data) -> any CanalSonde
     @ObservationIgnored private let delaiReessaiReseau: Duration
+    /// Attente d'une commande sans id par le reseau (`delaiCommandeReseau`).
+    @ObservationIgnored private let delaiCommandeReseau: Duration
     @ObservationIgnored private let periodeEntretien: Duration
     /// Nouvel essai planifie d'une connexion par le reseau en echec.
     @ObservationIgnored private var reessaiReseau: Task<Void, Never>?
@@ -186,6 +190,7 @@ final class SondeMaillage {
              CanalReseau(transport: TransportTCP(service: $0), cle: $1, delaiPoigneeDeMain: .seconds(15))
          },
          delaiReessaiReseau: Duration = SondeMaillage.delaiReessaiReseau,
+         delaiCommandeReseau: Duration = SondeMaillage.delaiCommandeReseau,
          periodeEntretien: Duration = SondeMaillage.periodeEntretien,
          delaiNouvelEssai: Duration = SondeMaillage.delaiNouvelEssai,
          delaiPremiereTournee: Duration = SondeMaillage.delaiPremiereTournee,
@@ -200,6 +205,7 @@ final class SondeMaillage {
         self.trousseau = trousseau
         self.ouvrirReseau = ouvrirReseau
         self.delaiReessaiReseau = delaiReessaiReseau
+        self.delaiCommandeReseau = delaiCommandeReseau
         self.periodeEntretien = periodeEntretien
         self.delaiNouvelEssai = delaiNouvelEssai
         self.delaiPremiereTournee = delaiPremiereTournee
@@ -573,8 +579,10 @@ final class SondeMaillage {
         let n = essai
         await fermetures?.value
         guard n == essai else { return }
-        let s = Sonde(canal: ouvrirReseau(nom, cle), delaiCommande: Sonde.delaiCommandeUSB + .seconds(3),
-                      delaiTable: delaiTable + .seconds(3))
+        // Une requete sans reponse ferme la liaison (la carte a pu oublier la session sans couper la connexion) :
+        // `liaisonFermee`, puis `reevaluer`, la rouvrent.
+        let s = Sonde(canal: ouvrirReseau(nom, cle), delaiCommande: delaiCommandeReseau,
+                      delaiTable: delaiTable + .seconds(3), fermerSansReponse: true)
         enConnexion = s
         do {
             try await s.demarrer { [weak self] in
