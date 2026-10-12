@@ -124,6 +124,26 @@ provisoire (vu en route).
 - Icône : maquette à part, choisie par Majid.
 - L'outil de publication ne lit rien dans le dépôt de Maillage Thread.
 
+**Amendement du 12/10/2026 : Developer ID et notarisation, depuis la 1.1.0.**
+- *Décision de Djoko* (la même pour ses trois apps) : les versions publiées sont signées par son Developer ID
+  d'Apple et notarisées ; la 1.0.0 l'était par le certificat auto-signé `Djoko-cli Code Signing`. Le nom légal du
+  titulaire figure dans la signature des versions publiées, et nulle part ailleurs (dépôt, commits, notes, flux,
+  journaux affichés).
+- *Signature* : `outils/publication.py` trouve la seule identité « Developer ID Application » du trousseau par son
+  préfixe, vérifie son sujet et son émetteur (autorité Developer ID d'Apple), puis la chaîne de l'app signée
+  (`codesign --verify --strict -R`) ; notarisation et Developer ID vont ensemble ; pas de levée de la validation
+  des bibliothèques en notarisation ; l'exigence et les erreurs sont affichées sans le nom ni l'équipe.
+- *Gardes du .dmg* : la garde des chemins personnels et le contrôle d'anonymisation lisent une copie du contenu
+  dont chaque code a perdu sa signature ; les droits de l'app sont contrôlés à part.
+- *Cliquet* : hors répétition, `outils/publier.sh` refuse toute autre identité et toute publication non notarisée
+  (profil `djoko-notarisation` par défaut).
+- *Répétition* : 1.0.0 signée comme publiée, 1.1.0 signée par le Developer ID et vraiment notarisée, sous un
+  identifiant et des services de trousseau à part ; Sparkle installe la seconde par-dessus la première.
+- *Compilations de travail* : signées par le même Developer ID, via `Local.xcconfig` (ignoré par git).
+- *Limites* : un Developer ID vaut 5 ans ; l'exigence de signature porte sur l'équipe, si bien qu'un
+  renouvellement garde le trousseau et les réglages. Le passage de la 1.0.0 à la 1.1.0 fait dire une fois à macOS
+  que l'app diffère des versions ouvertes jusque-là (« Ouvrir quand même »).
+
 ## 9. Méthode
 
 Voie courte : prototype dans une copie de travail, en quatre étapes qui

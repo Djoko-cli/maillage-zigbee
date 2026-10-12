@@ -21,7 +21,7 @@ MaillageZigbee.xcodeproj/
 *.xcworkspace/
 MaillageZigbee/Info.plist
 
-# Signature propre au poste (equipe Apple Development), jamais commitee
+# Signature propre au poste (le Developer ID et l'equipe de Djoko), jamais commitee : voir Signature.xcconfig
 Local.xcconfig
 
 # Produits de compilation et de publication

@@ -38,12 +38,19 @@ Télécharger `Maillage-Zigbee-X.Y.Z.dmg` dans la dernière
 (`app-vX.Y.Z`), l'ouvrir, et glisser **Maillage Zigbee** sur
 **Applications**. macOS 26 ou ultérieur.
 
-- **Premier lancement (Gatekeeper).** L'app est signée par un certificat
-  auto-signé, `Djoko-cli Code Signing`, pas par un Developer ID d'Apple, et
-  n'est pas notarisée. macOS refuse de l'ouvrir la première fois : dans
-  Réglages Système, Confidentialité et sécurité, cliquer « Ouvrir quand même »
-  à côté de Maillage Zigbee, puis confirmer avec son mot de passe. Une seule
-  fois.
+- **Premier lancement (Gatekeeper).** Depuis la 1.1.0, l'app est signée par
+  un Developer ID d'Apple et notarisée par Apple : macOS l'ouvre après la
+  question habituelle pour une app téléchargée sur Internet. (La 1.0.0 était
+  signée par un certificat auto-signé : macOS refusait de l'ouvrir avant
+  « Ouvrir quand même », dans Réglages Système, Confidentialité et sécurité.)
+- **Trousseau.** Toutes les versions publiées depuis la 1.1.0 sont signées
+  par le même Developer ID : une mise à jour garde l'accès à la clé du pont
+  Hue et aux clés d'accès de la sonde, dans le trousseau. **Depuis la 1.0.0**,
+  signée autrement : au premier lancement de la 1.1.0, macOS dit que l'app
+  diffère des versions ouvertes jusque-là et demande s'il faut l'ouvrir ;
+  choisir « Ouvrir quand même ». Une seule fois, et le trousseau et les
+  réglages sont gardés. macOS redemande aussi au passage d'une compilation
+  signée autrement (ad hoc) à une version publiée : « Toujours autoriser ».
 - **Réseau local.** macOS demande une fois de laisser l'app accéder au réseau
   local : il le lui faut pour trouver et lire le pont Hue.
 - **Mises à jour automatiques** (Sparkle 2). L'app cherche une nouvelle
@@ -278,21 +285,37 @@ viennent.
 ### Signature
 
 `Signature.xcconfig` (suivi) signe ad hoc : le dépôt compile et se teste
-partout, sans compte Apple, mais l'autorisation « réseau local » ne tient pas
-d'une compilation à l'autre. Pour signer avec son équipe, créer
-`Local.xcconfig` (ignoré par git) :
+partout, sans compte Apple, mais l'autorisation « réseau local » et l'accès au
+trousseau ne tiennent pas d'une compilation à l'autre. Les versions publiées
+sont signées par le Developer ID de Djoko et notarisées (`outils/publier.sh`,
+depuis la 1.1.0 ; la 1.0.0 l'était par le certificat auto-signé
+`Djoko-cli Code Signing`). Pour que ces autorisations tiennent d'une
+compilation à l'autre, et soient partagées avec la version installée, signer
+les compilations de travail avec le même Developer ID : créer
+`Local.xcconfig` (ignoré par git) à côté de `Signature.xcconfig` :
 
 ```
+CODE_SIGN_IDENTITY = Developer ID Application
 DEVELOPMENT_TEAM = <équipe, 10 caractères>
-CODE_SIGN_IDENTITY = Apple Development
+ENABLE_HARDENED_RUNTIME = YES
 ```
+
+L'équipe (le champ OU du certificat, seul affiché) :
+`security find-certificate -c "Developer ID Application" -p | openssl x509 -noout -subject -nameopt RFC2253 | sed -nE 's/.*OU=([A-Z0-9]{10}).*/\1/p'`.
+Une seule identité Developer ID Application doit être dans le trousseau :
+après un renouvellement, supprimer l'ancienne (sinon `publier.sh` refuse).
+Signées par le Developer ID, les compilations écrivent le nom complet du
+certificat dans le journal de xcodebuild (« Signing Identity ») : ces
+journaux restent locaux, ne jamais les recopier dans le dépôt. Au premier
+codesign, macOS demande l'accès à la clé du certificat : « Toujours
+autoriser ».
 
 ### Publier une version
 
 `outils/publier.sh X.Y.Z` publie la version X.Y.Z, le `MARKETING_VERSION` de
 `project.yml`, depuis un `main` à jour : tous les tests, une compilation
-Release signée par le certificat `Djoko-cli Code Signing`, un `.dmg` avec
-l'app et la licence de Sparkle, le contrôle d'anonymisation privé, la
+Release signée par le Developer ID de Djoko, un `.dmg` notarisé avec l'app
+et la licence de Sparkle, le contrôle d'anonymisation privé, la
 signature Ed25519 du `.dmg` (clé du trousseau), la version publiée sur GitHub
 (étiquette `app-vX.Y.Z`) et le flux des mises à jour, `appcast.xml`, commité
 sur `main`. Les notes viennent de [`NOTES-VERSIONS.md`](NOTES-VERSIONS.md).

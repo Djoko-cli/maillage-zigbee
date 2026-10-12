@@ -36,11 +36,19 @@ Download `Maillage-Zigbee-X.Y.Z.dmg` from the latest
 [release](https://github.com/Djoko-cli/maillage-zigbee/releases) (`app-vX.Y.Z`),
 open it, and drag **Maillage Zigbee** onto **Applications**. macOS 26 or later.
 
-- **First launch (Gatekeeper).** The app is signed with a self-signed
-  certificate, `Djoko-cli Code Signing`, not with an Apple Developer ID, and
-  isn't notarized. macOS refuses to open it the first time: in System
-  Settings, Privacy & Security, click "Open Anyway" next to Maillage Zigbee,
-  then confirm with your password. Only once.
+- **First launch (Gatekeeper).** Since 1.1.0, the app is signed with an
+  Apple Developer ID and notarized by Apple: macOS opens it after the usual
+  question for an app downloaded from the internet. (1.0.0 was signed with a
+  self-signed certificate: macOS refused to open it until "Open Anyway" in
+  System Settings, Privacy & Security.)
+- **Keychain.** Every published version since 1.1.0 is signed by the same
+  Developer ID: an update keeps access to the Hue bridge key and the probe's
+  access keys in the keychain. **Updating from 1.0.0**, signed otherwise: at
+  the first launch of 1.1.0, macOS says the app differs from the versions
+  opened before and asks whether to open it; choose "Open Anyway". Only once,
+  and the keychain and the settings are kept. macOS also asks again when
+  switching from a build signed differently (an ad hoc build) to a published
+  version: "Always Allow".
 - **Local network.** macOS asks once to let the app reach the local network:
   it needs it to find and read the Hue bridge.
 - **Automatic updates** (Sparkle 2). The app checks for a new version at
@@ -261,21 +269,35 @@ Hue Bridge and Home, then quits; the images of this page come from there.
 ### Signing
 
 `Signature.xcconfig` (tracked) signs ad hoc: the repository builds and tests
-anywhere, without an Apple account, but the local network permission does
-not survive a rebuild. To sign with your team, create `Local.xcconfig`
-(ignored by git):
+anywhere, without an Apple account, but the local network permission and the
+keychain access do not survive a rebuild. Published versions are signed with
+Djoko's Developer ID and notarized (`outils/publier.sh`, since 1.1.0; 1.0.0
+was signed with the self-signed certificate `Djoko-cli Code Signing`). For
+these permissions to last from one build to the next, and be shared with the
+installed version, sign working builds with the same Developer ID: create
+`Local.xcconfig` (ignored by git) next to `Signature.xcconfig`:
 
 ```
+CODE_SIGN_IDENTITY = Developer ID Application
 DEVELOPMENT_TEAM = <team, 10 characters>
-CODE_SIGN_IDENTITY = Apple Development
+ENABLE_HARDENED_RUNTIME = YES
 ```
+
+The team (the certificate's OU field, the only thing shown):
+`security find-certificate -c "Developer ID Application" -p | openssl x509 -noout -subject -nameopt RFC2253 | sed -nE 's/.*OU=([A-Z0-9]{10}).*/\1/p'`.
+Only one Developer ID Application identity must be in the keychain: after a
+renewal, delete the old one (otherwise `publier.sh` refuses). Signed with the
+Developer ID, builds write the certificate's full name in the xcodebuild log
+("Signing Identity"): these logs stay local, never copy them into the
+repository. At the first codesign, macOS asks for access to the certificate's
+key: "Always Allow".
 
 ### Publishing a version
 
 `outils/publier.sh X.Y.Z` publishes version X.Y.Z, the `MARKETING_VERSION` of
 `project.yml`, from an up-to-date `main`: all the tests, a Release build
-signed with the `Djoko-cli Code Signing` certificate, a `.dmg` with the app
-and Sparkle's license, the private anonymization check, the Ed25519 signature
+signed with Djoko's Developer ID, a notarized `.dmg` with the app and
+Sparkle's license, the private anonymization check, the Ed25519 signature
 of the `.dmg` (key of the keychain), the GitHub release (tag `app-vX.Y.Z`)
 and the update feed, `appcast.xml`, committed on `main`. The notes come from
 [`NOTES-VERSIONS.md`](NOTES-VERSIONS.md). `--repetition` does the same
