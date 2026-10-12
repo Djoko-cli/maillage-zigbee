@@ -62,6 +62,8 @@ struct FenetreReglages: View {
     /// Non nil tant que `messageReseau` est le message de succes de la mise en service : il s'efface quand la sonde,
     /// redemarree, est de retour sur le Wi-Fi (`SuiviSuccesReseau`). Une erreur n'a pas de suivi : elle reste.
     @State private var suiviSucces: SuiviSuccesReseau?
+    /// `messageReseau` est un message d'information (la cle seule, Wi-Fi garde), ni erreur ni succes suivi.
+    @State private var messageInformatif = false
     @State private var miseEnService = false
 
     var body: some View {
@@ -253,6 +255,7 @@ struct FenetreReglages: View {
                 if sonde.serie != nil {
                     Button("Oublier la sonde") {
                         messageReseau = nil
+                        messageInformatif = false
                         suiviSucces = nil
                         Task { await sonde.oublier() }
                     }
@@ -284,17 +287,24 @@ struct FenetreReglages: View {
                 // de passe est dans la sonde. L'app ne le garde ni ne l'affiche.
                 SecureField("Mot de passe", text: $motDePasseWifi,
                             prompt: Self.motDePasseEnregistre(sonde.etatSonde?.reseau) ? Text("Enregistré dans la sonde") : nil)
+                // Mot de passe laisse vide et Wi-Fi deja configure : seule la cle change, la sonde garde son Wi-Fi.
+                let envoiWifi = SondeMaillage.envoiWifi(wifiConfigure: sonde.wifiConfigure, motDePasse: motDePasseWifi)
                 HStack {
-                    Button(Self.titreBoutonAcces(empreinte: sonde.empreinteAcces)) {
+                    Button(Self.titreBoutonAcces(empreinte: sonde.empreinteAcces, envoiWifi: envoiWifi)) {
                         miseEnService = true
                         messageReseau = nil
+                        messageInformatif = false
                         suiviSucces = nil
                         let nom = Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi), mdp = motDePasseWifi
                         motDePasseWifi = ""
                         Task {
-                            if let erreur = await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp) {
+                            switch await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp) {
+                            case .echec(let erreur):
                                 messageReseau = erreur
-                            } else {
+                            case .cleSeule:
+                                messageReseau = String(localized: "Nouvelle clé rangée dans le trousseau. Le Wi-Fi de la sonde n'a pas changé.")
+                                messageInformatif = true
+                            case .cleEtWifi:
                                 messageReseau = String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
                                 brouillonWifi = nil
                                 var suivi = SuiviSuccesReseau()
@@ -306,8 +316,8 @@ struct FenetreReglages: View {
                             miseEnService = false
                         }
                     }
-                    .disabled(!sonde.miseEnServicePossible
-                              || Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi).isEmpty || miseEnService)
+                    .disabled(!sonde.miseEnServicePossible || miseEnService
+                              || (envoiWifi && Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi).isEmpty))
                     if miseEnService {
                         ProgressView().controlSize(.small)
                     }
@@ -317,9 +327,9 @@ struct FenetreReglages: View {
                 }
                 if let messageReseau {
                     Text(messageReseau).font(.caption)
-                        .foregroundStyle(suiviSucces == nil ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(suiviSucces == nil && !messageInformatif ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
                 }
-                Text("La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas.")
+                Text("La clé passe par l'USB, sonde branchée, et reste dans le trousseau de ce Mac. Avec la liaison « Wi-Fi », la sonde peut être débranchée et alimentée ailleurs. Le mot de passe du Wi-Fi va directement à la sonde : l'app ne le garde pas. Laissé vide, la sonde garde son Wi-Fi, ou rejoint un réseau ouvert si elle n'en a pas.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -442,9 +452,11 @@ struct FenetreReglages: View {
     }
 
     /// Titre du bouton de l'acces reseau : autoriser tant qu'il n'y a pas de cle, puis en regenerer une (le bouton
-    /// reste actif : une nouvelle cle remplace l'ancienne).
-    static func titreBoutonAcces(empreinte: String?) -> String {
-        empreinte == nil ? String(localized: "Autoriser l'accès réseau") : String(localized: "Régénérer une clé")
+    /// reste actif : une nouvelle cle remplace l'ancienne), seule si la sonde garde son Wi-Fi (`envoiWifi` faux :
+    /// mot de passe vide, Wi-Fi deja configure), avec le Wi-Fi sinon.
+    static func titreBoutonAcces(empreinte: String?, envoiWifi: Bool) -> String {
+        if empreinte == nil { return String(localized: "Autoriser l'accès réseau") }
+        return envoiWifi ? String(localized: "Régénérer la clé et changer le Wi-Fi") : String(localized: "Régénérer une clé")
     }
 
     /// Le Wi-Fi de la sonde est joint : le mot de passe est donc dans la sonde (l'invite du champ le dit). Le mot de

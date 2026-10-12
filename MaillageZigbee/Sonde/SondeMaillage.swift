@@ -307,37 +307,67 @@ final class SondeMaillage {
         deconnecter(.sansSonde)
     }
 
+    /// Ce qu'a fait la mise en service de l'acces par le reseau (`autoriserReseau`).
+    enum MiseEnService: Equatable {
+        /// La cle, puis le Wi-Fi : la sonde redemarre et rejoint le Wi-Fi.
+        case cleEtWifi
+        /// La cle seulement : la sonde garde son Wi-Fi (mot de passe laisse vide).
+        case cleSeule
+        /// Le message a montrer.
+        case echec(String)
+
+        var erreur: String? {
+            if case .echec(let m) = self { m } else { nil }
+        }
+    }
+
+    /// La sonde connectee a deja un Wi-Fi configure (`etat.reseau`, ou `bonjour.reseau`).
+    var wifiConfigure: Bool {
+        if etatSonde?.reseau != nil { return true }
+        if case .connectee(let b) = etat, b.reseau == true { return true }
+        return false
+    }
+
+    /// La mise en service envoie aussi le Wi-Fi : un mot de passe est saisi, ou la sonde n'a encore aucun Wi-Fi (un
+    /// mot de passe vide est alors un reseau ouvert). Mot de passe vide et Wi-Fi deja configure : la sonde garde le sien
+    /// et seule la cle change (constat 1 de la relecture finale : `wifi <nom> -` effacait son mot de passe).
+    static func envoiWifi(wifiConfigure: Bool, motDePasse: String) -> Bool {
+        !motDePasse.isEmpty || !wifiConfigure
+    }
+
     /// Mise en service de l'acces par le reseau (spec sonde Wi-Fi, 4.3), la cle d'abord (le Wi-Fi fait redemarrer la
     /// sonde) : alea de l'app, cle derivee par la carte, empreinte verifiee, cle rangee dans le trousseau ; puis le
-    /// Wi-Fi. nil si tout a reussi ; sinon le message a montrer.
-    func autoriserReseau(nomWifi: String, motDePasse: String) async -> String? {
+    /// Wi-Fi, sauf si la sonde garde le sien (`envoiWifi`).
+    func autoriserReseau(nomWifi: String, motDePasse: String) async -> MiseEnService {
         guard miseEnServicePossible, let s = sonde, let ieee else {
-            return String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée.")
+            return .echec(String(localized: "Branchez la sonde 1.1.0 en USB, hors tournée."))
         }
+        let wifi = Self.envoiWifi(wifiConfigure: wifiConfigure, motDePasse: motDePasse)
         let nom = Data(nomWifi.utf8), mdp = Data(motDePasse.utf8)
-        guard (1...32).contains(nom.count), mdp.isEmpty || (8...63).contains(mdp.count) else {
-            return String(localized: "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères.")
+        guard !wifi || (1...32).contains(nom.count), mdp.isEmpty || (8...63).contains(mdp.count) else {
+            return .echec(String(localized: "Nom du Wi-Fi de 1 à 32 octets, mot de passe vide ou de 8 à 63 caractères."))
         }
         do {
             let c = try await s.nouvelleCle(alea: H1.aleatoire(32))
             guard let hexa = c.cle, let cle = H1.octets(hexa: hexa), cle.count == 32, H1.kid(cle: cle) == c.empreinte else {
-                return String(localized: "La sonde a rendu une clé invalide : rien n'a été enregistré.")
+                return .echec(String(localized: "La sonde a rendu une clé invalide : rien n'a été enregistré."))
             }
             try trousseau.ranger(identifiant: ieee, cle: hexa)
             relireCleReseau()
         } catch {
-            return error.localizedDescription
+            return .echec(error.localizedDescription)
         }
+        guard wifi else { return .cleSeule }
         // La cle est rangee des deux cotes : si le Wi-Fi echoue, recommencer remplace simplement la cle.
         let sansConfirmation = String(localized: "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez.")
         do {
             let w = try await s.configurerWifi(nom: nom, motDePasse: mdp)
-            guard w.configure else { return sansConfirmation }
+            guard w.configure else { return .echec(sansConfirmation) }
             self.nomWifi = nomWifi
             preferences.set(nomWifi, forKey: Self.cleNomWifi)
-            return nil
+            return .cleEtWifi
         } catch {
-            return sansConfirmation
+            return .echec(sansConfirmation)
         }
     }
 

@@ -206,13 +206,25 @@ struct AffichageSondeTests {
                 == String(localized: "non connecté"))
     }
 
-    /// Acces reseau : « autorisé · clé 630DCD29 » ou « non autorisé » ; le bouton autorise, puis regenere une cle.
+    /// Acces reseau : « autorisé · clé 630DCD29 » ou « non autorisé » ; le bouton autorise, puis regenere une cle,
+    /// seule quand la sonde garde son Wi-Fi, avec le Wi-Fi sinon.
     @Test func accesReseau() {
         let empreinte = "630DCD29"
         #expect(FenetreReglages.texteAccesReseau(empreinte: empreinte) == String(localized: "autorisé · clé \(empreinte)"))
         #expect(FenetreReglages.texteAccesReseau(empreinte: nil) == String(localized: "non autorisé"))
-        #expect(FenetreReglages.titreBoutonAcces(empreinte: nil) == String(localized: "Autoriser l'accès réseau"))
-        #expect(FenetreReglages.titreBoutonAcces(empreinte: empreinte) == String(localized: "Régénérer une clé"))
+        #expect(FenetreReglages.titreBoutonAcces(empreinte: nil, envoiWifi: true) == String(localized: "Autoriser l'accès réseau"))
+        #expect(FenetreReglages.titreBoutonAcces(empreinte: empreinte, envoiWifi: false) == String(localized: "Régénérer une clé"))
+        #expect(FenetreReglages.titreBoutonAcces(empreinte: empreinte, envoiWifi: true)
+                == String(localized: "Régénérer la clé et changer le Wi-Fi"))
+    }
+
+    /// Le Wi-Fi part avec la cle si un mot de passe est saisi ou si la sonde n'en a aucun (reseau ouvert) ; mot de
+    /// passe vide et Wi-Fi configure : la sonde garde le sien (constat 1 de la relecture finale).
+    @Test func envoiDuWifi() {
+        #expect(!SondeMaillage.envoiWifi(wifiConfigure: true, motDePasse: ""))
+        #expect(SondeMaillage.envoiWifi(wifiConfigure: true, motDePasse: "motdepasse"))
+        #expect(SondeMaillage.envoiWifi(wifiConfigure: false, motDePasse: ""))
+        #expect(SondeMaillage.envoiWifi(wifiConfigure: false, motDePasse: "motdepasse"))
     }
 
     /// Les trois liaisons et le chemin en service se lisent « Automatique », « USB », « Wi-Fi ».
