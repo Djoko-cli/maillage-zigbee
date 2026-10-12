@@ -154,7 +154,21 @@ Commande cle(char *mots[kMotsMax], size_t n) {
   return c;
 }
 
+// La copie de travail de lireCommande, effacee a chaque sortie (ecritures volatiles : l'optimiseur ne les retire
+// pas), puis rendue au crochet des tests.
+struct CopieEffacee {
+  char *p;
+  size_t n;
+  ~CopieEffacee() {
+    volatile char *v = p;
+    for (size_t i = 0; i < n; i++) v[i] = 0;
+    if (gCopieCommandeFinie) gCopieCommandeFinie(p, n);
+  }
+};
+
 }  // namespace
+
+void (*gCopieCommandeFinie)(const char *copie, size_t n) = nullptr;
 
 Commande lireCommande(const char *ligne) {
   Commande c;
@@ -163,6 +177,7 @@ Commande lireCommande(const char *ligne) {
     return c;
   }
   char copie[kLigneMax + 1];
+  const CopieEffacee garde{copie, sizeof(copie)};
   strcpy(copie, ligne);
   char *mots[kMotsMax] = {};
   const size_t n = couper(copie, mots);

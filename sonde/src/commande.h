@@ -90,4 +90,10 @@ bool lireCourt(const char *s, uint16_t *v);
 // intact.
 bool lireHexa(const char *s, uint8_t *out, size_t max, size_t *n);
 
+// La copie de travail de la ligne (elle a porte le mot de passe d'une ligne wifi, en hexa) est effacee avant de
+// disparaitre, a chaque sortie.
 Commande lireCommande(const char *ligne);
+
+// Crochet des tests d'hote : appele avec la copie de travail de lireCommande juste avant sa disparition (apres son
+// effacement). nullptr sur la carte.
+extern void (*gCopieCommandeFinie)(const char *copie, size_t n);

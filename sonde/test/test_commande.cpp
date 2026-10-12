@@ -7,7 +7,30 @@
 
 static bool est(const char *ligne, TypeCommande t) { return lireCommande(ligne).type == t; }
 
+// Copie de travail de lireCommande vue a sa disparition : sa taille, et si elle est toute a zero.
+static size_t gCopieVue = 0;
+static bool gCopieVide = false;
+static void observerCopie(const char *copie, size_t n) {
+  gCopieVue = n;
+  gCopieVide = true;
+  for (size_t i = 0; i < n; i++)
+    if (copie[i]) gCopieVide = false;
+}
+
 int main() {
+  // La copie de travail de la ligne est effacee a chaque sortie de lireCommande : une ligne wifi y a porte le mot de
+  // passe en hexa (relecture finale, mineur reporte de la tache 8).
+  gCopieCommandeFinie = observerCopie;
+  CHECK(lireCommande("wifi 4D61 6D6F7464657061737365 1").type == TypeCommande::kWifi, "wifi lue");
+  CHECK(gCopieVue == 256 && gCopieVide, "copie effacee apres une ligne wifi");
+  gCopieVue = 0;
+  CHECK(lireCommande("wifi 4D61 6D6F74 1").type == TypeCommande::kSyntaxe, "mot de passe trop court");
+  CHECK(gCopieVue == 256 && gCopieVide, "copie effacee apres un refus");
+  gCopieVue = 0;
+  CHECK(lireCommande("etat").type == TypeCommande::kEtat, "etat lue");
+  CHECK(gCopieVue == 256 && gCopieVide, "copie effacee apres une commande simple");
+  gCopieCommandeFinie = nullptr;
+
   // Noms
   CHECK(nomValide("SONDE-Z1"), "defaut");
   CHECK(nomValide("a"), "un caractere");
