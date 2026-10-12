@@ -306,4 +306,27 @@ struct AffichageSondeTests {
         #expect(TexteTournee.duree(42).contains("42"))
         #expect(TexteTournee.duree(90).contains("1") && TexteTournee.duree(90).contains("30"))
     }
+
+    /// Le champ « Nom du Wi-Fi » (banc du 11/10) : le nom garde tant que rien n'est tape ; ce qui est tape ensuite,
+    /// meme un champ efface ; rien sans nom garde ni brouillon. Remis a nil (fermeture de la fenetre, mise en service
+    /// reussie), le brouillon redonne le nom garde.
+    @Test func nomDuWifiAffiche() {
+        #expect(FenetreReglages.nomWifiAffiche(brouillon: nil, garde: "Maison") == "Maison")
+        #expect(FenetreReglages.nomWifiAffiche(brouillon: "", garde: "Maison") == "", "efface a la main : le champ reste vide")
+        #expect(FenetreReglages.nomWifiAffiche(brouillon: "Bureau", garde: "Maison") == "Bureau")
+        #expect(FenetreReglages.nomWifiAffiche(brouillon: nil, garde: nil) == "")
+        #expect(FenetreReglages.nomWifiAffiche(brouillon: "Bureau", garde: nil) == "Bureau")
+    }
+
+    /// La fermeture qui remet le brouillon du nom du Wi-Fi a nil est celle de la fenetre des Reglages, pas d'une autre.
+    @Test func fermetureDeLaFenetreDesReglages() async throws {
+        let (p, domaine) = try SondeMaillageTests.preferences()
+        defer { SondeMaillageTests.nettoyer(p, domaine) }
+        let sonde = SondeMaillage(preferences: p, actif: false)
+        let (fenetre, _) = try await ReglagesHauteurTests.fenetreSonde(sonde)
+        defer { fenetre.orderOut(nil); fenetre.contentViewController = nil }
+        #expect(FenetreReglages.estFenetreDesReglages(fenetre))
+        #expect(!FenetreReglages.estFenetreDesReglages(NSWindow()))
+        #expect(!FenetreReglages.estFenetreDesReglages(nil))
+    }
 }

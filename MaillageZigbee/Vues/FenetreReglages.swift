@@ -53,7 +53,10 @@ struct FenetreReglages: View {
     @State private var messageCapture: String?
     @State private var langue = LangueApp.lire()
     @State private var messageLangue: String?
-    @State private var nomWifi = ""
+    /// Le nom du Wi-Fi tape et pas encore mis en service ; nil tant que rien n'est tape depuis l'ouverture de la fenetre.
+    /// Le champ montre alors le nom garde (`SondeMaillage.nomWifi`). La fenetre est gardee a la fermeture : le brouillon
+    /// est remis a nil a la fermeture (`Self.estFenetreDesReglages`) et apres une mise en service reussie.
+    @State private var brouillonWifi: String?
     @State private var motDePasseWifi = ""
     @State private var messageReseau: String?
     /// Non nil tant que `messageReseau` est le message de succes de la mise en service : il s'efface quand la sonde,
@@ -86,8 +89,22 @@ struct FenetreReglages: View {
         .onAppear {
             if onglet == .general { ouverture.actualiser() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) {
+            if Self.estFenetreDesReglages($0.object) { brouillonWifi = nil }
+        }
         .onChange(of: sonde.etat) { suivreSuccesReseau() }
         .onChange(of: sonde.etatSonde?.reseau?.connecte) { suivreSuccesReseau() }
+    }
+
+    /// Le nom du Wi-Fi que montre le champ : le brouillon (meme vide : le nom a ete efface a la main), sinon le nom garde
+    /// a la derniere mise en service reussie, sinon rien.
+    static func nomWifiAffiche(brouillon: String?, garde: String?) -> String {
+        brouillon ?? garde ?? ""
+    }
+
+    /// `objet` (celui d'une notification de fenetre) est la fenetre des Reglages (`ControleurReglages`).
+    static func estFenetreDesReglages(_ objet: Any?) -> Bool {
+        (objet as? NSWindow)?.contentViewController is OngletsReglages
     }
 
     /// Fait avancer le suivi du message de succes de la mise en service ; l'efface quand la sonde est de retour.
@@ -260,8 +277,9 @@ struct FenetreReglages: View {
             if case .connectee(let b) = sonde.etat, !b.accepteReseau {
                 Text("Sonde 1.1.0 requise.").foregroundStyle(.secondary)
             } else {
-                TextField("Nom du Wi-Fi (2,4 GHz)", text: $nomWifi)
-                    .onAppear { if nomWifi.isEmpty, let n = sonde.nomWifi { nomWifi = n } }
+                TextField("Nom du Wi-Fi (2,4 GHz)", text: Binding(
+                    get: { Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi) },
+                    set: { brouillonWifi = $0 }))
                 // Vide des le clic, par construction : quand le Wi-Fi de la sonde est joint, l'invite dit que le mot
                 // de passe est dans la sonde. L'app ne le garde ni ne l'affiche.
                 SecureField("Mot de passe", text: $motDePasseWifi,
@@ -271,13 +289,14 @@ struct FenetreReglages: View {
                         miseEnService = true
                         messageReseau = nil
                         suiviSucces = nil
-                        let nom = nomWifi, mdp = motDePasseWifi
+                        let nom = Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi), mdp = motDePasseWifi
                         motDePasseWifi = ""
                         Task {
                             if let erreur = await sonde.autoriserReseau(nomWifi: nom, motDePasse: mdp) {
                                 messageReseau = erreur
                             } else {
                                 messageReseau = String(localized: "Accès réseau autorisé : la sonde redémarre et rejoint le Wi-Fi.")
+                                brouillonWifi = nil
                                 var suivi = SuiviSuccesReseau()
                                 // L'etat de depart : une sonde deja sur le Wi-Fi n'est « de retour » qu'apres un redemarrage.
                                 _ = suivi.observer(sondeJointe: sonde.etat.estConnectee,
@@ -287,7 +306,8 @@ struct FenetreReglages: View {
                             miseEnService = false
                         }
                     }
-                    .disabled(!sonde.miseEnServicePossible || nomWifi.isEmpty || miseEnService)
+                    .disabled(!sonde.miseEnServicePossible
+                              || Self.nomWifiAffiche(brouillon: brouillonWifi, garde: sonde.nomWifi).isEmpty || miseEnService)
                     if miseEnService {
                         ProgressView().controlSize(.small)
                     }
