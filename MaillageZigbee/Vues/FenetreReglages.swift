@@ -240,9 +240,11 @@ struct FenetreReglages: View {
                         Task { await sonde.oublier() }
                     }
                 }
-                Text("Seul le port choisi est ouvert. Un autre ESP32-C6 branché n'est jamais ouvert : ne le choisissez pas.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if sonde.reglageChemin != .reseau {
+                    Text("Seul le port choisi est ouvert. Un autre ESP32-C6 branché n'est jamais ouvert : ne le choisissez pas.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         if surveillance.mode != .demo {
@@ -259,6 +261,7 @@ struct FenetreReglages: View {
                 Text("Sonde 1.1.0 requise.").foregroundStyle(.secondary)
             } else {
                 TextField("Nom du Wi-Fi (2,4 GHz)", text: $nomWifi)
+                    .onAppear { if nomWifi.isEmpty, let n = sonde.nomWifi { nomWifi = n } }
                 // Vide des le clic, par construction : quand le Wi-Fi de la sonde est joint, l'invite dit que le mot
                 // de passe est dans la sonde. L'app ne le garde ni ne l'affiche.
                 SecureField("Mot de passe", text: $motDePasseWifi,

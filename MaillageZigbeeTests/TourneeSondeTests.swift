@@ -207,8 +207,13 @@ struct SondeReseauTests {
         let iWifi = canal.envoyes.firstIndex { $0.hasPrefix("wifi ") }
         #expect(iCle != nil && iWifi != nil && iCle! < iWifi!, "la cle d'abord, le Wi-Fi ensuite")
         #expect(s.cleReseauConnue)
+        #expect(s.nomWifi == "Mon Wifi")
+        let relue = SondeMaillage(preferences: p, actif: true, ouvrirCanal: { _ in canal }, trousseau: t,
+                                  delaiPremiereTournee: .seconds(3600))
+        #expect(relue.nomWifi == "Mon Wifi", "le nom du Wi-Fi est garde d'un lancement a l'autre")
         await s.oublier()
         #expect(t.identifiants.isEmpty, "oublier la sonde efface sa cle de ce Mac")
+        #expect(s.nomWifi == nil && p.string(forKey: SondeMaillage.cleNomWifi) == nil)
     }
 
     /// `cleReseauConnue` est un etat observable : il suit la mise en service et l'oubli sans que rien d'autre ne

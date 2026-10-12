@@ -45,6 +45,9 @@ final class SondeMaillage {
     static let cleNom = "sondeNom"
     /// Adresse longue de la sonde retenue (compte de sa cle dans le trousseau), donnee par `bonjour` en USB.
     static let cleIeee = "sondeIeee"
+    /// Nom du Wi-Fi donne a la sonde a sa derniere mise en service reussie (jamais le mot de passe) : la page Sonde le
+    /// remontre, la carte ne le rendant pas dans `etat`.
+    static let cleNomWifi = "sondeNomWifi"
     /// Journal des pages envoyees a la sonde dans les 10 dernieres minutes : `[instant, pages, instant, pages...]`
     /// (`BudgetPages.enregistrable`).
     static let cleJournalPages = "sondeJournalPages"
@@ -88,6 +91,8 @@ final class SondeMaillage {
     private(set) var acces: Acces?
     /// Adresse longue de la sonde retenue (compte de sa cle dans le trousseau) ; nil avant sa premiere connexion USB.
     private(set) var ieee: String?
+    /// Nom du Wi-Fi de la derniere mise en service reussie (`cleNomWifi`).
+    private(set) var nomWifi: String?
     /// La sonde retenue est annoncee par Bonjour sur le reseau local.
     private(set) var annoncee = false
     var reglageChemin: ReglageChemin = .automatique {
@@ -206,6 +211,7 @@ final class SondeMaillage {
         serie = actif ? preferences.string(forKey: Self.cleSerie) : nil
         nom = actif ? preferences.string(forKey: Self.cleNom) : nil
         ieee = actif ? preferences.string(forKey: Self.cleIeee) : nil
+        nomWifi = actif ? preferences.string(forKey: Self.cleNomWifi) : nil
         reglageChemin = actif
             ? ReglageChemin(rawValue: preferences.string(forKey: CheminSonde.cleReglage) ?? "") ?? .automatique
             : .automatique
@@ -284,6 +290,8 @@ final class SondeMaillage {
         preferences.removeObject(forKey: Self.cleIeee)
         ieee = nil
         relireCleReseau()
+        preferences.removeObject(forKey: Self.cleNomWifi)
+        nomWifi = nil
         annoncee = false
         preferences.removeObject(forKey: Self.cleSerie)
         serie = nil
@@ -318,7 +326,10 @@ final class SondeMaillage {
         let sansConfirmation = String(localized: "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez.")
         do {
             let w = try await s.configurerWifi(nom: nom, motDePasse: mdp)
-            return w.configure ? nil : sansConfirmation
+            guard w.configure else { return sansConfirmation }
+            self.nomWifi = nomWifi
+            preferences.set(nomWifi, forKey: Self.cleNomWifi)
+            return nil
         } catch {
             return sansConfirmation
         }
