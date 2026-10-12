@@ -6,7 +6,9 @@
 //  La couleur a montrer a chaque instant, par ordre de priorite (meme voyant
 //  que le pont Amaran : status_led.cpp, memes couleurs, memes durees) :
 //  1. identification demandee par l'app Hue : arc-en-ciel (un tour de roue
-//     en 2 s, par pas de 40 ms), pendant toute l'identification ;
+//     en 2 s, par pas de 40 ms), pendant toute l'identification, et au moins
+//     un tour complet : le pont Hue peut n'identifier qu'un instant (banc du
+//     12/10 : un eclair rouge, puis la lueur du repos) ;
 //  2. recherche d'un reseau ou rattachement : pulsation bleue lente (2 s) ;
 //  3. adhesion : deux eclairs verts rapides (100 ms, pause, 100 ms) ;
 //  4. suspendue : un bref eclair orange (100 ms) toutes les 5 s, le premier
@@ -55,7 +57,10 @@ class Voyant {
   };
 
   void identifier(bool actif, uint32_t t) {
-    if (actif && !ident_) debutIdent_ = t;
+    if (actif && !ident_) {
+      debutIdent_ = t;
+      tourIdent_ = true;
+    }
     ident_ = actif;
   }
   void chercher(bool actif, uint32_t t) {
@@ -80,7 +85,9 @@ class Voyant {
   }
 
   Rgb teinte(uint32_t t) {
-    if (ident_) {
+    // Identification finie, et son premier tour de roue aussi : oubliee.
+    if (tourIdent_ && !ident_ && t - debutIdent_ >= kArcMs) tourIdent_ = false;
+    if (ident_ || tourIdent_) {
       repos_ = false;
       // Par pas de kPasMs : la couleur ne change que 25 fois par seconde.
       const uint32_t phase = (t - debutIdent_) / kPasMs * kPasMs % kArcMs;
@@ -153,6 +160,7 @@ class Voyant {
   }
 
   bool ident_ = false;
+  bool tourIdent_ = false;  // premier tour de roue pas encore fini
   uint32_t debutIdent_ = 0;
   bool cherche_ = false;
   uint32_t debutPulsation_ = 0;

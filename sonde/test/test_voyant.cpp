@@ -74,6 +74,19 @@ int main() {
     CHECK(v.teinte(5000) == kNoir && v.teinte(5300) == (Rgb{8, 8, 8}), "fin : retour au repos, lueur");
   }
 
+  // Identification d'un instant (pont Hue, banc du 12/10) : un tour de roue
+  // complet quand meme, puis le repos.
+  {
+    Voyant v;
+    v.identifier(true, 1000);
+    v.identifier(false, 1100);
+    CHECK(v.teinte(2000) == (Rgb{0, 12, 12}), "identification breve : le tour continue");
+    CHECK(v.teinte(2999) != kNoir && v.teinte(2999) != (Rgb{8, 8, 8}), "identification breve : jusqu'au bout du tour");
+    CHECK(v.teinte(3000) == kNoir, "identification breve : repos apres un tour");
+    v.identifier(true, 4000);
+    CHECK(v.teinte(4000) == (Rgb{24, 0, 0}), "nouvelle identification : le tour repart du rouge");
+  }
+
   // Recherche : pulsation bleue de 2 s, du noir au plein et retour.
   Voyant v;
   v.chercher(true, 1000);
@@ -148,12 +161,12 @@ int main() {
     CHECK(p.teinte(0) == kOrange && p.teinte(1000) == kNoir, "orange devant la veille de la lampe");
     p.identifier(true, 2000);
     CHECK(p.teinte(2000) == (Rgb{24, 0, 0}), "identification devant l'orange");
-    p.identifier(false, 2500);
-    p.chercher(true, 2500);
-    CHECK(p.teinte(3500) == kBleu(24), "recherche devant l'orange");
-    p.chercher(false, 4000);
-    p.adherer(4000);
-    CHECK(p.teinte(4000) == kVert && p.teinte(4100) == kNoir && p.teinte(4200) == kVert, "adhesion devant l'orange");
+    p.identifier(false, 4000);  // apres un tour complet
+    p.chercher(true, 4000);
+    CHECK(p.teinte(5000) == kBleu(24), "recherche devant l'orange");
+    p.chercher(false, 6000);
+    p.adherer(6000);
+    CHECK(p.teinte(6000) == kVert && p.teinte(6100) == kNoir && p.teinte(6200) == kVert, "adhesion devant l'orange");
     p.suspendre(true, 10000);
     CHECK(p.teinte(10000) == kOrange && p.teinte(10100) == kOrange, "suspendue + orange");
     CHECK(p.teinte(11000) == kNoir && p.teinte(12000) == kOrange, "entre deux eclairs, l'orange lent continue");
@@ -178,9 +191,9 @@ int main() {
   y.identifier(true, 0xFFFFFF00u);
   CHECK(y.teinte(0xFFFFFF00u) == (Rgb{24, 0, 0}) && y.teinte(0xFFFFFF00u + 1000) == (Rgb{0, 12, 12}),
         "arc-en-ciel a travers zero");
-  y.identifier(false, 0xFFFFFF00u + 1100);
-  // 1868 ms apres le debut de l'orange : seconde phase, eteinte ; 2100 : allumee.
-  CHECK(y.teinte(0xFFFFFF00u + 1100) == kNoir && y.teinte(0xFFFFFF00u + 1332) == kOrange, "retour a l'orange, phase gardee");
+  y.identifier(false, 0xFFFFFF00u + 2000);  // apres un tour complet
+  // 2768 ms apres le debut de l'orange : allumee ; 3000 : eteinte.
+  CHECK(y.teinte(0xFFFFFF00u + 2000) == kOrange && y.teinte(0xFFFFFF00u + 2232) == kNoir, "retour a l'orange, phase gardee");
 
   return bilan("voyant");
 }
