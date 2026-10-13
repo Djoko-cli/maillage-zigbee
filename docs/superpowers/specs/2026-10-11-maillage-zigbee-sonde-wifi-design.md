@@ -1,6 +1,6 @@
 # Maillage Zigbee : la sonde en Wi-Fi (sonde 1.1.0, app 1.1.0)
 
-> **Statut : conception validée** par Majid le 11/10/2026, en chat, section
+> **Statut : conception validée** par Djoko le 11/10/2026, en chat, section
 > par section ; spec écrite à relire avant le plan (voie complète : nouveau
 > sous-système, sonde et app).
 >
@@ -23,7 +23,7 @@ La sonde vit sur un chargeur mural, loin du Mac, et l'app la trouve et
 l'interroge par le réseau local, avec la même tournée et le même résultat
 qu'en USB. L'USB reste le chemin de la mise en service et du dépannage.
 
-Décisions de Majid :
+Décisions de Djoko :
 
 - Wi-Fi plutôt que BLE (06/10) ; 2,4 GHz (le C6 n'a pas de 5 GHz).
 - Le même protocole en lignes JSON, sur TCP ; la sonde est trouvée par Bonjour.
@@ -246,7 +246,7 @@ s'y connecter sur le réseau local) et `NSBonjourServices` avec
   une commande, lecture des signaux), pour valider la sonde en réseau avant
   l'app ; la clé lui est donnée par une commande de terminal masquée, jamais
   dans le chat.
-- **Banc avec Majid :** (1) flash 1.1.0 sans effacement, la sonde reste
+- **Banc avec Djoko :** (1) flash 1.1.0 sans effacement, la sonde reste
   membre ; (2) mise en service par l'USB depuis l'app ; (3) sonde sur chargeur
   mural, tournées par le réseau ; (4) une nuit de comparaison avec E6.
 

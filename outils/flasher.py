@@ -18,7 +18,7 @@ Autre carte a l'une des etapes 1 ou 3 : refus, rien n'est ecrit.
 --effacer : effacement complet d'abord (premier flash : la sonde quitte le reseau Hue).
 --env : variante de sonde/platformio.ini, sonde seulement (la variante de verification verif, a cle
 factice, ne se flashe jamais).
-Aucun agent ne lance cet outil : seul le controleur, avec Majid (plan, contraintes globales).
+Aucun agent ne lance cet outil : seul le controleur, avec Djoko (plan, contraintes globales).
 """
 import json
 import os

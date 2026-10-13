@@ -244,7 +244,7 @@ void demarrer() {
   esp_zb_cfg_t config = {};
   config.install_code_policy = false;
   // Appareil final, jamais routeur : la sonde ne relaie le trafic de
-  // personne (decision de Majid, 07/10).
+  // personne (decision de Djoko, 07/10).
   config.esp_zb_role = ESP_ZB_DEVICE_TYPE_ED;
   config.nwk_cfg.zed_cfg.ed_timeout = ESP_ZB_ED_AGING_TIMEOUT_64MIN;
   config.nwk_cfg.zed_cfg.keep_alive = kMaintienMs;

@@ -5,7 +5,7 @@ import Foundation
 /// longue (l'id de son sujet, et `details["ieee"]`).
 /// - La premiere lecture d'un pont est un etat initial : aucun evenement. Un autre pont (`domicile`) repart de zero.
 /// - `connected` puis `disconnected`, `connectivity_issue` ou `unidirectional_incoming` **a deux lectures de suite**
-///   (choix de Majid, 09/10 : un decrochage d'une seule lecture n'alerte pas) : « disparu », date de la premiere de
+///   (choix de Djoko, 09/10 : un decrochage d'une seule lecture n'alerte pas) : « disparu », date de la premiere de
 ///   ces deux lectures ; le retour a `connected` ensuite : « revenu ». Perdu a une lecture puis de nouveau
 ///   `connected` : aucun evenement.
 /// - Un etat absent, ou que l'app ne connait pas (`unknown`), ne change rien. Un appareil sorti de la liste du pont

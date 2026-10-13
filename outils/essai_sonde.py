@@ -9,7 +9,7 @@ Commandes :
   table <cible> [<delai ms>]      table des voisins d'un routeur (E2)
   routes <cible> [<delai ms>]     table de routage (E4)
   echecs <cible> [<delai ms>] --accord   emissions et echecs (E5 : la lampe interrogee devient sourde
-                                  ~31 ms ; exige --accord, donc l'accord explicite de Majid ; retiree
+                                  ~31 ms ; exige --accord, donc l'accord explicite de Djoko ; retiree
                                   du firmware 1.0.0, qui repond inconnue)
   tournee [<delai ms>]            parcours en largeur depuis le pont (E3)
   nuit <heures> [<periode s>]     etat et tournee toutes les <periode> s, 900 par defaut (E6)
@@ -203,7 +203,7 @@ def main(argv):
     args = [a for a in args if a != "--accord"]
     if commande == "echecs" and not accord:
         print("echecs rend la lampe interrogee sourde ~31 ms (E5) : a n'utiliser qu'avec l'accord explicite de "
-              "Majid, en ajoutant --accord")
+              "Djoko, en ajoutant --accord")
         return 2
     dossier = dossier_du_jour()
     journal = os.path.join(dossier, "sonde.jsonl")

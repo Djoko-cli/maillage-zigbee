@@ -113,7 +113,7 @@ final class NomsPont {
     /// Relecture du pont.
     nonisolated static let periodeLecture: Duration = .seconds(5 * 60)
     /// Un clic sur « Identifier » envoie ce nombre d'identifications, espacees de `intervalleIdentification` : une seule,
-    /// choix de Majid au banc (09/10) ; un autre clic en redemande une.
+    /// choix de Djoko au banc (09/10) ; un autre clic en redemande une.
     nonisolated static let nombreIdentifications = 1
     nonisolated static let intervalleIdentification: Duration = .seconds(2)
 

@@ -716,7 +716,7 @@ struct TourneeSondeTests {
     }
 }
 
-/// Passe complementaire (decision de Majid du 08/10) : horloge et attentes simulees, sonde rejouee.
+/// Passe complementaire (decision de Djoko du 08/10) : horloge et attentes simulees, sonde rejouee.
 @MainActor
 @Suite("Passe complementaire des routes reportees dans l'app", .timeLimit(.minutes(1)))
 struct PasseComplementaireTests {

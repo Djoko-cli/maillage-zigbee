@@ -370,7 +370,7 @@ struct SurveillanceTests {
         lire(lecture(0, [.deconnecte, .connecte, .connecte, .connecte]))
         #expect(s.evenements.isEmpty && envoyees.isEmpty, "premiere lecture : etat initial")
         lire(lecture(5, [.deconnecte, .deconnecte, .problemeConnexion, .entrantSeul]))
-        #expect(s.evenements.isEmpty && envoyees.isEmpty, "une seule lecture injoignable : pas encore (choix de Majid)")
+        #expect(s.evenements.isEmpty && envoyees.isEmpty, "une seule lecture injoignable : pas encore (choix de Djoko)")
         lire(lecture(10, [.deconnecte, .deconnecte, .problemeConnexion, .entrantSeul]))
         #expect(s.evenements.map(\.type) == [.appareilDisparu, .appareilDisparu, .appareilDisparu])
         #expect(s.evenements.map { $0.sujet?.nom } == ["Lampe 1", "Lampe 2", "Lampe 3"])

@@ -1,4 +1,4 @@
-# Secrets et donnees reelles du reseau de Majid : jamais dans le depot
+# Secrets et donnees reelles du reseau de Djoko : jamais dans le depot
 # (spec de la sonde, section 5).
 sonde/cle_hue.local.h
 outils/sonde.local.json

@@ -25,7 +25,7 @@
 - Délais de l'app par le réseau : ceux de l'USB **+ 3 s** par requête.
 - Version : sonde **1.1.0**, app **1.1.0** ; une sonde 1.0.0 reste servie par l'USB, la partie réseau des Réglages est alors grisée (« Sonde 1.1.0 requise »).
 - Dépôt public : **valeurs inventées** dans tout le code, les tests et les exemples ; `python3 outils/garde.py` avant chaque commit ; commits en français sans accents, `git add` explicite, terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ; auteur `Djoko-cli <12185352+Djoko-cli@users.noreply.github.com>`.
-- Aucun agent ne flashe, n'ouvre de port série ni n'utilise le vrai trousseau : les étapes de banc (tâches 10 et 20) se font avec Majid.
+- Aucun agent ne flashe, n'ouvre de port série ni n'utilise le vrai trousseau : les étapes de banc (tâches 10 et 20) se font avec Djoko.
 - Ne jamais écrire dans `~/Dev/maillage-thread` ni dans le dépôt benq : on y lit seulement les fichiers à recopier.
 
 ## Review Focus
@@ -2259,16 +2259,16 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 10: Banc de la sonde 1.1.0 (avec Majid)
+### Task 10: Banc de la sonde 1.1.0 (avec Djoko)
 
 Rien à coder. Chaque étape se fait dans un onglet du Terminal de l'app, doublé d'un guetteur en arrière-plan ; Maillage Zigbee est quitté avant tout flash.
 
 - [x] **Step 1: Flash sans effacement**, `python3 outils/flasher.py` ; puis `python3 outils/essai_sonde.py etat` toutes les 8 s jusqu'à `"membre":true` (2 min au plus). Attendu : la sonde reste membre (nouvelle table de partitions, `zb_storage` en place), `bonjour.version` = `1.1.0`, `bonjour.reseau` = `false`, pas d'objet `reseau` dans `etat`.
 - [x] **Step 2: Clé**, `python3 outils/sonde_reseau.py cle` : attendu « Cle rangee… empreinte XXXXXXXX ».
-- [x] **Step 3: Wi-Fi**, Majid lance lui-même `python3 outils/sonde_reseau.py wifi` dans un onglet du Terminal (saisie masquée) ; la sonde redémarre ; `etat` par l'USB : `reseau.connecte` = `true`, canal et signal présents, la sonde est membre.
+- [x] **Step 3: Wi-Fi**, Djoko lance lui-même `python3 outils/sonde_reseau.py wifi` dans un onglet du Terminal (saisie masquée) ; la sonde redémarre ; `etat` par l'USB : `reseau.connecte` = `true`, canal et signal présents, la sonde est membre.
 - [x] **Step 4: Réseau**, `python3 outils/sonde_reseau.py etat`, puis `table 0000` : réponses complètes ; `ecoute 600` pendant une tournée de l'outil USB : des lignes signal arrivent.
 - [x] **Step 5: Refus**, à la main avec le client Python (`c.commande("oubli")`) : attendu `{"v":1,"t":"erreur","erreur":"refuse"}`, la sonde reste membre.
-- [x] **Step 6: Chargeur mural**, Majid débranche la sonde du Mac et la branche sur un chargeur ; `etat` et `table 0000` par le réseau ; `membre` vrai.
+- [x] **Step 6: Chargeur mural**, Djoko débranche la sonde du Mac et la branche sur un chargeur ; `etat` et `table 0000` par le réseau ; `membre` vrai.
 - [x] **Step 7: Bilan** dans la mémoire du projet ; la partie 2 commence.
 
 ---
@@ -3966,11 +3966,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 20: Banc de l'app 1.1.0 (avec Majid)
+### Task 20: Banc de l'app 1.1.0 (avec Djoko)
 
-- [x] **Step 1:** l'app compilée de la branche est lancée ; macOS demande l'accès au réseau local : Majid l'accorde.
-- [x] **Step 2:** sonde branchée en USB : Réglages › Sonde, chemin « Automatique », « Autoriser l'accès réseau » avec le Wi-Fi saisi par Majid ; la sonde redémarre ; l'app la retrouve par l'USB ; « Wi-Fi de la sonde : connecté · canal … ».
-- [x] **Step 3:** Majid débranche la sonde et la met sur un chargeur mural : l'état passe à « Réseau », une tournée complète passe par le réseau, le journal reçoit les signaux.
+- [x] **Step 1:** l'app compilée de la branche est lancée ; macOS demande l'accès au réseau local : Djoko l'accorde.
+- [x] **Step 2:** sonde branchée en USB : Réglages › Sonde, chemin « Automatique », « Autoriser l'accès réseau » avec le Wi-Fi saisi par Djoko ; la sonde redémarre ; l'app la retrouve par l'USB ; « Wi-Fi de la sonde : connecté · canal … ».
+- [x] **Step 3:** Djoko débranche la sonde et la met sur un chargeur mural : l'état passe à « Réseau », une tournée complète passe par le réseau, le journal reçoit les signaux.
 - [x] **Step 4:** réglage « USB seulement » : la sonde sur chargeur devient « absente » ; retour à « Automatique » : « Réseau » de nouveau.
 - [x] **Step 5:** on rebranche la sonde en USB : l'app bascule sur l'USB.
 - [ ] **Step 6:** une nuit sonde sur chargeur, l'app en marche ; comparaison avec E6 (pertes de parent par tournée, tables reçues).

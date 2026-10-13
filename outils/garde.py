@@ -3,7 +3,7 @@
 
   python3 outils/garde.py
 
-Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifiants du reseau de Majid, un
+Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifiants du reseau de Djoko, un
 par ligne (adresses longues et courtes, PAN, EPID, identifiant du pont, MAC des cartes, noms) ; les lignes
 vides et celles qui commencent par « # » sont ignorees. Depuis un worktree git, ou ce fichier ignore n'est
 pas, la garde prend celui du depot principal. Echoue (code 1) si l'un des identifiants apparait dans un

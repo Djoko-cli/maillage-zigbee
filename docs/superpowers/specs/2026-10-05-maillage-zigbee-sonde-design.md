@@ -1,6 +1,6 @@
 # Maillage Zigbee : conception de la sonde (morceau 1)
 
-> **Statut : conception validée** par Majid le 05/10/2026, section par
+> **Statut : conception validée** par Djoko le 05/10/2026, section par
 > section (1 à 6). Un essai sur la carte ouvre le plan d'implémentation
 > (section 4) ; ses résultats iront dans la section 8.
 >
@@ -10,7 +10,7 @@
 > **Révision du 07/10 après l'essai (section 8).**
 > - la sonde reste **appareil final, point d'accès On/Off Light** ; le repli
 >   en routeur et la lampe variable sont retirés : la sonde ne sera jamais
->   routeur, elle ne relaie le trafic de personne (décision de Majid) ;
+>   routeur, elle ne relaie le trafic de personne (décision de Djoko) ;
 > - `routes` est gardée (E4), avec 255 places par table (section 2) ;
 > - `echecs` est retirée (E5 : les lampes Hue ne répondent pas) ;
 > - les lignes `signal` sont gardées, pour le journal de l'app ;
@@ -35,13 +35,13 @@
 >
 > **Valeurs.** Toutes les adresses, tous les identifiants et tous les noms de
 > ce document sont **inventés** (section 5). Les vrais identifiants du réseau
-> de Majid ne sont jamais écrits dans le dépôt.
+> de Djoko ne sont jamais écrits dans le dépôt.
 
 ## 0. Contexte, but, décisions
 
 **Origine.** Maillage Thread (dépôt voisin `~/Dev/maillage-thread`) montre
-le maillage Thread de Majid grâce à une sonde ESP32-C6 membre du réseau qui
-interroge les routeurs. Le 05/10/2026, Majid demande la même chose pour son
+le maillage Thread de Djoko grâce à une sonde ESP32-C6 membre du réseau qui
+interroge les routeurs. Le 05/10/2026, Djoko demande la même chose pour son
 réseau Zigbee, uniquement des produits Philips Hue, pilotés par un Hue
 Bridge Pro (modèle `BSB003`).
 
@@ -62,7 +62,7 @@ par l'USB la table des voisins de n'importe quel routeur (adresse courte et
 longue, type, relation, LQI), et sa propre table de voisins. Elle ne dessine
 rien : l'app (morceau 2) orchestre la tournée, décode et affiche.
 
-**Décisions de Majid (05/10) :**
+**Décisions de Djoko (05/10) :**
 - une **app dédiée**, « Maillage Zigbee » ; la fusion avec Maillage Thread
   sera un **chantier futur séparé** ;
 - la **parité avec Maillage Thread** : graphe, fiche, journal, historique de
@@ -88,7 +88,7 @@ rien : l'app (morceau 2) orchestre la tournée, décode et affiche.
 
 ## 1. La sonde dans le réseau Hue (validée)
 
-**La carte.** Un ESP32-C6 SuperMini (flash de 4 Mo) désigné par Majid, le
+**La carte.** Un ESP32-C6 SuperMini (flash de 4 Mo) désigné par Djoko, le
 même que pour l'essai d'écoute. Sa MAC est notée hors du dépôt
 (`outils/sonde.local.json`, section 5). La sonde est branchée **en USB sur
 le Mac seulement** : pas d'accès par le réseau. Son emplacement compte peu,
@@ -106,7 +106,7 @@ portée.
   secteur. Version d'appareil du point d'accès `app_device_version = 1`
   (exigée par le pont Hue, constatée par d'autres avant nous).
 - **Jamais routeur** : le repli en routeur prévu si le pont refusait un
-  appareil final n'a pas servi (E1), et il est retiré (Majid, 07/10). La
+  appareil final n'a pas servi (E1), et il est retiré (Djoko, 07/10). La
   sonde ne relaie le trafic de personne.
 
 **L'adhésion.**
@@ -116,18 +116,18 @@ portée.
   échoue avec un message clair. La sonde la pose par
   `esp_zb_secur_TC_standard_distributed_key_set()` avant de chercher.
 - Tant qu'elle n'est pas membre, la sonde cherche un réseau (BDB *network
-  steering*) toutes les 30 s. Majid lance « Ajouter des lampes » dans l'app
+  steering*) toutes les 30 s. Djoko lance « Ajouter des lampes » dans l'app
   Hue ; le pont ouvre son réseau et la sonde le rejoint.
 - Elle garde ensuite le réseau en mémoire et s'y rattache seule après un
   redémarrage. La commande USB `oubli` la fait quitter le réseau proprement
   (section 2).
 
-**Dans l'app Hue,** elle apparaît comme une lampe ; Majid la nomme « Sonde
+**Dans l'app Hue,** elle apparaît comme une lampe ; Djoko la nomme « Sonde
 maillage » et la laisse hors de toute pièce.
 - **La lampe Hue ne pilote que la LED** : on/off et clignotement
   d'identification, pour reconnaître la carte. Elle ne suspend jamais la
   sonde : « Tout éteindre », une automatisation de départ ou une scène
-  globale la suspendraient sinon à l'insu de Majid. C'est un écart voulu
+  globale la suspendraient sinon à l'insu de Djoko. C'est un écart voulu
   avec la sonde Thread, dont l'interrupteur de Maison suspend la sonde.
 - La **suspension** passe par l'USB (`suspendre`, `reprendre`), depuis les
   Réglages de l'app (morceau 2).
@@ -307,7 +307,7 @@ tournée complète toutes les 15 minutes et au bouton rafraîchir.
   échecs d'émission du routeur interrogé.
 - Prix : le routeur reste sourd environ 31 ms pendant le balayage ; une
   trame qui lui arrive à ce moment est réémise, au pire perdue.
-- Testé à l'essai E5 sur **une seule lampe, avec l'accord de Majid** : la
+- Testé à l'essai E5 sur **une seule lampe, avec l'accord de Djoko** : la
   lampe n'a pas répondu. **Retiré** de la sonde 1.0.0 (`SONDE_ECHECS=0`) ;
   le code reste, hors compilation.
 - Les valeurs `scan_duration` `0xFE` (changement de canal) et `0xFF`
@@ -317,24 +317,24 @@ tournée complète toutes les 15 minutes et au bouton rafraîchir.
 ## 4. Essai, en tête du plan (validée)
 
 Comme pour la sonde Thread, le plan commence par un essai sur la carte, avec
-Majid. L'outil `outils/essai_sonde.py` pilote la sonde par l'USB et affiche
+Djoko. L'outil `outils/essai_sonde.py` pilote la sonde par l'USB et affiche
 les résultats ; ses journaux vont dans `essais/` (ignoré par git).
 
 | # | Ce qu'on vérifie | Réussi si |
 |---|---|---|
-| E1 | Adhésion en appareil final, point d'accès lampe | membre **du réseau Hue de Majid** (même PAN que l'essai d'écoute), visible dans l'app Hue, encore membre 30 min plus tard et après un redémarrage, sans *leave* du pont |
+| E1 | Adhésion en appareil final, point d'accès lampe | membre **du réseau Hue de Djoko** (même PAN que l'essai d'écoute), visible dans l'app Hue, encore membre 30 min plus tard et après un redémarrage, sans *leave* du pont |
 | E1 bis | Repli en lampe routeur, **seulement si E1 échoue** | mêmes critères |
 | E2 | `table` sur le pont (`0000`) et sur 3 lampes | toutes les pages arrivent, le total concorde ; durée et LQI notés. Si le pont ne répond pas, ses voisins se déduisent des tables des lampes |
 | E3 | Tournée complète, en largeur, depuis le pont | routeurs trouvés comparés au nombre de lampes de l'app Hue ; durée, pages, aucun refus `cadence` |
 | E4 | `Mgmt_Rtg_req` en trame APS brute sur une lampe | une réponse lisible ; sinon, pas de commande `routes` |
-| E5 | Taux d'échec (`Mgmt_NWK_Update_req`) sur une seule lampe, **avec l'accord de Majid** | compteurs vraisemblables, aucun effet visible sur la lampe ; puis décision ensemble |
+| E5 | Taux d'échec (`Mgmt_NWK_Update_req`) sur une seule lampe, **avec l'accord de Djoko** | compteurs vraisemblables, aucun effet visible sur la lampe ; puis décision ensemble |
 | E6 | Une nuit, tournée toutes les 15 minutes | toujours membre au matin ; lampes normales ; l'app Hue ne signale rien d'anormal |
-| E7 | Perte du parent, si Majid le veut : sa lampe parente coupée à l'interrupteur | la sonde se rattache à un autre routeur en moins de 2 minutes ; les lignes `signal` montrent ce que la pile a fait |
+| E7 | Perte du parent, si Djoko le veut : sa lampe parente coupée à l'interrupteur | la sonde se rattache à un autre routeur en moins de 2 minutes ; les lignes `signal` montrent ce que la pile a fait |
 
 - Si E1 et E1 bis échouent tous les deux, on s'arrête et on en reparle avec
-  Majid ; le repli naturel est l'écoute passive (voie B) sur la même carte,
+  Djoko ; le repli naturel est l'écoute passive (voie B) sur la même carte,
   avec le code de `outils/ecoute/`.
-- Rôle de Majid : lancer « Ajouter des lampes » dans l'app Hue, regarder
+- Rôle de Djoko : lancer « Ajouter des lampes » dans l'app Hue, regarder
   l'app Hue et ses lampes, donner son accord pour E5.
 - Les résultats vont dans la section 8, avec des valeurs inventées.
 
@@ -342,7 +342,7 @@ les résultats ; ses journaux vont dans `essais/` (ignoré par git).
 
 **Le dépôt.** `~/Dev/maillage-zigbee`, à côté de Maillage Thread, hors de
 `~/Documents` (synchronisé par iCloud, qui a déjà abîmé un dépôt). Il reste
-**local** : rien n'est poussé tant que Majid n'a pas choisi entre public et
+**local** : rien n'est poussé tant que Djoko n'a pas choisi entre public et
 privé.
 
 **Organisation** (morceau 1) :
@@ -380,7 +380,7 @@ se fait avec effacement ; les suivants, sans, pour garder le réseau.
 - Ignorés par git : `sonde/cle_hue.local.h`, `outils/sonde.local.json`,
   `essais/`, `garde.local.txt`.
 - **La garde**, lancée avec les tests : elle lit dans `garde.local.txt` la
-  liste des vrais identifiants de Majid (un par ligne) et échoue si l'un
+  liste des vrais identifiants de Djoko (un par ligne) et échoue si l'un
   d'eux apparaît dans un fichier suivi par git, sans tenir compte de la
   casse ni des séparateurs `:` et `0x`. Sans ce fichier, elle le dit et
   passe.
@@ -435,7 +435,7 @@ se fait avec effacement ; les suivants, sans, pour garder le réseau.
 ## 8. Résultats de l'essai
 
 Essai du 06/10/2026 au 07/10/2026, sonde 0.9.0 puis correctifs, depuis le
-bureau de Majid. Ordres de grandeur, sans identifiant (section 5).
+bureau de Djoko. Ordres de grandeur, sans identifiant (section 5).
 
 | # | Résultat |
 |---|---|
@@ -443,8 +443,8 @@ bureau de Majid. Ordres de grandeur, sans identifiant (section 5).
 | E2 | **Réussi** : la table du pont arrive entière, 25 voisins en 13 pages (2 par page), en 1,8 s. Le pont range chaque voisin en « frère », profondeur 15, sans « admission » : l'app s'en passe. LQI de 74 à 255 |
 | E3 | **Réussi** : 36 routeurs interrogés, 36 réponses en 50 à 110 s ; 56 à 57 nœuds vus, dont 20 à 21 appareils finaux (34 nœuds connus après l'écoute passive) ; environ 450 pages par tournée ; aucun refus `cadence` |
 | E4 | **Réussi** : `Mgmt_Rtg_req` en APS brute. La table du pont fait 254 entrées en 22 pages (2,6 s), dont une cinquantaine de routes actives vers une vingtaine de relais. Une lampe montre une route « plusieurs vers un » vers le pont |
-| E5 | **Échoué, retiré** : la lampe interrogée (une seule, accord de Majid) n'a pas répondu dans les 5 s, deux fois. Sans doute réservé au gestionnaire du réseau. `echecs` est retirée |
-| E6 | **Réussi** : 35 tournées, une toutes les 15 min, sur 8 h 30 (l'outil s'est arrêté à 2 h 36, sans doute avec l'app) ; 32 tournées complètes, 3 tables perdues sur environ 1260 (corrigé depuis côté outil) ; aucun redémarrage ; toujours membre au matin ; Majid n'a rien vu d'anormal sur ses lampes ni dans l'app Hue |
+| E5 | **Échoué, retiré** : la lampe interrogée (une seule, accord de Djoko) n'a pas répondu dans les 5 s, deux fois. Sans doute réservé au gestionnaire du réseau. `echecs` est retirée |
+| E6 | **Réussi** : 35 tournées, une toutes les 15 min, sur 8 h 30 (l'outil s'est arrêté à 2 h 36, sans doute avec l'app) ; 32 tournées complètes, 3 tables perdues sur environ 1260 (corrigé depuis côté outil) ; aucun redémarrage ; toujours membre au matin ; Djoko n'a rien vu d'anormal sur ses lampes ni dans l'app Hue |
 | E7 | **Vu sans le provoquer** : la pile déclare le parent perdu (statut NWK 9) pendant les tournées, environ une fois par tournée (43 en E6), toujours dans les 2 s suivant une requête, jamais au repos, sur une vingtaine de cibles différentes, alors que le lien avec le parent est bon (environ -46 dBm). La sonde se rattache seule au même parent en 10 s |
 
 **Défauts trouvés et corrigés pendant l'essai.**
@@ -474,7 +474,7 @@ On/Off Light) ; `routes` et lignes `signal` gardées ; `echecs` retirée.
 ## Annexe A. Essai d'écoute passive du 05/10/2026
 
 Quinze minutes d'écoute sur le canal du réseau Hue, depuis le bureau de
-Majid, avec un C6 en mode promiscuité qui n'émet jamais (code versé dans
+Djoko, avec un C6 en mode promiscuité qui n'émet jamais (code versé dans
 `outils/ecoute/`, section 5).
 
 **Piège du pilote 802.15.4.** Par défaut, le pilote d'ESP-IDF **acquitte
@@ -488,7 +488,7 @@ la configuration à ses défauts :
 le vérifie dans chacune de ses lignes d'état.
 
 **Constats** (ordres de grandeur, sans identifiant) :
-- le réseau Hue partage son canal avec le réseau Thread de Majid ; temps
+- le réseau Hue partage son canal avec le réseau Thread de Djoko ; temps
   d'antenne mesuré : Thread 7,6 %, Zigbee 0,5 %, accusés 0,7 % ; les trois
   autres canaux possibles pour Hue étaient muets ;
 - 34 nœuds connus, dont 22 entendus directement ; 23 adresses longues

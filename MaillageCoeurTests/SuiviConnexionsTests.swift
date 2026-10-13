@@ -53,7 +53,7 @@ struct SuiviConnexionsTests {
         #expect(Regroupement.lignes(ev[2]).count == 1)
     }
 
-    /// Choix de Majid (09/10) : un decrochage d'une seule lecture, suivi d'un retour a `connected`, ne donne rien.
+    /// Choix de Djoko (09/10) : un decrochage d'une seule lecture, suivi d'un retour a `connected`, ne donne rien.
     @Test func decrochageDUneLectureSansEvenement() {
         let ev = Self.suivre([
             Self.lecture(0, [1: .connecte]),

@@ -83,7 +83,7 @@ struct IdentifierTests {
 
     // MARK: Trois envois
 
-    /// Un clic : un seul PUT sur le device de l'appareil (choix de Majid, 09/10), sans attente ; l'etat passe a
+    /// Un clic : un seul PUT sur le device de l'appareil (choix de Djoko, 09/10), sans attente ; l'etat passe a
     /// « en cours » puis « fait ».
     @Test func unEnvoiParClic() async throws {
         let b = try await banc()

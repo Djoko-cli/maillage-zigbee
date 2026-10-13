@@ -9,7 +9,7 @@
 //     en 2 s, par pas de 40 ms), pendant toute l'identification, et au moins
 //     un tour complet : le pont Hue peut n'identifier qu'un instant (banc du
 //     12/10 : un eclair rouge, puis la lueur du repos) ;
-//  2. hors de son reseau, en bleu (« deux bleus », choix de Majid du 12/10,
+//  2. hors de son reseau, en bleu (« deux bleus », choix de Djoko du 12/10,
 //     commun aux quatre cartes) :
 //     - jamais membre (sonde neuve, usine) : clignotement rapide, 250 ms
 //       allume, 250 ms eteint, comme le pont Halo ;

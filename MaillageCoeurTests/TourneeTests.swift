@@ -750,7 +750,7 @@ struct TourneeTests {
         #expect(r3.bilan.pausesCadence == 2 && !r3.bilan.passeArreteeCadence && r3.bilan.routesRouteursLues == 4)
     }
 
-    // MARK: Passe complementaire (decision de Majid du 08/10)
+    // MARK: Passe complementaire (decision de Djoko du 08/10)
 
     /// Le premier instant ou `pages` de plus tiennent sous le plafond : `minimum` s'il convient, sinon la sortie de la
     /// fenetre d'un envoi (sa date + 10 minutes) ; au-dela de 550 pages a elles seules, la fenetre vide.

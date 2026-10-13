@@ -373,7 +373,7 @@ public enum Tournee {
     /// - Chaque reponse a `table` ou `routes` compte ses pages dans le budget (une page sans `pages`).
     /// - Un routeur qui ne donne ni table ni routes par sa faute (`delai`, `statut`) compte un echec ; muet a deux de
     ///   suite.
-    /// - Passe complementaire (`complementaire`, decision de Majid du 08/10) : lancee par l'app des que le budget couvre
+    /// - Passe complementaire (`complementaire`, decision de Djoko du 08/10) : lancee par l'app des que le budget couvre
     ///   les routes reportees (`MemoireTournee.instantPasseComplementaire`), sans attendre la tournee suivante. Elle ne
     ///   lit jamais les tables de voisins (ni pour un routeur inconnu vu en route : il rejoint la file et le maillage, ses
     ///   voisins seront lus a la prochaine tournee avec tables), et ne garde dans la file que les routeurs reportes

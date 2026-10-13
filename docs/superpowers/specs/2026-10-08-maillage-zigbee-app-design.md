@@ -1,6 +1,6 @@
 # Maillage Zigbee : l'app (morceau 2), spec courte
 
-> **Statut : validée** par Majid le 08/10/2026, en chat, avec la voie courte
+> **Statut : validée** par Djoko le 08/10/2026, en chat, avec la voie courte
 > (prototype, relecture, banc, report sur `main`).
 >
 > **Base :** Maillage Thread **1.1.0** (étiquette `maillage-v1.1.0` du dépôt
@@ -103,7 +103,7 @@ chef et BBR. Les notifications regroupent les pertes, comme Thread.
 de chaque appareil (`zigbee_connectivity.status`), comparé d'une lecture
 réussie du pont à la suivante. `connected` puis `disconnected`,
 `connectivity_issue` ou `unidirectional_incoming` **à deux lectures de suite**
-(choix de Majid, 09/10 : un décrochage d'une seule lecture n'alerte pas) :
+(choix de Djoko, 09/10 : un décrochage d'une seule lecture n'alerte pas) :
 disparu, daté de la première ; le retour à `connected` : revenu. La première lecture (et celle d'un autre pont) est un
 état initial, sans événement ; le cache relu au lancement n'en est pas une, et
 une lecture échouée (pont injoignable) ne change aucun état. « Nouveau » vient
@@ -116,12 +116,12 @@ provisoire (vu en route).
 - Nom « Maillage Zigbee », identifiants d'app propres
   (`fr.djoko.maillage.zigbee`…), dossier `Application Support/Maillage Zigbee`.
 - Flux `appcast.xml` dans ce dépôt. Clés Sparkle : **la paire de Maillage
-  Thread, réutilisée** (décision de Majid du 08/10, à l'étape 4, au lieu
+  Thread, réutilisée** (décision de Djoko du 08/10, à l'étape 4, au lieu
   d'une nouvelle paire) ; chaque app lit son propre flux, aucune ne reçoit
   les versions de l'autre.
 - Démo refaite sur un faux réseau Hue.
 - README et notes de version bilingues, anglais d'abord.
-- Icône : maquette à part, choisie par Majid.
+- Icône : maquette à part, choisie par Djoko.
 - L'outil de publication ne lit rien dans le dépôt de Maillage Thread.
 
 **Amendement du 12/10/2026 : Developer ID et notarisation, depuis la 1.1.0.**
@@ -149,5 +149,5 @@ provisoire (vu en route).
 Voie courte : prototype dans une copie de travail, en quatre étapes qui
 compilent chacune (1. copie renommée et allégée de Thread ; 2. pont Hue ;
 3. sonde et tournée ; 4. journal, historique, démo), relecture par Opus,
-banc avec Majid sur son réseau, report sur `main` en quelques commits,
+banc avec Djoko sur son réseau, report sur `main` en quelques commits,
 relecture finale.

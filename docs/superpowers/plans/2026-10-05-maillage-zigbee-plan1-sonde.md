@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal :** une sonde ESP32-C6 membre du réseau Hue de Majid, qui donne par l'USB la table complète des voisins de n'importe quel routeur et sa propre table de voisins, avec ses outils d'essai, puis l'essai sur la carte avec Majid.
+**Goal :** une sonde ESP32-C6 membre du réseau Hue de Djoko, qui donne par l'USB la table complète des voisins de n'importe quel routeur et sa propre table de voisins, avec ses outils d'essai, puis l'essai sur la carte avec Djoko.
 
 **Architecture :**
 - **Le firmware** (`sonde/`, 0.9.0 pendant l'essai, 1.0.0 ensuite) :
@@ -19,7 +19,7 @@
   - le flash qui vérifie la MAC de la carte ;
   - la garde des vrais identifiants ;
   - le code de l'essai d'écoute du 05/10, versé sans capture.
-- **L'essai** (tâche 8, contrôleur et Majid), puis la sonde 1.0.0 d'après ses résultats (tâche 9).
+- **L'essai** (tâche 8, contrôleur et Djoko), puis la sonde 1.0.0 d'après ses résultats (tâche 9).
 
 **Tech Stack :**
 - **Firmware :** PlatformIO pioarduino `55.03.312-1` (Arduino-ESP32 3.3.12, ESP-IDF 5.5.5, esp-zigbee-lib 1.6.8, esp-zboss-lib 1.6.4), ESP32-C6 SuperMini (flash de 4 Mo).
@@ -106,8 +106,8 @@ Exécuter une tâche, c'est transcrire les fichiers et les blocs donnés, compil
   - pas de `pio run -t upload`, `-t erase` ni `pio device monitor`, et pas d'`esptool` ;
   - pas d'`outils/essai_sonde.py`, d'`outils/flasher.py` ni d'`outils/ecoute/capture.py`.
 
-  Le pont Halo, la sonde Thread et la carte témoin de benq sont aussi des C6 branchés au même Mac : en ouvrir un peut le redémarrer. La tâche 8 se fait par le contrôleur, avec Majid.
-- **Clé de liaison Hue :** aucun agent ne crée, n'écrit, ne lit ni ne cherche `sonde/cle_hue.local.h` ni la clé elle-même. C'est Majid qui la pose, à la tâche 8. Les agents compilent les variantes `verif*`.
+  Le pont Halo, la sonde Thread et la carte témoin de benq sont aussi des C6 branchés au même Mac : en ouvrir un peut le redémarrer. La tâche 8 se fait par le contrôleur, avec Djoko.
+- **Clé de liaison Hue :** aucun agent ne crée, n'écrit, ne lit ni ne cherche `sonde/cle_hue.local.h` ni la clé elle-même. C'est Djoko qui la pose, à la tâche 8. Les agents compilent les variantes `verif*`.
 - **Données personnelles :** le dépôt est local, rien n'est poussé.
   - Uniquement des valeurs inventées : adresses longues `A0000000000000xx`, adresses courtes `1A2B`, `3C4D`, `5E6F`, PAN `1234`, MAC `A0:00:00:00:00:01`.
   - Jamais commités : `sonde/cle_hue.local.h`, `outils/sonde.local.json`, `essais/`, `garde.local.txt` (déjà dans `.gitignore`).
@@ -276,7 +276,7 @@ FAILED (errors=1)
 
   python3 outils/garde.py
 
-Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifiants du reseau de Majid, un
+Lit garde.local.txt a la racine du depot (ignore par git) : les vrais identifiants du reseau de Djoko, un
 par ligne (adresses longues et courtes, PAN, EPID, identifiant du pont, MAC des cartes, noms) ; les lignes
 vides et celles qui commencent par « # » sont ignorees. Depuis un worktree git, ou ce fichier ignore n'est
 pas, la garde prend celui du depot principal. Echoue (code 1) si l'un des identifiants apparait dans un
@@ -4779,7 +4779,7 @@ build_flags = ${env.build_flags} -DZIGBEE_MODE_ZCZR -DSONDE_LAMPE_VARIABLE=1 -DS
 //
 // Copier ce fichier en sonde/cle_hue.local.h (ignore par git, jamais
 // commite) et remplacer les zeros par les 16 octets de la cle de liaison du
-// centre de confiance des ponts Hue (cle ZLL de Signify). C'est Majid qui la
+// centre de confiance des ponts Hue (cle ZLL de Signify). C'est Djoko qui la
 // pose : aucun agent ne l'ecrit ni ne la cherche. Tant que la cle est a
 // zero, la compilation s'arrete (static_assert de sonde/src/zigbee.cpp).
 #include <stdint.h>
@@ -4814,7 +4814,7 @@ cp sonde/cle_hue.exemple.h sonde/cle_hue.local.h
 ```
 
 puis remplacer les zéros de `sonde/cle_hue.local.h` par les 16 octets de la
-clé. C'est Majid qui la pose. Sans ce fichier, ou avec une clé à zéro, la
+clé. C'est Djoko qui la pose. Sans ce fichier, ou avec une clé à zéro, la
 compilation s'arrête avec un message clair.
 
 ## Compiler
@@ -4946,7 +4946,7 @@ Expected :
 src/zigbee.cpp:32:2: error: #error "sonde/cle_hue.local.h absent : copier sonde/cle_hue.exemple.h et y mettre la cle de liaison Hue (sonde/README.md)"
 ```
 
-Si `sonde/cle_hue.local.h` existe (Majid l'a déjà posé dans le dépôt principal), sauter cette vérification : ne jamais le déplacer ni le lire.
+Si `sonde/cle_hue.local.h` existe (Djoko l'a déjà posé dans le dépôt principal), sauter cette vérification : ne jamais le déplacer ni le lire.
 
 - [x] **Step 4 : tout le reste passe toujours.**
 
@@ -5573,7 +5573,7 @@ Commandes :
   nom <texte>
   table <cible> [<delai ms>]      table des voisins d'un routeur (E2)
   routes <cible> [<delai ms>]     table de routage (E4)
-  echecs <cible> [<delai ms>]     emissions et echecs (E5 : seulement avec l'accord de Majid)
+  echecs <cible> [<delai ms>]     emissions et echecs (E5 : seulement avec l'accord de Djoko)
   tournee [<delai ms>]            parcours en largeur depuis le pont (E3)
   nuit <heures> [<periode s>]     etat et tournee toutes les <periode> s, 900 par defaut (E6)
   ecoute <secondes>               lit sans rien envoyer
@@ -5817,7 +5817,7 @@ Autre carte a l'une des etapes 1 ou 3 : refus, rien n'est ecrit.
 --effacer : effacement complet d'abord (premier flash, ou passage d'une variante a l'autre).
 --env : variante de sonde/platformio.ini (sonde, sonde_variable, sonde_routeur, sonde_routeur_variable) ;
 les variantes de verification (verif, verif_routeur, a cle factice) ne se flashent jamais.
-Aucun agent ne lance cet outil : seul le controleur, avec Majid (plan, contraintes globales).
+Aucun agent ne lance cet outil : seul le controleur, avec Djoko (plan, contraintes globales).
 """
 import json
 import os
@@ -5969,42 +5969,42 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 8: Essai sur la carte, avec Majid (par le contrôleur, pas par un sous-agent)
+### Task 8: Essai sur la carte, avec Djoko (par le contrôleur, pas par un sous-agent)
 
 **Files:**
-- Create (locaux, ignorés par git, jamais commités) : `outils/sonde.local.json` (contrôleur), `sonde/cle_hue.local.h` (Majid), `essais/` (outils)
+- Create (locaux, ignorés par git, jamais commités) : `outils/sonde.local.json` (contrôleur), `sonde/cle_hue.local.h` (Djoko), `essais/` (outils)
 - Modify: `docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md` (section 8, valeurs inventées)
 
 **Interfaces:**
-- Consumes : tout ce qui précède ; la carte désignée par Majid (le C6 de l'essai d'écoute, dont la MAC est dans la mémoire du projet et dans `garde.local.txt`, jamais dans le dépôt).
+- Consumes : tout ce qui précède ; la carte désignée par Djoko (le C6 de l'essai d'écoute, dont la MAC est dans la mémoire du projet et dans `garde.local.txt`, jamais dans le dépôt).
 - Produces : les décisions pour la tâche 9 :
   - la variante à garder (`sonde`, `sonde_variable`, `sonde_routeur` ou `sonde_routeur_variable`) ;
   - `SONDE_ROUTES` (E4) et `SONDE_ECHECS` (E5) : 1 ou 0 ;
   - les durées et volumes mesurés.
 
-Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en direct avec Majid).
+Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en direct avec Djoko).
 
-- [x] **Step 1 : préparer la carte, avec Majid.**
-  1. Majid copie `sonde/cle_hue.exemple.h` en `sonde/cle_hue.local.h` et y pose la clé. Le contrôleur ne la lit pas et ne l'affiche pas.
-  2. Le contrôleur repère le port de la carte. `ioreg -p IOUSB -l | grep "USB Serial Number"` donne la MAC de chaque C6, et le port suit la prise USB. Il fait confirmer la carte par Majid, puis écrit `outils/sonde.local.json` : `{"port": "/dev/cu.usbmodem…", "mac": "…"}`.
-  3. Run : `python3 outils/flasher.py --effacer`. Expected : `Carte verifiee : …`, puis l'effacement et le flash réussis. La LED pulse en bleu. Un `REFUS` veut dire que la carte n'est pas la bonne : ne pas insister, revoir le port avec Majid.
+- [x] **Step 1 : préparer la carte, avec Djoko.**
+  1. Djoko copie `sonde/cle_hue.exemple.h` en `sonde/cle_hue.local.h` et y pose la clé. Le contrôleur ne la lit pas et ne l'affiche pas.
+  2. Le contrôleur repère le port de la carte. `ioreg -p IOUSB -l | grep "USB Serial Number"` donne la MAC de chaque C6, et le port suit la prise USB. Il fait confirmer la carte par Djoko, puis écrit `outils/sonde.local.json` : `{"port": "/dev/cu.usbmodem…", "mac": "…"}`.
+  3. Run : `python3 outils/flasher.py --effacer`. Expected : `Carte verifiee : …`, puis l'effacement et le flash réussis. La LED pulse en bleu. Un `REFUS` veut dire que la carte n'est pas la bonne : ne pas insister, revoir le port avec Djoko.
   4. Run : `python3 outils/essai_sonde.py bonjour`, puis `python3 outils/essai_sonde.py etat`. Expected :
      - `bonjour` : `"produit":"sonde-zigbee"`, `"version":"0.9.0"`, `"membre":false` ;
      - `etat` : `"recherche":true`.
 
 - [x] **Step 2 : E1, adhésion en appareil final.**
-  1. Majid lance « Ajouter des lampes » dans l'app Hue.
+  1. Djoko lance « Ajouter des lampes » dans l'app Hue.
   2. Le contrôleur relance `etat` toutes les 20 s, 5 minutes au plus. Expected : `"membre":true`, `"role":"final"`, un `parent`, `"canal":25`, et deux éclairs verts sur la LED.
      Le contrôleur vérifie aussi que le `pan` est celui du réseau Hue relevé pendant l'essai d'écoute (dans la mémoire du projet). Il compare sans écrire la valeur nulle part. Un autre PAN voudrait dire que la sonde a rejoint un réseau voisin ouvert : `oubli`, puis recommencer.
-  3. Majid voit la lampe dans l'app Hue, la nomme « Sonde maillage » et la laisse hors de toute pièce. Il l'allume, l'éteint et l'identifie : seule la LED réagit.
+  3. Djoko voit la lampe dans l'app Hue, la nomme « Sonde maillage » et la laisse hors de toute pièce. Il l'allume, l'éteint et l'identifie : seule la LED réagit.
   4. 30 minutes plus tard : `etat` donne toujours `"membre":true`.
-  5. Majid débranche puis rebranche la carte. 1 minute plus tard : `etat` donne `"membre":true` sans nouvelle recherche dans l'app Hue.
+  5. Djoko débranche puis rebranche la carte. 1 minute plus tard : `etat` donne `"membre":true` sans nouvelle recherche dans l'app Hue.
 
   **Si E1 échoue** (jamais membre, ou un départ venu du pont), dans cet ordre, chaque fois avec `python3 outils/flasher.py --env <variante> --effacer` et une nouvelle recherche dans l'app Hue :
   1. `sonde_variable` (le pont exige peut-être une lampe variable) ;
-  2. E1 bis : `sonde_routeur`, puis `sonde_routeur_variable`. Prévenir Majid d'abord : selon la norme BDB, un routeur qui vient d'adhérer peut ouvrir le réseau Hue 180 s (spec, section 3). La sonde n'accepte de toute façon aucun enfant.
+  2. E1 bis : `sonde_routeur`, puis `sonde_routeur_variable`. Prévenir Djoko d'abord : selon la norme BDB, un routeur qui vient d'adhérer peut ouvrir le réseau Hue 180 s (spec, section 3). La sonde n'accepte de toute façon aucun enfant.
 
-  Si rien ne marche, s'arrêter et en reparler avec Majid (spec, section 4).
+  Si rien ne marche, s'arrêter et en reparler avec Djoko (spec, section 4).
 
 - [x] **Step 3 : E2, tables du pont et de trois lampes.**
   1. Run : `python3 outils/essai_sonde.py table 0000`. Puis `table <court>` pour trois routeurs de la réponse, en choisissant le parent de la sonde et deux autres.
@@ -6028,22 +6028,22 @@ Expected, deux cas :
 - **E4 réussi :** une liste d'entrées lisibles (`destination`, `etat`, `prochain`) ;
 - **E4 échoué :** `delai` (la pile ne transmet pas la réponse ZDO au rappel APS) ou `envoi` (la pile refuse l'envoi depuis le point d'accès 0). `SONDE_ROUTES` passera à 0 à la tâche 9.
 
-- [x] **Step 6 : E5, taux d'échec, seulement avec l'accord explicite de Majid.**
+- [x] **Step 6 : E5, taux d'échec, seulement avec l'accord explicite de Djoko.**
   1. Lui rappeler le prix : la lampe interrogée reste sourde environ 31 ms. Lui demander laquelle interroger.
   2. Run : `python3 outils/essai_sonde.py echecs <court>`.
-  3. Expected : `"ok":true`, avec `emissions`, `echecs` et `energie` vraisemblables, et aucun effet visible sur la lampe (Majid regarde).
-  4. Décider avec Majid si on garde `echecs` (`SONDE_ECHECS`).
+  3. Expected : `"ok":true`, avec `emissions`, `echecs` et `energie` vraisemblables, et aucun effet visible sur la lampe (Djoko regarde).
+  4. Décider avec Djoko si on garde `echecs` (`SONDE_ECHECS`).
 
   Sans son accord, ne pas lancer E5 : `SONDE_ECHECS` passe à 0.
 
-- [x] **Step 7 : E7, perte du parent (si Majid le veut).**
-  1. Majid coupe à l'interrupteur la lampe qui est le parent de la sonde (`etat.parent`).
+- [x] **Step 7 : E7, perte du parent (si Djoko le veut).**
+  1. Djoko coupe à l'interrupteur la lampe qui est le parent de la sonde (`etat.parent`).
   2. Expected :
      - dans la minute, `etat` donne `"membre":false` et `"recherche":true`, et la LED pulse en bleu ;
      - puis, en moins de 2 minutes, `"membre":true` avec un autre parent.
 
      Si la sonde ne voit rien, la pile n'a peut-être signalé aucune perte : la noter.
-  3. Majid rallume la lampe.
+  3. Djoko rallume la lampe.
   4. Lire les lignes `signal` de ce moment dans `essais/<date>/sonde.jsonl`. Ce que la pile a émis, et dans quel ordre, ira dans la section 8.
 
 - [x] **Step 8 : E6, une nuit.**
@@ -6052,7 +6052,7 @@ Run, en tâche de fond : `python3 outils/essai_sonde.py nuit 10 900`
 
 Expected au matin :
 - une ligne `membre` et un résumé de tournée toutes les 15 minutes, sans `NON MEMBRE` ;
-- des lampes normales pendant la nuit, et rien d'anormal dans l'app Hue (Majid regarde).
+- des lampes normales pendant la nuit, et rien d'anormal dans l'app Hue (Djoko regarde).
 
 - [x] **Step 9 : consigner les résultats.**
 
@@ -6082,7 +6082,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 9: Sonde 1.0.0 : décisions de l'essai (par le contrôleur, avec Majid)
+### Task 9: Sonde 1.0.0 : décisions de l'essai (par le contrôleur, avec Djoko)
 
 **Files:**
 - Modify: `sonde/src/version.h`, `sonde/platformio.ini`, `sonde/README.md`, `docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md` (blocs ci-dessous)
@@ -6134,7 +6134,7 @@ par :
 Pour chaque élément que l'essai ne garde pas, dans `sonde/platformio.ini` :
 - E4 échoué : remplacer `    -DSONDE_ROUTES=1` par `    -DSONDE_ROUTES=0` ;
 - E5 non retenu : remplacer `    -DSONDE_ECHECS=1` par `    -DSONDE_ECHECS=0` ;
-- lignes `signal` jugées inutiles avec Majid : remplacer `    -DSONDE_SIGNAUX=1` par `    -DSONDE_SIGNAUX=0`. Les garder sert au journal de l'app (morceau 3).
+- lignes `signal` jugées inutiles avec Djoko : remplacer `    -DSONDE_SIGNAUX=1` par `    -DSONDE_SIGNAUX=0`. Les garder sert au journal de l'app (morceau 3).
 
 Dans le même fichier, remplacer :
 
@@ -6147,7 +6147,7 @@ par la décision, par exemple :
 
 ```ini
     ; Apres l'essai : routes retiree (E4 : la pile ne rend pas la reponse
-    ; ZDO brute), echecs gardee (E5, accord de Majid du JJ/MM), lignes
+    ; ZDO brute), echecs gardee (E5, accord de Djoko du JJ/MM), lignes
     ; signal gardees.
 ```
 
@@ -6183,7 +6183,7 @@ Puis, selon les décisions, dans la section 2 de la spec :
 - E5 : décrire `echecs` (son format est dans `sonde/src/main.cpp`, `rendreEchecs`) ou dire qu'elle est retirée ;
 - lignes `signal` : dire si elles sont gardées.
 
-- [x] **Step 5 : vérifier, puis flasher la 1.0.0 (contrôleur, avec Majid).**
+- [x] **Step 5 : vérifier, puis flasher la 1.0.0 (contrôleur, avec Djoko).**
 
 Run :
 
