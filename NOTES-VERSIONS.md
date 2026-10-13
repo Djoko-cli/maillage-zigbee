@@ -6,6 +6,36 @@ the notes of the GitHub release and those of the update window.
 Maillage Zigbee : une section par version publiée, en anglais puis en français. `outils/publier.sh` en tire les
 notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour.
 
+## 1.1.1
+
+**English**
+
+- Home names are now served continuously by the Passeur Noms daemon (installed by Maillage Thread): the app
+  subscribes to it at launch and receives the names, rooms and floors again as soon as they change in Home, with
+  no more reading to wait for. It reconnects by itself if the daemon quits or restarts.
+- The names follow Home's tiles: a device with a single tile takes the tile's name, a device with several tiles
+  takes the accessory's name.
+- New setting, Settings, Home: "Open Passeur Noms at login", with the daemon's state and a reminder 30 days before
+  its profile expires.
+- "Identify by Home" on the node card, for the devices found in Home: the device blinks through Home, next to the
+  existing "Identify" through the Hue bridge.
+- Needs the Passeur Noms daemon of Maillage Thread 1.3.0 or later (`outils/passeur.sh`); without it, the app keeps
+  the Hue app names.
+
+**Français**
+
+- Les noms de Maison sont désormais servis en continu par le démon Passeur Noms (installé par Maillage Thread) :
+  l'app s'y abonne au lancement et reçoit de nouveau les noms, pièces et étages dès qu'ils changent dans Maison,
+  sans relevé à attendre. Elle se reconnecte seule si le démon se ferme ou redémarre.
+- Les noms suivent les tuiles de Maison : un appareil à une seule tuile prend le nom de la tuile, un appareil à
+  plusieurs tuiles prend le nom de l'accessoire.
+- Nouveau réglage, Réglages, Maison : « Ouvrir Passeur Noms à l'ouverture de session », avec l'état du démon et un
+  rappel 30 jours avant l'expiration de son profil.
+- « Identifier par Maison » dans la fiche d'un nœud, pour les appareils retrouvés dans Maison : l'appareil clignote
+  par Maison, à côté de « Identifier » par le pont Hue qui reste.
+- Il faut le démon Passeur Noms de Maillage Thread 1.3.0 ou plus récent (`outils/passeur.sh`) ; sans lui, l'app
+  garde les noms de l'app Hue.
+
 ## 1.1.0
 
 **English**

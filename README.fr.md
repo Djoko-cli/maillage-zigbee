@@ -104,24 +104,38 @@ Les lampes Hue arrivent dans l'app Maison par le pont, et c'est là qu'on les
 nomme et qu'on les range : l'app prend donc les noms, les pièces et les étages
 de Maison, et garde ceux de l'app Hue pour ce qu'elle n'y retrouve pas.
 
-Une app du Mac ne peut pas lire Maison elle-même (il faut HomeKit, qu'une
-équipe gratuite n'obtient que dans une app iOS). C'est le rôle de **Passeur Noms**,
-une petite app iOS « conçue pour iPad » que
-[Maillage Thread](https://github.com/Djoko-cli/maillage-thread) installe sur
-le Mac (`outils/passeur.sh` de ce dépôt-là ; profil gratuit de 7 jours, à
-reconstruire ensuite). Elle est générique : Maillage Zigbee s'en sert telle
-quelle, sans la modifier.
+Une app du Mac ne peut pas lire Maison elle-même (il faut HomeKit, qu'une app
+Developer ID n'obtient pas). C'est le rôle du **démon Passeur Noms**, une petite
+app du Mac en arrière-plan (sans fenêtre ni icône dans le Dock) que
+[Maillage Thread](https://github.com/Djoko-cli/maillage-thread) 1.3.0 installe
+(`outils/passeur.sh` de ce dépôt-là ; compilation de développement signée par
+l'équipe payante, profil d'un an, à reconstruire ensuite). Il est générique :
+Maillage Zigbee s'en sert tel quel, sans le modifier.
 
-- **Le relevé** : l'app écoute sur 127.0.0.1 seulement, sur un port choisi par
-  le système, tire un jeton à usage unique, puis ouvre le Passeur sans
-  l'activer avec `maillage-passeur://releve?port=<port>&jeton=<jeton>`. Le
-  Passeur lit Maison et renvoie le relevé (jeton, longueur, JSON) ; l'app
-  compare le jeton à temps constant, lit au plus 8 Mo, accepte une seule
-  connexion et attend au plus 2 minutes.
-- **Quand** : au lancement, si le dernier relevé a plus d'un jour ; à la
-  demande, par « Rafraîchir depuis Maison » (menu, et Réglages, Maison). Le
-  dernier relevé réussi est gardé dans le conteneur de l'app
-  (`releve-maison.json`, jamais dans le dépôt) ; un échec ne l'efface pas.
+- **L'abonnement** : au lancement, l'app écoute sur 127.0.0.1 seulement, sur un
+  port choisi par le système, tire un jeton à usage unique, puis ouvre le démon
+  sans l'activer avec `maillage-passeur://abonner?port=<port>&jeton=<jeton>`.
+  Le démon se connecte, écrit le jeton, puis les deux côtés échangent des
+  messages (longueur, JSON) sur une connexion qui reste ouverte : le démon
+  envoie son état et le relevé de Maison dès que quelque chose change dans
+  Maison ; l'app peut demander un nouveau relevé, identifier un accessoire ou
+  régler l'ouverture de session du démon. L'app compare le jeton à temps
+  constant, lit au plus 8 Mo par message et accepte une seule connexion. Le
+  format de l'échange est le même fichier que dans Maillage Thread
+  (`MaillageCoeur/Noms/ProtocolePasseur.swift`, gardé identique à l'octet).
+- **Lancer le démon** : l'app le trouve par son schéma d'URL
+  `maillage-passeur-1` (jamais en lisant son paquet, jamais par l'identifiant
+  seul) ; s'il ne tourne pas, elle le lance d'abord sans URL, attend (10 s au
+  plus) qu'il tourne puis 1,5 s, et seulement alors envoie l'URL : HomeKit
+  refuse un démon lancé à froid par une URL. Connexion perdue, ou aucun démon
+  dans les 2 minutes : l'app se réabonne après 5, 10 et 30 s, puis toutes les
+  minutes.
+- **Quand** : en continu ; à la demande, « Rafraîchir depuis Maison » (menu, et
+  Réglages, Maison) demande un relevé immédiat. Le dernier relevé réussi est
+  gardé dans le conteneur de l'app (`releve-maison.json`, jamais dans le
+  dépôt) ; un échec ne l'efface pas. Réglages, Maison montre aussi l'état du
+  démon, l'interrupteur « Ouvrir Passeur Noms à l'ouverture de session » et un
+  avertissement 30 jours avant l'expiration de son profil.
 - **Rapprochement** : pour chaque appareil du pont, l'app cherche son
   accessoire Maison parmi ceux de Signify ou de Philips (ou portés par le
   nœud Matter du pont Hue), d'abord par le nom (à la casse, aux accents et
@@ -130,7 +144,10 @@ quelle, sans la modifier.
   Maison. Sinon : ceux de l'app Hue, et sa fiche le dit (« nom de l'app Hue
   (pas trouvé dans Maison) »). L'adresse longue, l'état de connexion et la
   pile viennent toujours du pont.
-- **Sans Passeur** : l'app marche avec les seuls noms de l'app Hue, sur un seul
+- **Identifier** : la fiche d'un appareil retrouvé dans Maison offre aussi
+  « Identifier par Maison » (le démon appelle `identify()` sur l'accessoire de
+  Maison), à côté d'« Identifier » par le pont Hue, qui reste.
+- **Sans le démon** : l'app marche avec les seuls noms de l'app Hue, sur un seul
   plateau ; Réglages, Maison dit comment l'installer.
 
 ### Les tournées et le budget de pages
@@ -234,10 +251,10 @@ de confiance Hue : elle n'entre jamais dans le dépôt
 - **La clé du pont** reste dans le trousseau du Mac (non synchronisée), et ne
   part qu'au pont vérifié.
 - **Le relevé de Maison** ne quitte pas le Mac : il passe par la boucle locale
-  (127.0.0.1), protégé par un jeton à usage unique. Le Passeur ne peut pas
+  (127.0.0.1), protégé par un jeton à usage unique. Le démon ne peut pas
   reconnaître l'app (ni App Group ni équipe commune) : un autre programme du
-  Mac qui écouterait sur la boucle locale et l'ouvrirait pourrait recevoir ce
-  relevé (noms, pièces, zones).
+  Mac qui écouterait sur la boucle locale et ouvrirait l'URL pourrait recevoir
+  ce relevé (noms, pièces, zones), ou demander d'identifier un appareil.
 - **Le dépôt ne contient aucune vraie donnée** : noms, pièces, adresses, PAN,
   identifiants du réseau et identifiant du pont sont inventés. Ne sont jamais
   commités, et `.gitignore` les exclut : la clé de liaison Hue
@@ -335,7 +352,7 @@ compiler, puis `sh outils/synchroniser-textes.sh`, puis
 | Dossier | Rôle |
 |---|---|
 | `MaillageCoeur/` | cadre sans interface, testé : le modèle Zigbee (`Zigbee/` : nœuds, liens radio, parents, chemins vers le pont, tournée et budget de pages, parents connus), le protocole de la sonde (`Sonde/`), l'API v2 de Hue et le certificat du pont (`Pont/`), suivi, journal et historique (`Suivi/`, `Journal/`, `Maillage/`), noms, relevé de Maison et rapprochement avec le pont (`Noms/`), la vue par pièces sans interface (`Scene/`), la démo (`Demo/`) |
-| `MaillageZigbee/` | l'app : pont (`Pont/` : Bonjour, HTTPS vérifié, trousseau), Passeur (`Noms/` : écoute sur la boucle locale, relevé de Maison), sonde (`Sonde/` : port série, USB, tournées), surveillance, notifications, mises à jour (`Surveillance/`), barre des menus, vue par pièces, journal et réglages (`Vues/`) |
+| `MaillageZigbee/` | l'app : pont (`Pont/` : Bonjour, HTTPS vérifié, trousseau), démon Passeur Noms (`Noms/` : abonnement sur la boucle locale, relevé de Maison), sonde (`Sonde/` : port série, USB, tournées), surveillance, notifications, mises à jour (`Surveillance/`), barre des menus, vue par pièces, journal et réglages (`Vues/`) |
 | `sonde/` | firmware de la sonde (ESP32-C6, PlatformIO) et ses tests hôte |
 | `outils/` | tests, publication, textes, outils d'essai et de flash de la sonde, garde des identifiants, essai d'écoute passive du 5 octobre 2026 (`ecoute/`) |
 | `docs/superpowers/` | conception (specs) et plans |

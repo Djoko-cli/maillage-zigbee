@@ -101,24 +101,38 @@ Hue lamps reach the Home app through the bridge, and that is where they get
 named and placed: so the app takes the names, rooms and floors from Home, and
 keeps the Hue app's for what it can't find there.
 
-A Mac app can't read Home itself (it takes HomeKit, which a free team only
-gets in iOS apps). That is the job of **Passeur Noms**, a small iOS app
-"designed for iPad" that
-[Maillage Thread](https://github.com/Djoko-cli/maillage-thread) installs on
-the Mac (`outils/passeur.sh` in that repository; free 7-day profile, to be
-rebuilt afterwards). It is generic: Maillage Zigbee uses it as is, without
-changing it.
+A Mac app can't read Home itself (it takes HomeKit, which Developer ID apps
+can't get). That is the job of the **Passeur Noms daemon**, a small background
+Mac app (no window, no Dock icon) that
+[Maillage Thread](https://github.com/Djoko-cli/maillage-thread) 1.3.0 installs
+(`outils/passeur.sh` in that repository; development build signed by the paid
+team, one-year profile, to be rebuilt afterwards). It is generic: Maillage
+Zigbee uses it as is, without changing it.
 
-- **The reading**: the app listens on 127.0.0.1 only, on a port chosen by the
-  system, draws a single-use token, then opens the Passeur without activating
-  it with `maillage-passeur://releve?port=<port>&jeton=<jeton>`. The Passeur
-  reads Home and sends the reading back (token, length, JSON); the app
-  compares the token in constant time, reads at most 8 MB, accepts a single
-  connection and waits at most 2 minutes.
-- **When**: at launch, if the last reading is more than a day old; on demand,
-  with "Refresh from Home" (menu, and Settings, Home). The last successful
-  reading is kept in the app's container (`releve-maison.json`, never in the
-  repository); a failure doesn't erase it.
+- **The subscription**: at launch, the app listens on 127.0.0.1 only, on a
+  port chosen by the system, draws a single-use token, then opens the daemon
+  without activating it with
+  `maillage-passeur://abonner?port=<port>&jeton=<jeton>`. The daemon connects,
+  writes the token, then both sides exchange messages (length, JSON) on a
+  connection that stays open: the daemon sends its state and Home reading as
+  soon as something changes in Home; the app can ask for a new reading,
+  identify an accessory, or switch the daemon's login item. The app compares
+  the token in constant time, reads at most 8 MB per message and accepts a
+  single connection. The exchange format is the same file as in Maillage
+  Thread (`MaillageCoeur/Noms/ProtocolePasseur.swift`, kept byte-identical).
+- **Starting the daemon**: the app finds it through its URL scheme
+  `maillage-passeur-1` (never by reading its bundle, never by the identifier
+  alone); if it isn't running, it launches it first without a URL, waits (10 s
+  at most) until it runs and 1.5 s more, and only then sends the URL: HomeKit
+  refuses a daemon cold-started by a URL. After a lost connection, or with no
+  daemon within 2 minutes, the app subscribes again after 5, 10 and 30 s, then
+  every minute.
+- **When**: continuously; on demand, "Refresh from Home" (menu, and Settings,
+  Home) asks for an immediate reading. The last successful reading is kept in
+  the app's container (`releve-maison.json`, never in the repository); a
+  failure doesn't erase it. Settings, Home also shows the daemon's state, the
+  "Open Passeur Noms at login" switch, and a warning 30 days before its
+  profile expires.
 - **Matching**: for each bridge device, the app looks for its Home accessory
   among those made by Signify or Philips (or carried by the Matter node of the
   Hue bridge), first by name (ignoring case, accents and spaces), otherwise by
@@ -126,7 +140,10 @@ changing it.
   Found: its Home name and room. Otherwise: the Hue app's, and its card says
   so ("Hue app name (not found in Home)"). The long address, connection state
   and battery always come from the bridge.
-- **Without the Passeur**: the app works with the Hue app names alone, on a
+- **Identify**: the card of a device found in Home also offers "Identify via
+  Home" (the daemon calls `identify()` on the Home accessory), next to
+  "Identify" through the Hue bridge, which stays.
+- **Without the daemon**: the app works with the Hue app names alone, on a
   single plane; Settings, Home says how to install it.
 
 ### Rounds and the page budget
@@ -220,10 +237,10 @@ repository (`sonde/cle_hue.local.h`, ignored by git).
 - **The bridge key** stays in the Mac's keychain (not synchronized), and is
   only sent to the verified bridge.
 - **The Home reading** doesn't leave the Mac: it goes over the loopback
-  (127.0.0.1), guarded by a single-use token. The Passeur can't recognize the
+  (127.0.0.1), guarded by a single-use token. The daemon can't recognize the
   app (no App Group, no common team): another program on the Mac listening on
-  the loopback and opening it could receive that reading (names, rooms,
-  zones).
+  the loopback and opening the URL could receive that reading (names, rooms,
+  zones), or ask to identify a device.
 - **The repository holds no real data**: names, rooms, addresses, PAN,
   network identifiers and bridge identifier are made up. Never committed, and
   excluded by `.gitignore`: the Hue link key (`sonde/cle_hue.local.h`), the
@@ -316,7 +333,7 @@ English is complete. After changing a text: build, then
 | Folder | Role |
 |---|---|
 | `MaillageCoeur/` | framework without UI, tested: the Zigbee model (`Zigbee/`: nodes, radio links, parents, paths to the bridge, round and page budget, known parents), the probe protocol (`Sonde/`), the Hue API v2 and the bridge certificate (`Pont/`), tracking, log and history (`Suivi/`, `Journal/`, `Maillage/`), names, the Home reading and its matching with the bridge (`Noms/`), the room view without UI (`Scene/`), the demo (`Demo/`) |
-| `MaillageZigbee/` | the app: bridge (`Pont/`: Bonjour, verified HTTPS, keychain), Passeur (`Noms/`: loopback listening, Home reading), probe (`Sonde/`: serial port, USB, rounds), surveillance, notifications, updates (`Surveillance/`), menu bar, room view, log and settings (`Vues/`) |
+| `MaillageZigbee/` | the app: bridge (`Pont/`: Bonjour, verified HTTPS, keychain), Passeur Noms daemon (`Noms/`: loopback subscription, Home reading), probe (`Sonde/`: serial port, USB, rounds), surveillance, notifications, updates (`Surveillance/`), menu bar, room view, log and settings (`Vues/`) |
 | `sonde/` | probe firmware (ESP32-C6, PlatformIO) and its host tests |
 | `outils/` | tests, publishing, texts, the probe's trial and flashing tools, the identifier guard, the passive listening trial of October 5, 2026 (`ecoute/`) |
 | `docs/superpowers/` | design (specs) and plans |
