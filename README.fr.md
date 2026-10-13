@@ -138,15 +138,31 @@ Maillage Zigbee s'en sert tel quel, sans le modifier.
   avertissement 30 jours avant l'expiration de son profil.
 - **Rapprochement** : pour chaque appareil du pont, l'app cherche son
   accessoire Maison parmi ceux de Signify ou de Philips (ou portés par le
-  nœud Matter du pont Hue), d'abord par le nom (à la casse, aux accents et
-  aux espaces près), à défaut par la pièce et le modèle s'il n'y a qu'un
-  candidat ; jamais d'appariement ambigu. Retrouvé : son nom et sa pièce de
-  Maison. Sinon : ceux de l'app Hue, et sa fiche le dit (« nom de l'app Hue
-  (pas trouvé dans Maison) »). L'adresse longue, l'état de connexion et la
-  pile viennent toujours du pont.
-- **Identifier** : la fiche d'un appareil retrouvé dans Maison offre aussi
-  « Identifier par Maison » (le démon appelle `identify()` sur l'accessoire de
-  Maison), à côté d'« Identifier » par le pont Hue, qui reste.
+  nœud Matter du pont Hue), dans cet ordre : l'appariement mémorisé d'un
+  rapprochement précédent ; puis le nom (à la casse, aux accents et aux espaces
+  près) ; puis le nom « souple », sans ponctuation ni petits mots de liaison
+  (« de », « du », « la », « l' », « d' », « à » ; une lettre isolée comme le
+  « A » de « Spot A » compte, tout comme les chiffres et les autres mots) ;
+  enfin la pièce et le modèle, s'il n'y a qu'un candidat. Jamais d'appariement
+  ambigu : un seul appareil pour un seul accessoire, des deux côtés. Retrouvé :
+  son nom et sa pièce de Maison. Sinon : ceux de l'app Hue, et sa fiche le dit
+  (« nom de l'app Hue (pas trouvé dans Maison) »). L'adresse longue, l'état de
+  connexion et la pile viennent toujours du pont.
+- **Appariements mémorisés** : un appariement trouvé par un appariement
+  mémorisé, par le nom ou par le nom souple est gardé (adresse longue vers
+  l'identifiant de l'accessoire Maison, dans `appariements-maison.json` du
+  conteneur de l'app, jamais dans le dépôt) : renommer une tuile dans Maison ne
+  le fait pas perdre. Un appariement trouvé seulement par la pièce et le modèle
+  (le plus faible) n'est pas mémorisé : un faux ne dure pas pour toujours. Un
+  appariement mémorisé n'est réappliqué que si le modèle de l'accessoire
+  concorde encore avec celui de l'appareil du pont (quand les deux sont
+  connus), et un nom exact unique des deux côtés l'emporte sur une entrée qui
+  le contredit, ce qui la corrige. Un accessoire disparu de Maison est oublié.
+- **Identifier** : la fiche d'un appareil du pont offre « Identifier par
+  Maison » (le démon appelle `identify()` sur l'accessoire de Maison), à côté
+  d'« Identifier » par le pont Hue, qui reste. Le bouton est toujours montré ;
+  il est grisé quand il est indisponible : appareil non retrouvé dans Maison, ou
+  démon non connecté.
 - **Sans le démon** : l'app marche avec les seuls noms de l'app Hue, sur un seul
   plateau ; Réglages, Maison dit comment l'installer.
 

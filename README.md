@@ -135,14 +135,28 @@ Zigbee uses it as is, without changing it.
   profile expires.
 - **Matching**: for each bridge device, the app looks for its Home accessory
   among those made by Signify or Philips (or carried by the Matter node of the
-  Hue bridge), first by name (ignoring case, accents and spaces), otherwise by
-  room and model when there is a single candidate; never an ambiguous match.
-  Found: its Home name and room. Otherwise: the Hue app's, and its card says
-  so ("Hue app name (not found in Home)"). The long address, connection state
-  and battery always come from the bridge.
-- **Identify**: the card of a device found in Home also offers "Identify via
-  Home" (the daemon calls `identify()` on the Home accessory), next to
-  "Identify" through the Hue bridge, which stays.
+  Hue bridge), in this order: the pairing remembered from a previous matching;
+  then the name (ignoring case, accents and spaces); then the "soft" name,
+  without punctuation or small linking words ("de", "du", "la", "l'", "d'",
+  "à"; a lone letter such as the "A" of "Spot A" counts, and so do digits and
+  every other word); and finally room and model, when there is a single
+  candidate. Never an ambiguous match: a single device for a single accessory,
+  on both sides. Found: its Home name and room. Otherwise: the Hue app's, and
+  its card says so ("Hue app name (not found in Home)"). The long address,
+  connection state and battery always come from the bridge.
+- **Remembered pairings**: a pairing found by a remembered pairing, by name or
+  by soft name is kept (long address to the Home accessory's identifier, in
+  `appariements-maison.json` in the app's container, never in the repository),
+  so renaming a tile in Home does not lose it. A pairing found only by room and
+  model (the weakest) is not remembered, so a wrong one does not last for ever.
+  A remembered pairing is applied again only if the accessory's model still
+  matches the bridge device's (when both are known), and an exact name that is
+  unique on both sides takes precedence over a contradicting entry, which is
+  then corrected. An accessory that disappears from Home is forgotten.
+- **Identify**: the card of a bridge device offers "Identify via Home" (the
+  daemon calls `identify()` on the Home accessory), next to "Identify" through
+  the Hue bridge, which stays. The button is always shown; it is greyed out when
+  unavailable: device not found in Home, or the daemon not connected.
 - **Without the daemon**: the app works with the Hue app names alone, on a
   single plane; Settings, Home says how to install it.
 
