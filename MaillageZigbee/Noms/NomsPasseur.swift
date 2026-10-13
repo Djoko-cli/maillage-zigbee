@@ -3,91 +3,120 @@ import Foundation
 import MaillageCoeur
 import Observation
 
-/// Les noms de Maison, releves par le Passeur (Passeur Noms : l'app iOS « concue pour iPad » que Maillage Thread
-/// installe sur le Mac ; generique, elle sert toute app qui l'ouvre) et gardes dans le conteneur de l'app
-/// (`releve-maison.json`). Un releve : une ecoute TCP sur 127.0.0.1 (`EcouteReleve`) et un jeton a usage unique ; le
-/// Passeur, ouvert sans activation avec l'URL `maillage-passeur://releve?port=<port>&jeton=<jeton>`, lit Maison, envoie
-/// le releve (`EnvoiPasseur`) et se ferme. Repris de `NomsInternes` de Maillage Thread 1.1.0.
-/// Le dernier releve reussi est garde : un echec ne l'efface jamais, il se dit dans `probleme`. Sans Passeur, l'app
+/// Les noms de Maison, servis en continu par le demon Passeur Noms (installe par Maillage Thread ; generique, il sert
+/// toute app qui l'abonne) et gardes dans le conteneur de l'app (`releve-maison.json`). Au lancement, l'app s'abonne :
+/// une ecoute sur 127.0.0.1 (`AbonnementPasseur`), un jeton a usage unique et l'URL
+/// `maillage-passeur://abonner?port=<port>&jeton=<jeton>`, ouverte sans activation. Le demon envoie `etat` et `releve`
+/// a la connexion, puis a chaque changement dans Maison ; l'app lui envoie `relire`, `identifier` et
+/// `ouvertureSession`. Connexion perdue, ou aucun demon dans le delai : nouvel abonnement apres 5 s, 10 s, 30 s, puis
+/// toutes les minutes. Repris de `NomsInternes` de Maillage Thread 1.3.0 (spec du demon, 12/10/2026, section 4.2).
+/// Le dernier releve reussi est garde : un echec ne l'efface jamais, il se dit dans `probleme`. Sans demon, l'app
 /// marche avec les seuls noms du pont Hue.
 @MainActor
 @Observable
 final class NomsPasseur {
-    /// Ouvre le Passeur avec cette cible (son URL) ; nil s'il est ouvert, sinon pourquoi il ne l'est pas.
+    /// Ouvre le demon avec cette cible (son URL) ; nil s'il est ouvert, sinon pourquoi il ne l'est pas.
     typealias Lanceur = @MainActor (_ cible: EnvoiPasseur.Cible) async -> EchecLancement?
 
-    /// Le Passeur n'a pas ete ouvert.
+    /// Le demon n'a pas ete ouvert.
     enum EchecLancement: Equatable {
-        /// Il n'est pas installe sur ce Mac.
-        case introuvable
+        /// Aucune app n'ouvre le schema du protocole : pas de demon sur ce Mac ; `ancien` : une app porte pourtant
+        /// l'identifiant du passeur (l'ancienne app iOS « concue pour iPad », qui ne connait pas `abonner`).
+        case introuvable(ancien: Bool)
+        /// Le demon ne tourne toujours pas 10 s apres son lancement.
+        case neDemarrePas
         /// macOS ne l'a pas ouvert : la cause.
         case refuse(String)
     }
 
-    /// Fin d'un releve.
-    enum Fin: Equatable {
-        /// Le JSON du Passeur, de la longueur annoncee, a decoder.
-        case recu(Data)
-        case jetonFaux
-        case longueurFausse
-        /// Connexion coupee par une erreur avant la fin de la trame : la trame n'est pas en cause.
-        case interrompu
-        /// Aucun releve dans le delai.
-        case delai
-        /// Passeur introuvable ou lancement refuse.
-        case lancement(EchecLancement)
-        /// Ecoute impossible : la cause.
-        case ecoute(String)
+    /// Resultat d'une identification, montre quelques secondes dans la fiche de l'appareil.
+    struct Identification: Equatable {
+        /// L'`id` de l'accessoire de Maison.
+        var accessoire: String
+        var texte: String
+    }
+
+    /// Ce que fait le lanceur selon que le demon tourne deja ou non.
+    enum PlanLancement: Equatable {
+        /// Il tourne : l'URL est envoyee directement.
+        case urlSeule
+        /// Il ne tourne pas : le lancer SANS URL, attendre qu'il tourne, puis envoyer l'URL.
+        case lancerPuisURL
     }
 
     nonisolated static let fichier = "releve-maison.json"
-    /// Identifiant du Passeur (celui de Maillage Thread).
+    /// Identifiant du demon (celui de l'ancien Passeur aussi).
     nonisolated static let idPasseur = "fr.djoko.maillage.passeur"
-    /// Profil gratuit du Passeur : 7 jours ; au-dela, il faut le recompiler.
-    nonisolated static let validite: TimeInterval = 7 * 24 * 3600
-    /// Au lancement, un releve de moins d'un jour suffit : le Passeur n'est pas relance.
-    nonisolated static let fraicheur: TimeInterval = 24 * 3600
-    /// Attente d'un releve : le premier lancement attend la reponse a la demande d'acces a Maison.
-    /// Le texte du delai (`finir`, cas `.delai`) dit "2 minutes" en dur : a changer avec cette valeur.
+    /// Premiere attente d'un demon, et garde de `relire` : le temps d'une demande d'acces a Maison. Les textes
+    /// (`texte(delai:)`) disent "2 minutes" en dur : a changer avec cette valeur (le catalogue aussi).
     nonisolated static let delaiParDefaut: Duration = .seconds(120)
+    /// Attentes avant de se reabonner ; la derniere se repete.
+    nonisolated static let reabonnements: [Duration] = [.seconds(5), .seconds(10), .seconds(30), .seconds(60)]
+    /// Avertissement avant l'expiration du profil du demon.
+    nonisolated static let preavisProfil: TimeInterval = 30 * 24 * 3600
+    /// Duree d'affichage du resultat d'une identification.
+    nonisolated static let dureeIdentification: Duration = .seconds(4)
+    /// Pause apres le lancement sans URL du demon : le temps que HomeKit se stabilise (banc de Maillage Thread du
+    /// 13/10 : maisons livrees en 0,2 s).
+    nonisolated static let attenteDemarrage: Duration = .milliseconds(1500)
+    /// Attente du demarrage du demon, lance sans URL : 100 essais de 100 ms.
+    nonisolated static let essaisDemarrage = 100
 
     /// Dernier releve reussi.
     private(set) var releve: ReleveMaison?
-    /// Dernier probleme : releve refuse, illisible ou interrompu, rien dans le delai, Passeur introuvable ou qui ne se
-    /// lance pas, acces a Maison refuse, ecriture impossible.
+    /// Dernier probleme : demon introuvable ou ancien, lancement refuse, aucun demon dans le delai, connexion perdue,
+    /// releve refuse ou illisible, acces a Maison refuse, ecriture impossible.
     private(set) var probleme: String?
-    /// Le dernier lancement n'a pas trouve le Passeur : les Reglages disent comment l'installer.
+    /// Le dernier lancement n'a pas trouve le demon (ou seulement l'ancien Passeur) : les Reglages disent comment
+    /// l'installer.
     private(set) var passeurAbsent = false
-    /// Une ecoute est ouverte : le Passeur est lance, ou va l'etre.
+    /// Le demon est connecte (jeton accepte).
+    private(set) var connecte = false
+    /// Dernier `etat` du demon ; garde apres une deconnexion, mais les Reglages ne le lisent que connecte.
+    private(set) var etat: EtatPasseur?
+    /// `relire` envoye, releve pas encore recu.
     private(set) var releveEnCours = false
-    /// Mode demo, ou tests : aucun releve demande, lu ni ecrit.
+    /// Derniere reponse a « Identifier », effacee apres `dureeIdentification`.
+    private(set) var identification: Identification?
+    /// Echecs d'abonnement depuis la derniere connexion : choisit l'attente suivante.
+    private(set) var tentative = 0
+    /// Mode demo, ou tests : aucun abonnement, releve ni fichier lu ou ecrit.
     let inerte: Bool
     /// Appele a chaque changement du releve retenu.
     @ObservationIgnored var surReleve: ((ReleveMaison?) -> Void)?
-    /// Derniere demande de releve.
-    @ObservationIgnored private(set) var derniereDemande: Date?
 
     @ObservationIgnored private let cache: URL?
     @ObservationIgnored private let delai: Duration
+    @ObservationIgnored private let attentes: [Duration]
     @ObservationIgnored private let lanceur: Lanceur
-    @ObservationIgnored private var ecoute: EcouteReleve?
+    @ObservationIgnored private var abonnement: AbonnementPasseur?
     @ObservationIgnored private var minuterie: Task<Void, Never>?
+    @ObservationIgnored private var reprise: Task<Void, Never>?
+    @ObservationIgnored private var effacement: Task<Void, Never>?
+    /// Garde de `relire` : libere `releveEnCours` si le demon ne repond pas dans le delai.
+    @ObservationIgnored private var gardeReleve: Task<Void, Never>?
+    /// Numero de la derniere demande d'identification, et son accessoire.
+    @ObservationIgnored private var demande = 0
+    @ObservationIgnored private var enIdentification: String?
 
     /// `cache` : le `releve-maison.json` de l'app. `lanceur` : `lancerPasseurDuMac` pour l'app, un faux dans les
-    /// tests. Il n'a pas de valeur par defaut : un test qui l'oublierait lancerait le vrai Passeur.
-    init(cache: URL, delai: Duration = NomsPasseur.delaiParDefaut, lanceur: @escaping Lanceur) {
+    /// tests. Il n'a pas de valeur par defaut : un test qui l'oublierait lancerait le vrai demon.
+    init(cache: URL, delai: Duration = NomsPasseur.delaiParDefaut, attentes: [Duration] = NomsPasseur.reabonnements,
+         lanceur: @escaping Lanceur) {
         self.cache = cache
         self.delai = delai
+        self.attentes = attentes.isEmpty ? NomsPasseur.reabonnements : attentes
         self.lanceur = lanceur
         inerte = false
         releve = try? ReleveMaison.lire(Data(contentsOf: cache))
     }
 
-    /// Inerte (demo, tests) : le releve donne, aucun releve demande, lu ni ecrit ; jamais de Passeur lance.
+    /// Inerte (demo, tests) : le releve donne, aucun abonnement, rien de lu ni d'ecrit ; jamais de demon lance.
     init(demo releve: ReleveMaison? = nil) {
         cache = nil
         delai = Self.delaiParDefaut
-        lanceur = { _ in .introuvable }
+        attentes = Self.reabonnements
+        lanceur = { _ in .introuvable(ancien: false) }
         inerte = true
         self.releve = releve
     }
@@ -97,82 +126,142 @@ final class NomsPasseur {
         dossier.appendingPathComponent(fichier)
     }
 
-    /// Donne le releve garde.
+    /// Donne le releve garde et s'abonne au demon.
     func demarrer() {
         surReleve?(releve)
+        abonner()
     }
 
-    /// « Rafraichir depuis Maison » : ouvre l'ecoute, puis lance le Passeur avec son port et un jeton neuf. Une seule
-    /// ecoute a la fois : une demande pendant un releve est ignoree. Jamais inerte.
-    func rafraichir() {
-        guard !inerte, cache != nil, ecoute == nil else { return }
-        derniereDemande = .now
-        let e = EcouteReleve(jeton: EnvoiPasseur.nouveauJeton())
-        ecoute = e
-        releveEnCours = true
+    /// Ouvre l'ecoute, puis l'URL `abonner` avec son port et un jeton neuf. Un abonnement a la fois ; jamais inerte.
+    func abonner() {
+        guard !inerte, cache != nil, abonnement == nil else { return }
+        reprise?.cancel()
+        reprise = nil
+        let a = AbonnementPasseur(jeton: EnvoiPasseur.nouveauJeton())
+        abonnement = a
         minuterie = Task { [weak self, delai] in
             try? await Task.sleep(for: delai)
             guard !Task.isCancelled else { return }
-            // Sans NomsPasseur, personne ne finira ce releve : on ferme l'ecoute, que seul `fermer()` libere (la
-            // fermeture donnee a `ouvrir` la retient, et elle la garde).
-            guard let self else { e.fermer(); return }
-            self.finir(e, .delai)
+            // Sans NomsPasseur, personne ne finira cet abonnement : on ferme l'ecoute.
+            guard let self else {
+                a.fermer()
+                return
+            }
+            // "2 minutes" : `delaiParDefaut` (120 s), en dur dans le texte.
+            self.finir(a, probleme: String(localized: "Passeur Noms ne s'est pas connecté en 2 minutes."))
         }
-        e.ouvrir { [weak self] evenement in
-            self?.surEcoute(e, evenement)
+        a.ouvrir { [weak self] e in self?.surAbonnement(a, e) }
+    }
+
+    /// « Rafraichir depuis Maison » : `relire` au demon connecte (releve et batteries) ; sans demon, un nouvel
+    /// abonnement tout de suite.
+    func relire() {
+        guard !inerte, cache != nil else { return }
+        if connecte, let a = abonnement {
+            releveEnCours = true
+            a.envoyer(.relire)
+            // Un demon connecte qui ne repond jamais ne laisse pas le bouton grise pour toujours.
+            gardeReleve?.cancel()
+            gardeReleve = Task { [weak self, delai] in
+                try? await Task.sleep(for: delai)
+                guard !Task.isCancelled, let self, self.releveEnCours else { return }
+                self.releveEnCours = false
+                self.probleme = String(localized: "Passeur Noms n'a pas répondu à la demande de relevé.")
+            }
+        } else if abonnement == nil {
+            tentative = 0
+            abonner()
         }
     }
 
-    /// Au lancement : relance le Passeur si le releve garde a plus d'un jour (ou s'il n'y en a pas). Jamais inerte.
-    func rafraichirSiAncien(maintenant: Date = .now) {
-        guard !inerte, Self.aRafraichir(releve: releve?.date, demande: derniereDemande, maintenant: maintenant) else {
-            return
-        }
-        rafraichir()
+    /// « Identifier » par Maison : le demon appelle `identify()` sur cet accessoire de Maison (son `id`).
+    func identifier(accessoire id: String) {
+        guard connecte, let a = abonnement else { return }
+        demande += 1
+        enIdentification = id
+        a.envoyer(.identifier(demande: demande, accessoire: id))
     }
 
-    private func surEcoute(_ e: EcouteReleve, _ evenement: EcouteReleve.Evenement) {
-        guard ecoute === e else { return }
-        switch evenement {
+    /// L'interrupteur des Reglages : inscrit ou desinscrit le demon a l'ouverture de session.
+    func reglerOuvertureSession(_ actif: Bool) {
+        guard connecte, let a = abonnement else { return }
+        a.envoyer(.ouvertureSession(actif: actif))
+    }
+
+    private func surAbonnement(_ a: AbonnementPasseur, _ e: AbonnementPasseur.Evenement) {
+        guard abonnement === a else { return }
+        switch e {
         case .prete(let port):
-            let cible = EnvoiPasseur.Cible(port: port, jeton: e.jeton)
+            let cible = EnvoiPasseur.Cible(port: port, jeton: a.jeton, demande: .abonner)
             Task { [weak self] in
                 guard let self, let echec = await self.lanceur(cible) else { return }
-                self.finir(e, .lancement(echec))
+                self.finir(a, probleme: Self.texte(echec), absent: echec.estAbsent)
             }
-        case .fin(let fin):
-            finir(e, fin)
+        case .connecte:
+            minuterie?.cancel()
+            minuterie = nil
+            connecte = true
+            tentative = 0
+            probleme = nil
+            passeurAbsent = false
+        case .message(let m):
+            recevoir(m)
+        case .fin(let f):
+            finir(a, probleme: Self.texte(f))
         }
     }
 
-    /// Ferme l'ecoute et retient l'issue du releve (sauf s'il est deja fini).
-    private func finir(_ e: EcouteReleve, _ fin: Fin) {
-        guard ecoute === e else { return }
-        ecoute = nil
-        e.fermer()
-        minuterie?.cancel()
-        minuterie = nil
-        releveEnCours = false
-        if case .lancement(.introuvable) = fin { passeurAbsent = true } else { passeurAbsent = false }
-        switch fin {
-        case .recu(let json):
+    private func recevoir(_ m: MessagePasseur) {
+        switch m {
+        case .etat(let e):
+            etat = e
+        case .releve(let json):
+            releveEnCours = false
+            gardeReleve?.cancel()
+            gardeReleve = nil
             do {
                 integrer(try ReleveMaison.lire(json))
             } catch {
                 probleme = String(localized: "Relevé de Maison illisible : \(error.localizedDescription)")
             }
-        case .jetonFaux: probleme = String(localized: "Relevé de Maison refusé : jeton faux.")
-        case .longueurFausse: probleme = String(localized: "Relevé de Maison illisible : longueur fausse.")
-        case .interrompu:
-            probleme = String(localized: "Relevé de Maison interrompu : la connexion avec Passeur Noms a été coupée.")
-        // "2 minutes" : `delaiParDefaut` (120 s). Le texte est en dur, meme si `delai` se regle : les deux changent
-        // ensemble (le catalogue aussi).
-        case .delai: probleme = String(localized: "Passeur Noms n'a rien envoyé en 2 minutes.")
-        case .lancement(.introuvable):
-            probleme = String(localized: "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue.")
-        case .lancement(.refuse(let cause)):
-            probleme = String(localized: "Passeur Noms ne s'est pas ouvert : \(cause) (profil de 7 jours expiré ?)")
-        case .ecoute(let cause): probleme = String(localized: "Écoute du relevé impossible : \(cause)")
+        case .identifie(let r):
+            guard r.demande == demande, let id = enIdentification else { return }
+            montrer(Identification(accessoire: id, texte: Self.texte(r)))
+        case .relire, .identifier, .ouvertureSession:
+            // Messages de l'app vers le demon : ignores dans l'autre sens.
+            break
+        }
+    }
+
+    /// Ferme l'abonnement, retient le probleme et planifie le suivant.
+    private func finir(_ a: AbonnementPasseur, probleme p: String, absent: Bool = false) {
+        guard abonnement === a else { return }
+        abonnement = nil
+        a.fermer()
+        minuterie?.cancel()
+        minuterie = nil
+        gardeReleve?.cancel()
+        gardeReleve = nil
+        connecte = false
+        releveEnCours = false
+        probleme = p
+        passeurAbsent = absent
+        let attente = Self.attente(apres: tentative, dans: attentes)
+        tentative += 1
+        reprise = Task { [weak self] in
+            try? await Task.sleep(for: attente)
+            guard !Task.isCancelled else { return }
+            self?.abonner()
+        }
+    }
+
+    private func montrer(_ i: Identification) {
+        identification = i
+        effacement?.cancel()
+        effacement = Task { [weak self] in
+            try? await Task.sleep(for: Self.dureeIdentification)
+            guard !Task.isCancelled else { return }
+            self?.identification = nil
         }
     }
 
@@ -195,16 +284,39 @@ final class NomsPasseur {
         surReleve?(garde)
     }
 
-    /// Lanceur reel : Passeur Noms, installe par Maillage Thread, ouvert sans activation avec l'URL de la cible (port et
-    /// jeton). Pas d'arguments de lancement : macOS retire ceux que passe une app du bac a sable.
+    // MARK: - Lancement du demon
+
+    /// Lanceur reel : Passeur Noms, installe par Maillage Thread (outils/passeur.sh), ouvert sans activation, d'abord
+    /// sans URL puis avec l'URL de la cible. Pas d'arguments de lancement : macOS retire ceux que passe une app du bac a
+    /// sable.
     static func lancerPasseurDuMac(_ cible: EnvoiPasseur.Cible) async -> EchecLancement? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: idPasseur) else {
-            return .introuvable
+        // Le demon se trouve par son schema `schemaProtocole`, jamais en lisant son paquet (le bac a sable l'interdit)
+        // ni par son identifiant seul (LaunchServices garde des copies perimees) : banc de Maillage Thread du 13/10.
+        let marque = URL(string: "\(EnvoiPasseur.schemaProtocole):")
+        guard let url = marque.flatMap({ NSWorkspace.shared.urlForApplication(toOpen: $0) }) else {
+            return .introuvable(ancien: NSWorkspace.shared.urlForApplication(withBundleIdentifier: idPasseur) != nil)
         }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = false
         configuration.addsToRecentItems = false
         do {
+            // homed refuse un demon lance a froid PAR une URL : il coupe sa connexion XPC au premier sync (4097) et ne
+            // livre jamais les maisons (banc du 13/10). On le lance donc d'abord SANS URL, on attend qu'il tourne et
+            // que HomeKit se stabilise, puis on envoie l'URL. Seule compte la copie trouvee par le schema.
+            let enMarche = {
+                tourne(NSRunningApplication.runningApplications(withBundleIdentifier: idPasseur).map(\.bundleURL), copie: url)
+            }
+            if plan(demonTourne: enMarche()) == .lancerPuisURL {
+                _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+                var essais = 0
+                while !enMarche(), essais < essaisDemarrage {
+                    try? await Task.sleep(for: .milliseconds(100))
+                    essais += 1
+                }
+                // Toujours pas lance apres 10 s : envoyer l'URL a froid serait refuse par HomeKit.
+                guard enMarche() else { return .neDemarrePas }
+                try? await Task.sleep(for: attenteDemarrage)
+            }
             _ = try await NSWorkspace.shared.open([cible.url], withApplicationAt: url, configuration: configuration)
             return nil
         } catch {
@@ -212,15 +324,80 @@ final class NomsPasseur {
         }
     }
 
-    /// Releve absent ou de plus d'un jour, et pas de demande dans le dernier jour : un Passeur qui ne se lance pas n'est
-    /// pas relance en boucle.
-    nonisolated static func aRafraichir(releve: Date?, demande: Date?, maintenant: Date) -> Bool {
-        func ancien(_ d: Date?) -> Bool { d.map { maintenant.timeIntervalSince($0) > fraicheur } ?? true }
-        return ancien(releve) && ancien(demande)
+    /// Une instance de CETTE copie du demon tourne (`bundleURL` des instances de l'identifiant du passeur) : une copie
+    /// perimee qui tourne (ancien passeur iOS, autre chemin) ne fait pas de `copie` un demon deja lance.
+    nonisolated static func tourne(_ instances: [URL?], copie: URL) -> Bool {
+        instances.contains { $0?.standardizedFileURL == copie.standardizedFileURL }
+    }
+
+    nonisolated static func plan(demonTourne: Bool) -> PlanLancement {
+        demonTourne ? .urlSeule : .lancerPuisURL
+    }
+
+    /// L'attente avant le prochain abonnement, apres `tentative` echecs.
+    nonisolated static func attente(apres tentative: Int, dans attentes: [Duration]) -> Duration {
+        attentes[min(max(tentative, 0), attentes.count - 1)]
+    }
+
+    // MARK: - Textes
+
+    nonisolated static func texte(_ e: EchecLancement) -> String {
+        switch e {
+        case .introuvable(ancien: false):
+            String(localized: "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue.")
+        case .introuvable(ancien: true):
+            String(localized: "Passeur Noms est l'ancienne version : relance outils/passeur.sh de Maillage Thread.")
+        case .neDemarrePas: String(localized: "Passeur Noms ne démarre pas : relance outils/passeur.sh.")
+        // Cause la plus probable : le profil de developpement du demon a expire (un an).
+        case .refuse(let cause): String(localized: "\(cause) (profil du passeur expiré ? relance outils/passeur.sh)")
+        }
+    }
+
+    nonisolated static func texte(_ f: AbonnementPasseur.Fin) -> String {
+        switch f {
+        case .jetonFaux: String(localized: "Connexion de Passeur Noms refusée : jeton faux.")
+        case .trameFausse: String(localized: "Message illisible de Passeur Noms : connexion fermée.")
+        case .fermee: String(localized: "Passeur Noms s'est déconnecté.")
+        case .interrompue: String(localized: "Connexion avec Passeur Noms coupée.")
+        case .ecoute(let cause): String(localized: "Écoute de Passeur Noms impossible : \(cause)")
+        }
+    }
+
+    nonisolated static func texte(_ r: ReponseIdentifier) -> String {
+        if r.ok { return String(localized: "Identification demandée") }
+        switch r.erreur {
+        case ReponseIdentifier.inconnu?: return String(localized: "Accessoire introuvable dans Maison")
+        case ReponseIdentifier.nonIdentifiable?: return String(localized: "Cet accessoire ne sait pas s'identifier")
+        case let e?: return String(localized: "Identification impossible : \(e)")
+        case nil: return String(localized: "Identification impossible")
+        }
+    }
+
+    /// Reglages › Maison : l'etat du demon.
+    nonisolated static func texteDemon(connecte: Bool, etat: EtatPasseur?) -> String {
+        guard connecte, let e = etat else { return String(localized: "non connecté") }
+        let acces = switch e.acces {
+        case .autorise: String(localized: "accès à Maison autorisé")
+        case .refuse: String(localized: "accès à Maison refusé")
+        case .attente: String(localized: "accès à Maison en attente")
+        }
+        return String(localized: "connecté · version \(e.version) · \(acces)")
+    }
+
+    /// Le profil du demon expire dans 30 jours ou moins, ou a expire.
+    nonisolated static func profilBientotExpire(_ e: EtatPasseur?, maintenant: Date) -> Bool {
+        guard let fin = e?.profilExpire else { return false }
+        return fin.timeIntervalSince(maintenant) <= preavisProfil
+    }
+
+    /// L'interrupteur d'ouverture de session : actif avec un demon connecte qui a donne son etat. (`indisponible`,
+    /// `notFound` de SMAppService, est l'etat d'un demon jamais inscrit : l'inscription reste possible.)
+    nonisolated static func interrupteurActif(connecte: Bool, etat: EtatPasseur?) -> Bool {
+        connecte && etat != nil
     }
 
     /// Un releve reussi remplace l'ancien ; un echec le garde et dit pourquoi, avec les textes de l'app : le message du
-    /// Passeur (en francais seulement) n'est que le detail d'une erreur.
+    /// demon (en francais seulement) n'est que le detail d'une erreur.
     nonisolated static func retenir(_ nouveau: ReleveMaison, ancien: ReleveMaison?) -> (ReleveMaison?, String?) {
         switch nouveau.statut {
         case .ok: (nouveau, nil)
@@ -232,9 +409,11 @@ final class NomsPasseur {
                 ?? String(localized: "Passeur Noms a échoué."))
         }
     }
+}
 
-    /// Releve de plus de 7 jours : le profil gratuit du Passeur a pu expirer.
-    nonisolated static func estAncien(_ r: ReleveMaison, maintenant: Date) -> Bool {
-        maintenant.timeIntervalSince(r.date) > validite
+extension NomsPasseur.EchecLancement {
+    /// Pas de demon utilisable sur ce Mac : les Reglages disent comment l'installer.
+    var estAbsent: Bool {
+        if case .introuvable = self { true } else { false }
     }
 }

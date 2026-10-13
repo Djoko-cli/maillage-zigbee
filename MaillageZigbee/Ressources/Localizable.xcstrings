@@ -1,6 +1,22 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "%@ (profil du passeur expiré ? relance outils/passeur.sh)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Passeur profile expired? run outils/passeur.sh again)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (profil du passeur expiré ? relance outils/passeur.sh)"
+          }
+        }
+      }
+    },
     "%@ : %@" : {
       "localizations" : {
         "en" : {
@@ -1057,6 +1073,38 @@
         }
       }
     },
+    "Accepte Passeur Noms dans Réglages Système › Général › Ouverture." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Passeur Noms in System Settings › General › Login Items."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accepte Passeur Noms dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "Accessoire introuvable dans Maison" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessory not found in Home"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessoire introuvable dans Maison"
+          }
+        }
+      }
+    },
     "Accès par le réseau" : {
       "localizations" : {
         "en" : {
@@ -1649,6 +1697,22 @@
         }
       }
     },
+    "Cet accessoire ne sait pas s'identifier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This accessory cannot identify itself"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet accessoire ne sait pas s'identifier"
+          }
+        }
+      }
+    },
     "Cet appareil n'est pas connu du pont." : {
       "localizations" : {
         "en" : {
@@ -1725,6 +1789,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clé créée, mais la sonde n'a pas confirmé le Wi-Fi : recommencez."
+          }
+        }
+      }
+    },
+    "Connexion avec Passeur Noms coupée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection with Passeur Noms lost."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion avec Passeur Noms coupée."
+          }
+        }
+      }
+    },
+    "Connexion de Passeur Noms refusée : jeton faux." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms connection refused: wrong token."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion de Passeur Noms refusée : jeton faux."
           }
         }
       }
@@ -2033,6 +2129,22 @@
         }
       }
     },
+    "Fait clignoter l'appareil, par Maison (Passeur Noms), pour le repérer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makes the device blink, through Home (Passeur Noms), so you can spot it"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fait clignoter l'appareil, par Maison (Passeur Noms), pour le repérer"
+          }
+        }
+      }
+    },
     "Fait clignoter l'appareil, par le pont Hue, pour le repérer" : {
       "localizations" : {
         "en" : {
@@ -2193,6 +2305,54 @@
         }
       }
     },
+    "Identification demandée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification requested"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification demandée"
+          }
+        }
+      }
+    },
+    "Identification impossible" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification impossible"
+          }
+        }
+      }
+    },
+    "Identification impossible : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification failed: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identification impossible : %@"
+          }
+        }
+      }
+    },
     "Identification…" : {
       "localizations" : {
         "en" : {
@@ -2221,6 +2381,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Identifier"
+          }
+        }
+      }
+    },
+    "Identifier par Maison" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identify via Home"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifier par Maison"
           }
         }
       }
@@ -2513,6 +2689,22 @@
         }
       }
     },
+    "Le profil de Passeur Noms expire le %@ : relance outils/passeur.sh." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Passeur Noms profile expires on %@: run outils/passeur.sh again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le profil de Passeur Noms expire le %@ : relance outils/passeur.sh."
+          }
+        }
+      }
+    },
     "Le surnom reste sur ce Mac et passe avant le nom donné par le pont." : {
       "localizations" : {
         "en" : {
@@ -2545,18 +2737,18 @@
         }
       }
     },
-    "Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms ; le pont Hue donne les adresses, l'état de connexion et les piles. Le relevé est refait au lancement s'il a plus d'un jour." : {
+    "Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms, qui les envoie dès qu'ils changent ; le pont Hue donne les adresses, l'état de connexion et les piles." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Names, rooms and floors (zones) come from the Home app, read by Passeur Noms; the Hue bridge gives addresses, connection state and batteries. The reading is redone at launch when it is more than a day old."
+            "value" : "Names, rooms and floors (zones) come from the Home app, read by Passeur Noms, which sends them as soon as they change; the Hue bridge gives addresses, connection state and batteries."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms ; le pont Hue donne les adresses, l'état de connexion et les piles. Le relevé est refait au lancement s'il a plus d'un jour."
+            "value" : "Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms, qui les envoie dès qu'ils changent ; le pont Hue donne les adresses, l'état de connexion et les piles."
           }
         }
       }
@@ -2781,6 +2973,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maison indisponible pour Passeur Noms."
+          }
+        }
+      }
+    },
+    "Message illisible de Passeur Noms : connexion fermée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unreadable message from Passeur Noms: connection closed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message illisible de Passeur Noms : connexion fermée."
           }
         }
       }
@@ -3089,6 +3297,22 @@
         }
       }
     },
+    "Ouvrir Passeur Noms à l'ouverture de session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Passeur Noms at login"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Passeur Noms à l'ouverture de session"
+          }
+        }
+      }
+    },
     "Ouvrir le graphe" : {
       "localizations" : {
         "en" : {
@@ -3169,6 +3393,22 @@
         }
       }
     },
+    "Passeur Noms" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms"
+          }
+        }
+      }
+    },
     "Passeur Noms a échoué : %@" : {
       "localizations" : {
         "en" : {
@@ -3201,18 +3441,34 @@
         }
       }
     },
-    "Passeur Noms n'a rien envoyé en 2 minutes." : {
+    "Passeur Noms est l'ancienne version : relance outils/passeur.sh de Maillage Thread." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms sent nothing within 2 minutes."
+            "value" : "Passeur Noms is the old version: run Maillage Thread's outils/passeur.sh again."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms n'a rien envoyé en 2 minutes."
+            "value" : "Passeur Noms est l'ancienne version : relance outils/passeur.sh de Maillage Thread."
+          }
+        }
+      }
+    },
+    "Passeur Noms n'a pas répondu à la demande de relevé." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms did not answer the reading request."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms n'a pas répondu à la demande de relevé."
           }
         }
       }
@@ -3233,18 +3489,50 @@
         }
       }
     },
-    "Passeur Noms ne s'est pas ouvert : %@ (profil de 7 jours expiré ?)" : {
+    "Passeur Noms ne démarre pas : relance outils/passeur.sh." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms did not open: %@ (7-day profile expired?)"
+            "value" : "Passeur Noms does not start: run outils/passeur.sh again."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms ne s'est pas ouvert : %@ (profil de 7 jours expiré ?)"
+            "value" : "Passeur Noms ne démarre pas : relance outils/passeur.sh."
+          }
+        }
+      }
+    },
+    "Passeur Noms ne s'est pas connecté en 2 minutes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms did not connect within 2 minutes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms ne s'est pas connecté en 2 minutes."
+          }
+        }
+      }
+    },
+    "Passeur Noms s'est déconnecté." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms disconnected."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passeur Noms s'est déconnecté."
           }
         }
       }
@@ -3649,54 +3937,6 @@
         }
       }
     },
-    "Relevé de Maison illisible : longueur fausse." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unreadable Home reading: wrong length."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relevé de Maison illisible : longueur fausse."
-          }
-        }
-      }
-    },
-    "Relevé de Maison interrompu : la connexion avec Passeur Noms a été coupée." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home reading interrupted: the connection with Passeur Noms was cut."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relevé de Maison interrompu : la connexion avec Passeur Noms a été coupée."
-          }
-        }
-      }
-    },
-    "Relevé de Maison refusé : jeton faux." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home reading refused: wrong token."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relevé de Maison refusé : jeton faux."
-          }
-        }
-      }
-    },
     "Relevé de la sonde ancien" : {
       "localizations" : {
         "en" : {
@@ -3709,22 +3949,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Relevé de la sonde ancien"
-          }
-        }
-      }
-    },
-    "Relevé de plus de 7 jours : le profil gratuit de Passeur Noms a peut-être expiré." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reading older than 7 days: the free profile of Passeur Noms may have expired."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relevé de plus de 7 jours : le profil gratuit de Passeur Noms a peut-être expiré."
           }
         }
       }
@@ -4881,6 +5105,54 @@
         }
       }
     },
+    "accès à Maison autorisé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home access allowed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "accès à Maison autorisé"
+          }
+        }
+      }
+    },
+    "accès à Maison en attente" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home access pending"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "accès à Maison en attente"
+          }
+        }
+      }
+    },
+    "accès à Maison refusé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home access denied"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "accès à Maison refusé"
+          }
+        }
+      }
+    },
     "adresse courte %@" : {
       "localizations" : {
         "en" : {
@@ -5229,6 +5501,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "connecté"
+          }
+        }
+      }
+    },
+    "connecté · version %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "connected · version %1$@ · %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "connecté · version %1$@ · %2$@"
           }
         }
       }
@@ -6577,18 +6865,18 @@
         }
       }
     },
-    "Écoute du relevé impossible : %@" : {
+    "Écoute de Passeur Noms impossible : %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cannot listen for the reading: %@"
+            "value" : "Cannot listen for Passeur Noms: %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Écoute du relevé impossible : %@"
+            "value" : "Écoute de Passeur Noms impossible : %@"
           }
         }
       }

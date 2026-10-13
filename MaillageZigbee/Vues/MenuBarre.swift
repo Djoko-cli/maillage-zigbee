@@ -88,8 +88,8 @@ struct MenuBarre: View {
             VStack(alignment: .leading, spacing: 0) {
                 Button("Ouvrir le graphe") { ouvrir("graphe") }
                 Button("Journal…") { ouvrir("journal") }
-                // Le Passeur lit Maison sans s'activer : le menu peut rester ouvert.
-                Button { passeur.rafraichir() } label: {
+                // Le demon lit Maison sans s'activer : le menu peut rester ouvert.
+                Button { passeur.relire() } label: {
                     if passeur.releveEnCours { Text("Relevé de Maison en cours…") } else { Text("Rafraîchir depuis Maison") }
                 }
                 .disabled(passeur.inerte || passeur.releveEnCours)

@@ -32,8 +32,8 @@ struct MaillageZigbeeApp: App {
         _surveillance = State(initialValue: s)
         _ouverture = State(initialValue: o)
         _nomsPont = State(initialValue: d)
-        // Les noms de Maison : le releve invente de la demo en demo ; inerte sous les tests (jamais de Passeur lance) ;
-        // sinon le Passeur, son dernier releve garde dans `releve-maison.json`.
+        // Les noms de Maison : le releve invente de la demo en demo ; inerte sous les tests (jamais de demon lance) ;
+        // sinon le demon Passeur Noms, son dernier releve garde dans `releve-maison.json`.
         let np = Self.demo ? NomsPasseur(demo: NomsDemo.releveMaison)
             : Surveillance.sousTests ? NomsPasseur()
             : NomsPasseur(cache: NomsPasseur.fichierCache(dossier: Surveillance.dossierParDefaut),
@@ -63,9 +63,8 @@ struct MaillageZigbeeApp: App {
             d.surNoms = { [weak s] m in s?.nomsPont = m }
             d.surLecture = { [weak s] m in s?.lecturePont(m) }
             np.surReleve = { [weak s] r in s?.releveMaison = r }
+            // Donne le releve garde, puis s'abonne au demon Passeur Noms : ses releves arrivent des qu'ils changent.
             np.demarrer()
-            // Au lancement, le Passeur seulement si le releve garde a plus d'un jour.
-            np.rafraichirSiAncien()
             let b = decouverte
             b.surPont = { [weak d] p in d?.pontDecouvert(p) }
             b.surRefus = { [weak d] refus in d?.reseauLocalRefuse = refus }
@@ -124,6 +123,7 @@ struct MaillageZigbeeApp: App {
                           places: Self.demo ? NomsDemo.places() : nil)
                 .environment(surveillance)
                 .environment(nomsPont)
+                .environment(nomsPasseur)
                 .environment(sonde)
         }
         .windowStyle(.hiddenTitleBar)

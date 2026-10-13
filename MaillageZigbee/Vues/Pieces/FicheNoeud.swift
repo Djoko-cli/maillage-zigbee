@@ -23,6 +23,8 @@ struct FicheNoeud: View {
     @Environment(PiecesChoisies.self) private var piecesChoisies: PiecesChoisies?
     /// Le pont Hue : « Identifier » passe par lui. nil dans les vues de test sans pont.
     @Environment(NomsPont.self) private var nomsPont: NomsPont?
+    /// Le demon Passeur Noms : « Identifier par Maison » passe par lui. nil dans les vues de test sans demon.
+    @Environment(NomsPasseur.self) private var nomsPasseur: NomsPasseur?
     let id: String
     /// La scene du meme rendu (`EntreeScene`), avec ce dont elle est faite : la fiche y lit le maillage, et « Placer
     /// dans une piece… » le graphe, sans rien reconstruire ; nil sans reseau.
@@ -156,6 +158,10 @@ struct FicheNoeud: View {
                         nomsPont.identifier(ieee: id)
                     }
                 }
+                // Par Maison : l'appareil a ete retrouve dans Maison (son `idMaison`). Les deux boutons coexistent.
+                if let nomsPasseur, let idMaison = accessoire?.idMaison, Self.identifiableParMaison(accessoire) {
+                    BoutonIdentifierMaison(passeur: nomsPasseur, accessoire: idMaison)
+                }
                 if let piecesChoisies, let entree,
                    let placement = PiecesChoisies.placement(id, dans: surveillance, entree: entree) {
                     MenuPlacer(placement: placement, domicile: surveillance.noms.maison?.domicile ?? "",
@@ -165,6 +171,10 @@ struct FicheNoeud: View {
             .padding(.top, 4)
             if let nomsPont, case .erreur(let message)? = nomsPont.identification(ieee: id) {
                 Text(message).font(.caption).foregroundStyle(orange).fixedSize(horizontal: false, vertical: true)
+            }
+            if let nomsPasseur, let texte = BoutonIdentifierMaison.texte(nomsPasseur.identification,
+                                                                         accessoire: accessoire?.idMaison) {
+                Text(texte).font(.caption).foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -557,6 +567,38 @@ struct FicheNoeud: View {
         // recente, d'un releve fait depuis, se lirait « dans 20 secondes ». Jamais dans le futur :
         // « maintenant » jusqu'a la minute suivante (la spec admet une minute de retard).
         return f.localizedString(for: d, relativeTo: max(d, reference))
+    }
+}
+
+extension FicheNoeud {
+    /// L'appareil a ete retrouve dans Maison, dont le releve donne l'`id` de l'accessoire (releve d'apres le demon).
+    static func identifiableParMaison(_ a: AccessoireMaison?) -> Bool {
+        a?.idMaison?.isEmpty == false
+    }
+}
+
+/// « Identifier par Maison » : le demon Passeur Noms appelle `identify()` sur l'accessoire de Maison apparie a
+/// l'appareil. Grise sans demon connecte. Le resultat s'affiche quelques secondes sous les boutons de la fiche.
+struct BoutonIdentifierMaison: View {
+    let passeur: NomsPasseur
+    /// L'`id` de l'accessoire de Maison.
+    let accessoire: String
+
+    nonisolated static func actif(connecte: Bool) -> Bool { connecte }
+
+    /// Le resultat de la derniere identification, s'il est pour cet accessoire.
+    nonisolated static func texte(_ i: NomsPasseur.Identification?, accessoire: String?) -> String? {
+        guard let i, i.accessoire == accessoire else { return nil }
+        return i.texte
+    }
+
+    var body: some View {
+        Button { passeur.identifier(accessoire: accessoire) } label: {
+            Label("Identifier par Maison", systemImage: "homekit")
+        }
+        .boutonDeFiche()
+        .disabled(!Self.actif(connecte: passeur.connecte))
+        .help("Fait clignoter l'appareil, par Maison (Passeur Noms), pour le repérer")
     }
 }
 

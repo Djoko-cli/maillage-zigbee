@@ -1,8 +1,9 @@
 import MaillageCoeur
 import SwiftUI
 
-/// Reglages › Maison : le dernier releve de Maison par le Passeur (etat, date, accessoires et zones), combien d'appareils
-/// du pont Maison nomme, « Rafraichir depuis Maison », le probleme du dernier releve, et l'aide quand le Passeur manque.
+/// Reglages › Maison : le demon Passeur Noms (etat, ouverture de session, profil), le dernier releve de Maison qu'il a
+/// servi (etat, date, accessoires et zones), combien d'appareils du pont Maison nomme, « Rafraichir depuis Maison », le
+/// probleme du dernier releve, et l'aide quand le demon manque.
 struct ReglagesMaison: View {
     @Environment(NomsPasseur.self) private var passeur
     @Environment(Surveillance.self) private var surveillance
@@ -11,17 +12,27 @@ struct ReglagesMaison: View {
         if surveillance.mode == .demo {
             Text("Mode démo : le relevé de Maison de la démo, pas de Passeur.").foregroundStyle(.secondary)
         }
+        LabeledContent("Passeur Noms", value: NomsPasseur.texteDemon(connecte: passeur.connecte, etat: passeur.etat))
+        Toggle("Ouvrir Passeur Noms à l'ouverture de session", isOn: Binding(
+            get: { passeur.etat?.ouvertureSession == .active },
+            set: { passeur.reglerOuvertureSession($0) }))
+            .disabled(!NomsPasseur.interrupteurActif(connecte: passeur.connecte, etat: passeur.etat))
+        if passeur.connecte, passeur.etat?.ouvertureSession == .aApprouver {
+            Text("Accepte Passeur Noms dans Réglages Système › Général › Ouverture.")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+        if let fin = passeur.etat?.profilExpire, NomsPasseur.profilBientotExpire(passeur.etat, maintenant: surveillance.maintenant) {
+            Text("Le profil de Passeur Noms expire le \(fin.formatted(date: .abbreviated, time: .omitted)) : relance outils/passeur.sh.")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
         LabeledContent("État", value: Self.texteEtat(releve: passeur.releve, enCours: passeur.releveEnCours))
         if let r = passeur.releve {
             LabeledContent("Dernier relevé", value: Self.texteReleve(r))
             LabeledContent("Étages", value: Self.texteZones(r.zones ?? []))
         }
         LabeledContent("Appareils du pont", value: Self.texteBilan(surveillance.bilanFusion))
-        if let r = passeur.releve, NomsPasseur.estAncien(r, maintenant: surveillance.maintenant) {
-            Text("Relevé de plus de 7 jours : le profil gratuit de Passeur Noms a peut-être expiré.")
-                .font(.caption)
-                .foregroundStyle(.orange)
-        }
         if let p = passeur.probleme {
             Text(p).font(.caption).foregroundStyle(.red)
         }
@@ -31,11 +42,11 @@ struct ReglagesMaison: View {
                 .foregroundStyle(.secondary)
         }
         HStack {
-            Button("Rafraîchir depuis Maison") { passeur.rafraichir() }
+            Button("Rafraîchir depuis Maison") { passeur.relire() }
                 .disabled(passeur.inerte || passeur.releveEnCours)
             Spacer()
         }
-        Text("Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms ; le pont Hue donne les adresses, l'état de connexion et les piles. Le relevé est refait au lancement s'il a plus d'un jour.")
+        Text("Les noms, les pièces et les étages (zones) viennent de l'app Maison, lus par Passeur Noms, qui les envoie dès qu'ils changent ; le pont Hue donne les adresses, l'état de connexion et les piles.")
             .font(.caption)
             .foregroundStyle(.secondary)
     }

@@ -66,6 +66,28 @@ struct FusionNomsTests {
         #expect(n.date == Self.date && n.reseau?.canal == 25, "la date et le reseau du pont")
     }
 
+    /// L'identifiant HomeKit (`id` du releve) suit l'appareil apparie, sous `idMaison` : c'est lui que vise « Identifier »
+    /// par Maison. Un appareil non apparie, ou apparie a un accessoire sans `id` (releve d'avant le demon), n'en a pas ;
+    /// l'identifiant du device Hue (`idHue`) n'est jamais touche.
+    @Test func idMaisonSuitLAppariement() throws {
+        let id = "8D3C2A10-0000-4000-8000-000000000001"
+        var lampe = Self.hue("Lampe bureau", "Bureau", ieee: "A0000000000000B1")
+        lampe.idHue = "d2"
+        let p = [lampe, Self.hue("Seule", "Cuisine", ieee: "A0000000000000B2"),
+                 Self.hue("Sans id", "Salon", ieee: "A0000000000000B3")]
+        var m = [Self.maison("Lampe bureau", "Bureau"), Self.maison("Sans id", "Salon")]
+        m[0].id = id
+        let n = try #require(FusionNoms.fusionner(pont: Self.pont(p), maison: Self.releve(m)).noms)
+        #expect(n.accessoire(ieee: "A0000000000000B1")?.idMaison == id)
+        #expect(n.accessoire(ieee: "A0000000000000B1")?.idHue == "d2")
+        #expect(n.accessoire(ieee: "A0000000000000B2")?.idMaison == nil, "non apparie")
+        #expect(n.accessoire(ieee: "A0000000000000B3")?.idMaison == nil, "releve sans id")
+        // Sans releve de Maison reussi, rien ne change.
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: nil).noms?.accessoire(ieee: "A0000000000000B1")?.idMaison == nil)
+        // Le cache des noms garde l'identifiant, et se relit sans lui.
+        #expect(try NomsMaison.lire(try n.donnees()) == n)
+    }
+
     /// A defaut du nom : la piece et le modele, par le nom du produit ou par son code ; un seul candidat.
     @Test func parPieceEtModele() {
         let p = [Self.hue("Suspension cuisine", "Cuisine", ieee: "A0000000000000C1"),
@@ -204,8 +226,32 @@ struct FusionNomsTests {
         #expect(echec.statut == .erreur && echec.message == "Aucun domicile dans Maison" && echec.zones == nil)
         var futur = NomsDemo.releveMaison
         futur.version = ReleveMaison.versionActuelle + 1
-        #expect(throws: ReleveMaison.Erreur.versionTropRecente(2)) { try ReleveMaison.lire(try futur.donnees()) }
+        #expect(throws: ReleveMaison.Erreur.versionTropRecente(3)) { try ReleveMaison.lire(try futur.donnees()) }
         #expect(try ReleveMaison.lire(try NomsDemo.releveMaison.donnees()) == NomsDemo.releveMaison)
+    }
+
+    /// Version 2 (demon Passeur Noms, 12/10) : l'identifiant HomeKit de chaque accessoire, que vise « Identifier ». Un
+    /// releve de version 1 (sans `id`, le releve ponctuel et le cache d'avant) se lit toujours ; le message `releve` de
+    /// l'abonnement (`MessagePasseur.releve`) se lit comme un releve.
+    @Test func versionDeux() throws {
+        let id = "8D3C2A10-0000-4000-8000-000000000001"
+        #expect(ReleveMaison.versionActuelle == 2)
+        let r = ReleveMaison(date: Self.date, accessoires: [AccessoireReleve(nom: "Lampe", id: id)])
+        #expect(r.version == 2)
+        #expect(String(decoding: try r.donnees(), as: UTF8.self).contains(#""id" : "\#(id)""#))
+        #expect(try ReleveMaison.lire(try r.donnees()) == r)
+        let v1 = #"{"accessoires":[{"nom":"Lampe"}],"date":"2026-10-08T07:00:00.000Z","statut":"ok","version":1}"#
+        let ancien = try ReleveMaison.lire(Data(v1.utf8))
+        #expect(ancien.version == 1 && ancien.accessoires.first?.id == nil)
+        // Du demon a l'app : le releve passe par le message, objet JSON tel quel.
+        guard case .message(.releve(let noms)) = MessagePasseur.lire(MessagePasseur.releve(try r.donnees()).json()) else {
+            Issue.record("message releve illisible")
+            return
+        }
+        #expect(try ReleveMaison.lire(noms) == r)
+        // Un id vide ou absent : l'accessoire n'est pas identifiable.
+        #expect(!String(decoding: try ReleveMaison(date: Self.date, accessoires: [AccessoireReleve(nom: "Lampe")]).donnees(),
+                        as: UTF8.self).contains("\"id\""))
     }
 
     /// Les noms reunis se gardent et se relisent avec leur origine et le code du modele.

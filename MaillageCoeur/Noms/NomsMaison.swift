@@ -92,11 +92,15 @@ public struct AccessoireMaison: Codable, Hashable, Sendable {
     /// avant la prochaine lecture). Il suit l'appareil dans le cache (`noms-pont.json`) et dans la fusion avec Maison
     /// (`FusionNoms` ne touche qu'au nom, a la piece et a l'origine).
     public var idHue: String?
+    /// `HMAccessory.uniqueIdentifier` de l'accessoire de Maison auquel l'appareil a ete apparie (`FusionNoms`) : ce que
+    /// « Identifier » par Maison vise (demon Passeur Noms). nil si l'appareil n'est pas apparie, ou si le releve n'a pas
+    /// d'identifiants (releve d'avant le demon). Remis a chaque fusion : il n'a de sens que dans `noms.maison`.
+    public var idMaison: String?
 
     public init(nom: String, piece: String? = nil, fabricant: String? = nil, modele: String? = nil,
                 firmware: String? = nil, categorie: String? = nil, ieee: String? = nil,
                 batterie: BatterieMaison? = nil, connexion: ConnexionZigbee? = nil, idModele: String? = nil,
-                origine: OrigineNom? = nil, idHue: String? = nil) {
+                origine: OrigineNom? = nil, idHue: String? = nil, idMaison: String? = nil) {
         self.nom = nom
         self.piece = piece
         self.fabricant = fabricant
@@ -108,6 +112,7 @@ public struct AccessoireMaison: Codable, Hashable, Sendable {
         self.connexion = connexion
         self.idModele = idModele
         self.origine = origine
+        self.idMaison = idMaison
         self.idHue = idHue
     }
 }

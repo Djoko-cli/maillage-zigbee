@@ -11,8 +11,7 @@ public enum StatutPasseur: String, Codable, Hashable, Sendable {
     case erreur
 }
 
-/// Accessoire de Maison, tel que le Passeur le releve (format fige : le Passeur, celui de Maillage Thread, ne change
-/// pas).
+/// Accessoire de Maison, tel que le demon Passeur Noms le releve.
 public struct AccessoireReleve: Codable, Hashable, Sendable {
     public var nom: String
     public var piece: String?
@@ -26,10 +25,12 @@ public struct AccessoireReleve: Codable, Hashable, Sendable {
     public var pont: Bool?
     /// Batterie (service Batterie de Maison) ; l'app garde celle du pont Hue.
     public var batterie: BatterieMaison?
+    /// `HMAccessory.uniqueIdentifier` en texte (UUID) : ce que vise « Identifier » (absent des releves de version 1).
+    public var id: String?
 
     public init(nom: String, piece: String? = nil, fabricant: String? = nil, modele: String? = nil,
                 firmware: String? = nil, categorie: String? = nil, noeudMatter: String? = nil, pont: Bool? = nil,
-                batterie: BatterieMaison? = nil) {
+                batterie: BatterieMaison? = nil, id: String? = nil) {
         self.nom = nom
         self.piece = piece
         self.fabricant = fabricant
@@ -39,16 +40,18 @@ public struct AccessoireReleve: Codable, Hashable, Sendable {
         self.noeudMatter = noeudMatter
         self.pont = pont
         self.batterie = batterie
+        self.id = id
     }
 }
 
-/// Releve de Maison par le Passeur (app iOS « concue pour iPad », installee sur le Mac avec Maillage Thread) : les
-/// accessoires avec leur nom et leur piece, les zones (les etages) et leurs pieces, le domicile. Il arrive par la boucle
-/// locale (`EnvoiPasseur`), en JSON, au format du Passeur ; l'app garde le dernier releve reussi dans son conteneur
-/// (`releve-maison.json`). Les noms et pieces de Maison l'emportent sur ceux du pont Hue (`FusionNoms`).
+/// Releve de Maison par le demon Passeur Noms (installe avec Maillage Thread) : les accessoires avec leur nom, leur
+/// piece et leur identifiant, les zones (les etages) et leurs pieces, le domicile. Il arrive par la boucle locale
+/// (`MessagePasseur.releve`, ou la trame d'un releve ponctuel), en JSON ; l'app garde le dernier releve reussi dans
+/// son conteneur (`releve-maison.json`). Les noms et pieces de Maison l'emportent sur ceux du pont Hue (`FusionNoms`).
 public struct ReleveMaison: Codable, Hashable, Sendable {
-    /// Version du format du Passeur.
-    public static let versionActuelle = 1
+    /// Version du format du Passeur. 2 : l'identifiant des accessoires (demon Passeur Noms, 12/10/2026) ; la version 1
+    /// (releve ponctuel, cache d'avant le demon) se lit toujours.
+    public static let versionActuelle = 2
 
     public var version: Int
     public var date: Date

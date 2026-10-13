@@ -15,7 +15,7 @@ import Foundation
 ///    apparie a cette etape.
 /// Un appareil apparie prend le nom et la piece de Maison ; un autre garde ceux de l'app Hue (sa piece prend
 /// l'ecriture de Maison quand Maison a la meme, a la normalisation pres : elle trouve alors son etage). `origine` le
-/// dit, pour la fiche.
+/// dit, pour la fiche. L'identifiant HomeKit de l'accessoire de Maison apparie suit l'appareil (`idMaison`).
 public enum FusionNoms {
     /// Combien d'appareils du pont Maison nomme.
     public struct Bilan: Hashable, Sendable {
@@ -54,9 +54,11 @@ public enum FusionNoms {
                 let piece = m.piece?.isEmpty == false ? m.piece : nil
                 n.accessoires[i].piece = piece ?? ecriture(n.accessoires[i].piece)
                 n.accessoires[i].origine = .maison
+                n.accessoires[i].idMaison = m.id
             } else {
                 n.accessoires[i].piece = ecriture(n.accessoires[i].piece)
                 n.accessoires[i].origine = .pont
+                n.accessoires[i].idMaison = nil
             }
         }
         n.accessoires.sort { ($0.nom, $0.ieee ?? "") < ($1.nom, $1.ieee ?? "") }
