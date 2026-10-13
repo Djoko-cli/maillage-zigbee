@@ -164,8 +164,8 @@ struct FusionNomsTests {
         #expect(Self.noms([Self.hue("Lampe salon", "Salon", ieee: "A000000000000123")],
                           [Self.maison("Lampe de salon", "Autre"), Self.maison("Lampe du salon", "Autre")])
                 == ["A000000000000123": "-"])
-        // Les chiffres et les autres mots ne sont jamais retires.
-        #expect(Self.noms([Self.hue("Lampe 1", "Salon", ieee: "A000000000000131"), Self.hue("Lampe a 2", "Bureau", ieee: "A000000000000132")],
+        // Les chiffres et les autres mots ne sont jamais retires (« à » est un mot de liaison, « a » nu une etiquette).
+        #expect(Self.noms([Self.hue("Lampe 1", "Salon", ieee: "A000000000000131"), Self.hue("Lampe à 2", "Bureau", ieee: "A000000000000132")],
                           [Self.maison("Lampe 2", "Autre"), Self.maison("Lampe 12", "Autre")])
                 == ["A000000000000131": "-", "A000000000000132": "Lampe 2"])
         // Un nom fait de seuls mots de liaison ne s'apparie pas par le nom souple.
@@ -175,6 +175,25 @@ struct FusionNomsTests {
         #expect(Self.noms([Self.hue("Lampe salon", "Salon", ieee: "A000000000000134")],
                           [Self.maison("Lampe de salon", "Autre"), Self.maison("Lampe salon", "Autre")])
                 == ["A000000000000134": "Lampe salon"])
+    }
+
+    /// Les lettres isolees (A, B, C, D, L) servent d'etiquette : elles ne sont des mots de liaison que dans « l' » et
+    /// « d' » (apostrophe), ou « à » (accent, avant le pliage des accents). « Spot A » n'est pas « Spot ».
+    @Test func nomSoupleLettresIsolees() {
+        let souple = FusionNoms.normaliserSouple
+        #expect(souple("Spot A") == "spot a" && souple("Spot A") != souple("Spot"))
+        #expect(souple("Spot D") == "spot d" && souple("Spot L") == "spot l" && souple("d spot") == "d spot")
+        #expect(souple("Lampe à droite") == "lampe droite" && souple("Lampe À 2") == "lampe 2")
+        #expect(souple("Lampe a\u{0300} 2") == "lampe 2", "« à » ecrit en deux caracteres")
+        #expect(souple("Lampe de l\u{2019}îlot d'appoint") == "lampe ilot appoint")
+        #expect(souple("L'ilot") == "ilot" && souple("D\u{2019}Entrée") == "entree")
+        // « Spot A » et « Spot C » du pont, un seul « Spot » dans Maison : personne n'est apparie.
+        #expect(Self.noms([Self.hue("Spot A", nil, ieee: "A000000000000141"), Self.hue("Spot C", nil, ieee: "A000000000000142")],
+                          [Self.maison("Spot", nil)])
+                == ["A000000000000141": "-", "A000000000000142": "-"])
+        // « Lampe à 2 » et « Lampe 2 » sont le meme nom souple.
+        #expect(Self.noms([Self.hue("Lampe 2", nil, ieee: "A000000000000143")], [Self.maison("Lampe à 2", nil)])
+                == ["A000000000000143": "Lampe à 2"])
     }
 
     /// Un accessoire de Maison avec son identifiant HomeKit.

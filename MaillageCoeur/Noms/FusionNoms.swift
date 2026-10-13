@@ -185,20 +185,36 @@ public enum FusionNoms {
         return t.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
-    /// Petits mots de liaison du francais, retires du nom souple : de, du, des, la, le, les, l, d (apostrophes
-    /// coupees : « l'ilot », « d'appoint »), a (le « a » nu et « à », apres le pliage des accents), au, aux, en, et.
-    /// Articles et prepositions que l'utilisateur ajoute ou oublie en renommant une tuile. Pas « un » ni « une » (ils
-    /// comptent : « un » peut etre un numero ecrit en lettres), ni de mot porteur de sens (haut, bas, entree, droite…).
-    static let motsDeLiaison: Set<String> = ["de", "du", "des", "la", "le", "les", "l", "d", "a", "au", "aux", "en", "et"]
+    /// Petits mots de liaison du francais, retires du nom souple : de, du, des, la, le, les, au, aux, en, et, et « à »
+    /// (avec son accent). Articles et prepositions que l'utilisateur ajoute ou oublie en renommant une tuile. Pas « un »
+    /// ni « une » (ils comptent : « un » peut etre un numero ecrit en lettres), ni de mot porteur de sens (haut, bas,
+    /// entree, droite…). Les lettres isolees servent d'etiquette (« Spot A » n'est pas « Spot ») : « l » et « d » ne sont
+    /// retires que devant une apostrophe (« l'ilot », « d'appoint »), « a » que s'il etait « à » avant le pliage des
+    /// accents.
+    static let motsDeLiaison: Set<String> = ["de", "du", "des", "la", "le", "les", "au", "aux", "en", "et"]
 
-    /// Forme de comparaison « souple » d'un nom : `normaliser`, puis tout ce qui n'est ni lettre ni chiffre
-    /// (parentheses, tirets, apostrophes, virgules…) devient un espace, les mots de liaison (`motsDeLiaison`) sont retires,
-    /// les espaces reduits. Les chiffres et les autres mots sont gardes tels quels. Peut etre vide.
+    /// Forme de comparaison « souple » d'un nom : tout ce qui n'est ni lettre ni chiffre (parentheses, tirets,
+    /// apostrophes, virgules…) separe les mots, les mots de liaison (`motsDeLiaison`, « l' », « d' » et « à ») sont
+    /// retires, puis casse, accents et largeur sont plies (`normaliser`) et les espaces reduits. Les chiffres, les
+    /// lettres isolees et les autres mots sont gardes tels quels. Peut etre vide.
     public static func normaliserSouple(_ texte: String) -> String {
-        normaliser(texte)
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init)
-            .filter { !motsDeLiaison.contains($0) }
-            .joined(separator: " ")
+        var t = texte.precomposedStringWithCanonicalMapping
+        for a in ["\u{2019}", "\u{2018}", "\u{02BC}"] { t = t.replacingOccurrences(of: a, with: "'") }
+        let lettres = Array(t)
+        var mots: [String] = []
+        var i = 0
+        while i < lettres.count {
+            guard lettres[i].isLetter || lettres[i].isNumber else { i += 1; continue }
+            var j = i
+            while j < lettres.count, lettres[j].isLetter || lettres[j].isNumber { j += 1 }
+            let mot = String(lettres[i..<j])
+            let devantApostrophe = j < lettres.count && lettres[j] == "'"
+            i = j
+            let sansCasse = mot.folding(options: [.caseInsensitive, .widthInsensitive], locale: nil)
+            let plie = sansCasse.folding(options: [.diacriticInsensitive], locale: nil)
+            if motsDeLiaison.contains(plie) || sansCasse == "\u{E0}" || (devantApostrophe && (plie == "l" || plie == "d")) { continue }
+            mots.append(plie)
+        }
+        return mots.joined(separator: " ")
     }
 }
