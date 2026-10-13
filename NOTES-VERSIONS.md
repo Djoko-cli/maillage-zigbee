@@ -17,8 +17,13 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   takes the accessory's name.
 - New setting, Settings, Home: "Open Passeur Noms at login", with the daemon's state and a reminder 30 days before
   its profile expires.
-- "Identify by Home" on the node card, for the devices found in Home: the device blinks through Home, next to the
-  existing "Identify" through the Hue bridge.
+- "Identify by Home" on the node card: the device blinks through Home, next to the existing "Identify" through the
+  Hue bridge. It is greyed out for a device not found in Home, or while the daemon is not connected.
+- Home names are matched to the Hue bridge devices more tolerantly: punctuation (parentheses, dashes) and small
+  linking words ("de", "du", "la"…) no longer prevent a match, as long as it stays unambiguous. Pairings found are
+  remembered, so renaming a tile in Home no longer loses them.
+- The old iOS Passeur (the "designed for iPad" app) is no longer used: Maillage Thread's `outils/passeur.sh`
+  installs the daemon instead. If the old one is the only one present, the app says so.
 - Needs the Passeur Noms daemon of Maillage Thread 1.3.0 or later (`outils/passeur.sh`); without it, the app keeps
   the Hue app names.
 
@@ -31,8 +36,14 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
   plusieurs tuiles prend le nom de l'accessoire.
 - Nouveau réglage, Réglages, Maison : « Ouvrir Passeur Noms à l'ouverture de session », avec l'état du démon et un
   rappel 30 jours avant l'expiration de son profil.
-- « Identifier par Maison » dans la fiche d'un nœud, pour les appareils retrouvés dans Maison : l'appareil clignote
-  par Maison, à côté de « Identifier » par le pont Hue qui reste.
+- « Identifier par Maison » dans la fiche d'un nœud : l'appareil clignote par Maison, à côté de « Identifier » par
+  le pont Hue qui reste. Le bouton est grisé pour un appareil non retrouvé dans Maison, ou tant que le démon n'est
+  pas connecté.
+- Les noms de Maison sont rapprochés des appareils du pont Hue plus souplement : la ponctuation (parenthèses,
+  tirets) et les petits mots de liaison (« de », « du », « la »…) n'empêchent plus l'appariement, tant qu'il reste
+  sans ambiguïté. Les appariements trouvés sont mémorisés : renommer une tuile dans Maison ne les fait plus perdre.
+- L'ancien Passeur iOS (l'app « conçue pour iPad ») n'est plus utilisé : c'est `outils/passeur.sh` de Maillage
+  Thread qui installe le démon. Si l'ancien est le seul présent, l'app l'indique.
 - Il faut le démon Passeur Noms de Maillage Thread 1.3.0 ou plus récent (`outils/passeur.sh`) ; sans lui, l'app
   garde les noms de l'app Hue.
 
