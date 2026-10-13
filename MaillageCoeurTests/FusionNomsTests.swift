@@ -130,6 +130,53 @@ struct FusionNomsTests {
                 == ["A0000000000000D8": "Spot A", "A0000000000000D9": "Plafonnier"])
     }
 
+    /// Nom souple, entre le nom exact et la piece+modele : ponctuation et petits mots de liaison retires, chiffres et
+    /// autres mots gardes ; egalite ET unicite des deux cotes, comme pour le nom exact.
+    @Test func nomSouple() {
+        // Trois jumeaux de la meme piece et du meme modele, dont Maison ecrit les noms avec « de » : la piece et le
+        // modele seuls sont ambigus (3 x 3), le nom souple les distingue par leur numero.
+        let p = (1...3).map { Self.hue("Plafonnier cuisine \($0)", "Cuisine", ieee: "A00000000000010\($0)") }
+        let m = (1...3).map { Self.maison("Plafonnier de cuisine \($0)", "Cuisine") }
+        #expect(Self.noms(p, m) == ["A000000000000101": "Plafonnier de cuisine 1", "A000000000000102": "Plafonnier de cuisine 2",
+                                    "A000000000000103": "Plafonnier de cuisine 3"])
+        // Les memes, dans un ordre de Maison different : le numero decide, pas la position.
+        #expect(Self.noms(p, m.reversed()) == ["A000000000000101": "Plafonnier de cuisine 1", "A000000000000102": "Plafonnier de cuisine 2",
+                                              "A000000000000103": "Plafonnier de cuisine 3"])
+        // Parentheses, tirets, apostrophes, casse et accents : sans effet sur le nom souple, pieces differentes.
+        #expect(Self.noms([Self.hue("Interrupteur (bas)", "Escalier", ieee: "A000000000000111"),
+                           Self.hue("Interrupteur (haut)", "Palier", ieee: "A000000000000112"),
+                           Self.hue("Lampe d'appoint - Salon", "Salon", ieee: "A000000000000113")],
+                          [Self.maison("Interrupteur escalier haut", "Etage"), Self.maison("Interrupteur Escalier Bas", "Entrée"),
+                           Self.maison("LAMPE d\u{2019}appoint salon", "Séjour")])
+                == ["A000000000000111": "-", "A000000000000112": "-", "A000000000000113": "LAMPE d\u{2019}appoint salon"],
+                "« Interrupteur (bas) » ne devient pas « Interrupteur escalier bas » : un mot en plus")
+        #expect(Self.noms([Self.hue("Interrupteur escalier (bas)", "Escalier", ieee: "A000000000000114"),
+                           Self.hue("Interrupteur escalier (haut)", "Escalier", ieee: "A000000000000115")],
+                          [Self.maison("Interrupteur escalier haut", "Palier"), Self.maison("Interrupteur escalier bas", "Hall")])
+                == ["A000000000000114": "Interrupteur escalier bas", "A000000000000115": "Interrupteur escalier haut"],
+                "parentheses retirees, bas et haut restent distincts")
+        // Deux appareils qui ne different que par un mot de liaison, un seul candidat : personne n'est apparie.
+        #expect(Self.noms([Self.hue("Lampe de salon", "Salon", ieee: "A000000000000121"),
+                           Self.hue("Lampe salon", "Salon", ieee: "A000000000000122")],
+                          [Self.maison("Lampe du salon", "Autre")])
+                == ["A000000000000121": "-", "A000000000000122": "-"])
+        // Un appareil, deux candidats qui ne different que par un mot de liaison : personne non plus.
+        #expect(Self.noms([Self.hue("Lampe salon", "Salon", ieee: "A000000000000123")],
+                          [Self.maison("Lampe de salon", "Autre"), Self.maison("Lampe du salon", "Autre")])
+                == ["A000000000000123": "-"])
+        // Les chiffres et les autres mots ne sont jamais retires.
+        #expect(Self.noms([Self.hue("Lampe 1", "Salon", ieee: "A000000000000131"), Self.hue("Lampe a 2", "Bureau", ieee: "A000000000000132")],
+                          [Self.maison("Lampe 2", "Autre"), Self.maison("Lampe 12", "Autre")])
+                == ["A000000000000131": "-", "A000000000000132": "Lampe 2"])
+        // Un nom fait de seuls mots de liaison ne s'apparie pas par le nom souple.
+        #expect(Self.noms([Self.hue("Le", "Salon", ieee: "A000000000000133")], [Self.maison("De la", "Autre")])
+                == ["A000000000000133": "-"])
+        // Le nom exact passe avant : un nom identique garde son candidat meme si un autre est egal au nom souple.
+        #expect(Self.noms([Self.hue("Lampe salon", "Salon", ieee: "A000000000000134")],
+                          [Self.maison("Lampe de salon", "Autre"), Self.maison("Lampe salon", "Autre")])
+                == ["A000000000000134": "Lampe salon"])
+    }
+
     /// Candidats : de Signify ou de Philips, ou sur le noeud Matter d'un pont Hue de Maison ; jamais un accessoire d'une
     /// autre marque (meme du meme nom), ni sans nom.
     @Test func candidats() {

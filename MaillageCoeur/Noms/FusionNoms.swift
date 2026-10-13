@@ -10,8 +10,11 @@ import Foundation
 ///    noeud Matter d'un pont Hue de Maison (accessoire de categorie pont, de Signify ou de Philips) ; le releve du
 ///    Passeur ne dit pas quel pont porte un accessoire ;
 /// 2. d'abord par le nom, egal apres normalisation (`normaliser` : casse, accents, espaces, apostrophes) ;
-/// 3. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
-/// 4. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
+/// 3. puis par le nom « souple » (`normaliserSouple`) : sans ponctuation ni petits mots de liaison (Maison porte le
+///    nom de la tuile, que l'utilisateur ecrit autrement que le nom du pont : « Plafonnier de cuisine 1 » pour
+///    « Plafonnier cuisine 1 ») ; les chiffres et les autres mots comptent ;
+/// 4. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
+/// 5. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
 ///    apparie a cette etape.
 /// Un appareil apparie prend le nom et la piece de Maison ; un autre garde ceux de l'app Hue (sa piece prend
 /// l'ecriture de Maison quand Maison a la meme, a la normalisation pres : elle trouve alors son etage). `origine` le
@@ -72,7 +75,7 @@ public enum FusionNoms {
         var libres = Set(candidats(maison))
         var paires: [Int: Int] = [:]
         let nomsMaison = maison.map { normaliser($0.nom) }
-        // 1. Par le nom.
+        // 1. Par le nom exact (a la normalisation pres).
         var propositions: [Int: Int] = [:]
         for (i, p) in pont.enumerated() {
             let nom = normaliser(p.nom)
@@ -81,7 +84,17 @@ public enum FusionNoms {
             if trouves.count == 1, let j = trouves.first { propositions[i] = j }
         }
         retenir(propositions, dans: &paires, libres: &libres)
-        // 2. Par la piece et le modele, pour ceux qui restent.
+        // 2. Par le nom souple, pour ceux qui restent : egalite et unicite des deux cotes, comme le nom exact.
+        propositions = [:]
+        let soupleMaison = maison.map { normaliserSouple($0.nom) }
+        for (i, p) in pont.enumerated() where paires[i] == nil {
+            let nom = normaliserSouple(p.nom)
+            guard !nom.isEmpty else { continue }
+            let trouves = libres.filter { soupleMaison[$0] == nom }
+            if trouves.count == 1, let j = trouves.first { propositions[i] = j }
+        }
+        retenir(propositions, dans: &paires, libres: &libres)
+        // 3. Par la piece et le modele, pour ceux qui restent.
         propositions = [:]
         for (i, p) in pont.enumerated() where paires[i] == nil {
             let piece = normaliser(p.piece ?? "")
@@ -140,5 +153,22 @@ public enum FusionNoms {
         for a in ["\u{2019}", "\u{2018}", "\u{02BC}"] { t = t.replacingOccurrences(of: a, with: "'") }
         t = t.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
         return t.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// Petits mots de liaison du francais, retires du nom souple : de, du, des, la, le, les, l, d (apostrophes
+    /// coupees : « l'ilot », « d'appoint »), a (le « a » nu et « à », apres le pliage des accents), au, aux, en, et.
+    /// Articles et prepositions que l'utilisateur ajoute ou oublie en renommant une tuile. Pas « un » ni « une » (ils
+    /// comptent : « un » peut etre un numero ecrit en lettres), ni de mot porteur de sens (haut, bas, entree, droite…).
+    static let motsDeLiaison: Set<String> = ["de", "du", "des", "la", "le", "les", "l", "d", "a", "au", "aux", "en", "et"]
+
+    /// Forme de comparaison « souple » d'un nom : `normaliser`, puis tout ce qui n'est ni lettre ni chiffre
+    /// (parentheses, tirets, apostrophes, virgules…) devient un espace, les mots de liaison (`motsDeLiaison`) sont retires,
+    /// les espaces reduits. Les chiffres et les autres mots sont gardes tels quels. Peut etre vide.
+    public static func normaliserSouple(_ texte: String) -> String {
+        normaliser(texte)
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+            .filter { !motsDeLiaison.contains($0) }
+            .joined(separator: " ")
     }
 }
