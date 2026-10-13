@@ -157,7 +157,7 @@ Exécuter une tâche, c'est transcrire les fichiers et les blocs donnés, compil
   - `python3 outils/garde.py` : code 0 si aucun vrai identifiant n'est dans un fichier suivi, 1 sinon. Elle n'affiche jamais un identifiant entier ;
   - `sh outils/tester.sh` : tests sans carte. Les tâches 3 à 7 y ajoutent les leurs.
 
-- [ ] **Step 1 : écrire les tests de la garde.**
+- [x] **Step 1 : écrire les tests de la garde.**
 
 `outils/test/test_garde.py` :
 
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2 : les lancer, ils échouent.**
+- [x] **Step 2 : les lancer, ils échouent.**
 
 Run : `python3 -m unittest discover -s outils/test`
 
@@ -266,7 +266,7 @@ Ran 1 test in 0.000s
 FAILED (errors=1)
 ```
 
-- [ ] **Step 3 : écrire la garde.**
+- [x] **Step 3 : écrire la garde.**
 
 `outils/garde.py` :
 
@@ -349,7 +349,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 4 : les tests passent.**
+- [x] **Step 4 : les tests passent.**
 
 Run : `python3 -m unittest discover -s outils/test`
 
@@ -361,7 +361,7 @@ Ran 7 tests in 0.367s
 OK
 ```
 
-- [ ] **Step 5 : le lanceur et le README.**
+- [x] **Step 5 : le lanceur et le README.**
 
 `outils/tester.sh` (première version : la tâche 3 y ajoutera les tests hôte du firmware) :
 
@@ -428,13 +428,13 @@ identifiant du pont, noms et pièces. Ne sont jamais commités, et
   cherche dans les fichiers suivis à chaque `sh outils/tester.sh`.
 ````
 
-- [ ] **Step 6 : tout passe.**
+- [x] **Step 6 : tout passe.**
 
 Run : `sh outils/tester.sh`
 
 Expected : les 7 tests passent, puis la garde dit `garde : <n> identifiants, aucun dans les fichiers suivis` (66 le 05/10), même depuis un worktree, où elle lit le fichier du dépôt principal.
 
-- [ ] **Step 7 : commit.**
+- [x] **Step 7 : commit.**
 
 ```bash
 git add outils/garde.py outils/test/test_garde.py outils/tester.sh README.md
@@ -454,7 +454,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : rien (code autonome, versé tel quel depuis l'essai du 05/10, nettoyé de ses identifiants réels).
 - Produces : le firmware d'écoute (`pio run -d outils/ecoute/firmware`, variante `ecoute`), que `outils/flasher.py --ecoute` flashera (tâche 7). Ses outils `capture.py` et `analyse.py` ne sont lancés par aucun agent.
 
-- [ ] **Step 1 : transcrire les six fichiers.**
+- [x] **Step 1 : transcrire les six fichiers.**
 
 `outils/ecoute/README.md` :
 
@@ -1163,7 +1163,7 @@ void loop() {
 }
 ```
 
-- [ ] **Step 2 : vérifier sans rien lancer sur une carte.**
+- [x] **Step 2 : vérifier sans rien lancer sur une carte.**
 
 Run :
 
@@ -1175,7 +1175,7 @@ sh outils/tester.sh
 
 Expected : aucune sortie pour `py_compile`, `[SUCCESS]` pour la compilation, et une garde qui passe. `__pycache__/` et `.pio/` sont ignorés par git.
 
-- [ ] **Step 3 : commit.**
+- [x] **Step 3 : commit.**
 
 ```bash
 git add outils/ecoute/README.md outils/ecoute/zb.py outils/ecoute/capture.py outils/ecoute/analyse.py outils/ecoute/firmware/platformio.ini outils/ecoute/firmware/src/main.cpp
@@ -1211,7 +1211,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
     - `size_t jsonEntreeVoisin(const EntreeVoisin &, char *, size_t)`, `jsonVoisinSonde(...)`, `jsonEntreeRoute(...)` ;
   - `sonde/test/lancer.sh` (les tâches 4 et 5 y ajoutent leurs tests) et `sonde/test/verif.h` (`CHECK`, `bilan`).
 
-- [ ] **Step 1 : écrire les tests et leur lanceur.**
+- [x] **Step 1 : écrire les tests et leur lanceur.**
 
 `sonde/test/verif.h` :
 
@@ -1614,7 +1614,7 @@ int main() {
 }
 ```
 
-- [ ] **Step 2 : les lancer, ils échouent.**
+- [x] **Step 2 : les lancer, ils échouent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -1624,7 +1624,7 @@ Expected :
 clang++: error: no such file or directory: '<depot>/sonde/test/../src/commande.cpp'
 ```
 
-- [ ] **Step 3 : écrire les modules.**
+- [x] **Step 3 : écrire les modules.**
 
 `sonde/src/options.h` :
 
@@ -2205,7 +2205,7 @@ void requeteRoutes(uint8_t tsn, uint8_t debut, uint8_t asdu[2]) {
 }
 ```
 
-- [ ] **Step 4 : les tests passent.**
+- [x] **Step 4 : les tests passent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -2218,7 +2218,7 @@ ligne : 122 verifications, 0 echec(s)
 entrees : 19 verifications, 0 echec(s)
 ```
 
-- [ ] **Step 5 : brancher les tests hôte sur le lanceur général.**
+- [x] **Step 5 : brancher les tests hôte sur le lanceur général.**
 
 Dans `outils/tester.sh`, remplacer :
 
@@ -2256,7 +2256,7 @@ Run : `sh outils/tester.sh`
 
 Expected : les quatre programmes ci-dessus, puis les 7 tests Python, puis la garde, sans échec.
 
-- [ ] **Step 6 : commit.**
+- [x] **Step 6 : commit.**
 
 ```bash
 git add sonde/src/options.h sonde/src/commande.h sonde/src/commande.cpp sonde/src/ligne.h sonde/src/ligne.cpp sonde/src/entrees.h sonde/src/entrees.cpp sonde/test/verif.h sonde/test/lancer.sh sonde/test/test_commande.cpp sonde/test/test_ligne.cpp sonde/test/test_entrees.cpp outils/tester.sh
@@ -2283,7 +2283,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `cadence.h` : `class Cadence` : `avis(t)` → `Avis::{kOui, kAttendre, kRefus}`, `compter(t)`, `refuser()`, `refus()` ;
   - `liste_blanche.h` : `kZdoMgmtLqi`, `kZdoMgmtRtg`, `kZdoMgmtNwkUpdate`, `bool requetePermise(uint16_t cluster, uint16_t cible)` (jamais vers `FFF8` à `FFFF`), `bool balayagePermis(uint32_t masque, uint8_t duree, uint8_t canal)`.
 
-- [ ] **Step 1 : écrire les tests et les ajouter au lanceur.**
+- [x] **Step 1 : écrire les tests et les ajouter au lanceur.**
 
 `sonde/test/test_pagination.cpp` :
 
@@ -2554,7 +2554,7 @@ par :
 "$TMP/test_cadence_sans"
 ```
 
-- [ ] **Step 2 : les lancer, ils échouent.**
+- [x] **Step 2 : les lancer, ils échouent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -2565,7 +2565,7 @@ Expected :
 1 error generated.
 ```
 
-- [ ] **Step 3 : écrire les modules.**
+- [x] **Step 3 : écrire les modules.**
 
 `sonde/src/pagination.h` :
 
@@ -2878,7 +2878,7 @@ inline bool balayagePermis(uint32_t masqueCanaux, uint8_t duree, uint8_t canalCo
 }
 ```
 
-- [ ] **Step 4 : les tests passent.**
+- [x] **Step 4 : les tests passent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -2896,7 +2896,7 @@ cadence : 632 verifications, 0 echec(s)
 
 Puis `sh outils/tester.sh` : sans échec.
 
-- [ ] **Step 5 : commit.**
+- [x] **Step 5 : commit.**
 
 ```bash
 git add sonde/src/pagination.h sonde/src/cadence.h sonde/src/cadence.cpp sonde/src/liste_blanche.h sonde/test/test_pagination.cpp sonde/test/test_cadence.cpp sonde/test/lancer.sh
@@ -2925,7 +2925,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
     - `identifier(actif, t)`, `chercher(actif, t)`, `adherer(t)`, `suspendre(actif, t)`, `allumer(actif)` ;
     - `teinte(t)` → `Teinte {couleur, niveau}`, avec `Couleur::{kNoire, kBlanche, kBleue, kVerte, kOrange, kVeille}`.
 
-- [ ] **Step 1 : écrire les tests et les ajouter au lanceur.**
+- [x] **Step 1 : écrire les tests et les ajouter au lanceur.**
 
 `sonde/test/test_adhesion.cpp` :
 
@@ -3152,7 +3152,7 @@ par :
 "$TMP/test_voyant"
 ```
 
-- [ ] **Step 2 : les lancer, ils échouent.**
+- [x] **Step 2 : les lancer, ils échouent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -3162,7 +3162,7 @@ Expected :
 clang++: error: no such file or directory: '<depot>/sonde/test/../src/adhesion.cpp'
 ```
 
-- [ ] **Step 3 : écrire les modules.**
+- [x] **Step 3 : écrire les modules.**
 
 `sonde/src/adhesion.h` :
 
@@ -3441,7 +3441,7 @@ class Voyant {
 };
 ```
 
-- [ ] **Step 4 : les tests passent.**
+- [x] **Step 4 : les tests passent.**
 
 Run : `sh sonde/test/lancer.sh`
 
@@ -3461,7 +3461,7 @@ voyant : 17 verifications, 0 echec(s)
 
 Puis `sh outils/tester.sh` : sans échec.
 
-- [ ] **Step 5 : commit.**
+- [x] **Step 5 : commit.**
 
 ```bash
 git add sonde/src/adhesion.h sonde/src/adhesion.cpp sonde/src/voyant.h sonde/test/test_adhesion.cpp sonde/test/test_voyant.cpp sonde/test/lancer.sh
@@ -3488,7 +3488,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Ce fichier touche la radio et la concurrence entre tâches : la relecture de cette tâche se fait au modèle le plus fort.
 
-- [ ] **Step 1 : écrire le firmware.**
+- [x] **Step 1 : écrire le firmware.**
 
 `sonde/src/version.h` :
 
@@ -4917,7 +4917,7 @@ cadence et liste blanche, adhésion, LED) sont compilés par clang++ avec ASan
 et UBSan et testés sur le Mac. `sh outils/tester.sh` lance tout.
 ````
 
-- [ ] **Step 2 : compiler sans la vraie clé.**
+- [x] **Step 2 : compiler sans la vraie clé.**
 
 Run : `cd sonde && ~/.platformio/penv/bin/pio run -e verif -e verif_routeur`
 
@@ -4934,7 +4934,7 @@ verif          SUCCESS   00:00:12.844
 verif_routeur  SUCCESS   00:00:11.877
 ```
 
-- [ ] **Step 3 : les garde-fous de la clé arrêtent bien une vraie variante.**
+- [x] **Step 3 : les garde-fous de la clé arrêtent bien une vraie variante.**
 
 Sans `sonde/cle_hue.local.h` (c'est le cas dans un worktree, et l'agent n'en crée jamais) :
 
@@ -4948,13 +4948,13 @@ src/zigbee.cpp:32:2: error: #error "sonde/cle_hue.local.h absent : copier sonde/
 
 Si `sonde/cle_hue.local.h` existe (Majid l'a déjà posé dans le dépôt principal), sauter cette vérification : ne jamais le déplacer ni le lire.
 
-- [ ] **Step 4 : tout le reste passe toujours.**
+- [x] **Step 4 : tout le reste passe toujours.**
 
 Run : `sh outils/tester.sh`
 
 Expected : sans échec, garde comprise. `sonde/.pio/` est ignoré par git.
 
-- [ ] **Step 5 : commit.**
+- [x] **Step 5 : commit.**
 
 ```bash
 git add sonde/src/version.h sonde/src/zigbee.h sonde/src/zigbee.cpp sonde/src/main.cpp sonde/platformio.ini sonde/cle_hue.exemple.h sonde/README.md
@@ -4977,7 +4977,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `python3 outils/essai_sonde.py [--port P] <commande>`, avec ses fonctions pures `parcourir(table, depart)`, `complete(m)` et `resumer(resultats, duree_s)`. Une table incomplète est redemandée une fois, et la nuit se reconnecte si le port est perdu ;
   - `python3 outils/flasher.py [--env V] [--effacer] [--ecoute]`, avec ses fonctions `normaliser_mac`, `mac_lue`, `ports_par_serie` et `flasher(port, mac, env, effacer, lancer, dossier)`. L'ordre : numéro de série USB (ioreg, sans toucher la carte), compilation, MAC lue par esptool, effacement si demandé, téléversement sans recompiler.
 
-- [ ] **Step 1 : écrire les tests.**
+- [x] **Step 1 : écrire les tests.**
 
 `outils/test/test_sonde_usb.py` :
 
@@ -5384,7 +5384,7 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2 : les lancer, ils échouent.**
+- [x] **Step 2 : les lancer, ils échouent.**
 
 Run : `python3 -m unittest discover -s outils/test`
 
@@ -5396,7 +5396,7 @@ Ran 10 tests in 0.357s
 FAILED (errors=3)
 ```
 
-- [ ] **Step 3 : écrire les outils.**
+- [x] **Step 3 : écrire les outils.**
 
 `outils/sonde_usb.py` :
 
@@ -5944,7 +5944,7 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 ```
 
-- [ ] **Step 4 : les tests passent.**
+- [x] **Step 4 : les tests passent.**
 
 Run : `python3 -m unittest discover -s outils/test`
 
@@ -5958,7 +5958,7 @@ OK
 
 Puis `sh outils/tester.sh` : sans échec.
 
-- [ ] **Step 5 : commit.**
+- [x] **Step 5 : commit.**
 
 ```bash
 git add outils/sonde_usb.py outils/essai_sonde.py outils/flasher.py outils/test/test_sonde_usb.py outils/test/test_essai_sonde.py outils/test/test_flasher.py
@@ -5984,7 +5984,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en direct avec Majid).
 
-- [ ] **Step 1 : préparer la carte, avec Majid.**
+- [x] **Step 1 : préparer la carte, avec Majid.**
   1. Majid copie `sonde/cle_hue.exemple.h` en `sonde/cle_hue.local.h` et y pose la clé. Le contrôleur ne la lit pas et ne l'affiche pas.
   2. Le contrôleur repère le port de la carte. `ioreg -p IOUSB -l | grep "USB Serial Number"` donne la MAC de chaque C6, et le port suit la prise USB. Il fait confirmer la carte par Majid, puis écrit `outils/sonde.local.json` : `{"port": "/dev/cu.usbmodem…", "mac": "…"}`.
   3. Run : `python3 outils/flasher.py --effacer`. Expected : `Carte verifiee : …`, puis l'effacement et le flash réussis. La LED pulse en bleu. Un `REFUS` veut dire que la carte n'est pas la bonne : ne pas insister, revoir le port avec Majid.
@@ -5992,7 +5992,7 @@ Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en dir
      - `bonjour` : `"produit":"sonde-zigbee"`, `"version":"0.9.0"`, `"membre":false` ;
      - `etat` : `"recherche":true`.
 
-- [ ] **Step 2 : E1, adhésion en appareil final.**
+- [x] **Step 2 : E1, adhésion en appareil final.**
   1. Majid lance « Ajouter des lampes » dans l'app Hue.
   2. Le contrôleur relance `etat` toutes les 20 s, 5 minutes au plus. Expected : `"membre":true`, `"role":"final"`, un `parent`, `"canal":25`, et deux éclairs verts sur la LED.
      Le contrôleur vérifie aussi que le `pan` est celui du réseau Hue relevé pendant l'essai d'écoute (dans la mémoire du projet). Il compare sans écrire la valeur nulle part. Un autre PAN voudrait dire que la sonde a rejoint un réseau voisin ouvert : `oubli`, puis recommencer.
@@ -6006,7 +6006,7 @@ Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en dir
 
   Si rien ne marche, s'arrêter et en reparler avec Majid (spec, section 4).
 
-- [ ] **Step 3 : E2, tables du pont et de trois lampes.**
+- [x] **Step 3 : E2, tables du pont et de trois lampes.**
   1. Run : `python3 outils/essai_sonde.py table 0000`. Puis `table <court>` pour trois routeurs de la réponse, en choisissant le parent de la sonde et deux autres.
   2. Expected, pour chacune :
      - `"ok":true`, `"partielle":false`, et `len(liste) == total` ;
@@ -6014,13 +6014,13 @@ Le niveau d'effort conseillé pour cette tâche est **Élevé** (pilotage en dir
      - les adresses longues au préfixe de Signify, **dans l'ordre de l'essai d'écoute**. Une adresse à l'envers trahirait un ordre d'octets inversé dans `texteIeee`.
   3. Noter la durée (`ms`) et le nombre de pages. Si le pont ne répond pas (`delai` ou `statut`), le noter : ses voisins se liront dans les tables des lampes.
 
-- [ ] **Step 4 : E3, tournée complète.**
+- [x] **Step 4 : E3, tournée complète.**
 
 Run : `python3 outils/essai_sonde.py tournee`
 
 Expected : un résumé, qui compare les `interroges` et les `noeuds_vus` au nombre de lampes de l'app Hue ; aucune erreur `cadence` ; et la durée totale. `etat` donne ensuite `"refus_cadence":0`.
 
-- [ ] **Step 5 : E4, table de routage en trame APS brute.**
+- [x] **Step 5 : E4, table de routage en trame APS brute.**
 
 Run : `python3 outils/essai_sonde.py routes <court d'une lampe>`
 
@@ -6028,7 +6028,7 @@ Expected, deux cas :
 - **E4 réussi :** une liste d'entrées lisibles (`destination`, `etat`, `prochain`) ;
 - **E4 échoué :** `delai` (la pile ne transmet pas la réponse ZDO au rappel APS) ou `envoi` (la pile refuse l'envoi depuis le point d'accès 0). `SONDE_ROUTES` passera à 0 à la tâche 9.
 
-- [ ] **Step 6 : E5, taux d'échec, seulement avec l'accord explicite de Majid.**
+- [x] **Step 6 : E5, taux d'échec, seulement avec l'accord explicite de Majid.**
   1. Lui rappeler le prix : la lampe interrogée reste sourde environ 31 ms. Lui demander laquelle interroger.
   2. Run : `python3 outils/essai_sonde.py echecs <court>`.
   3. Expected : `"ok":true`, avec `emissions`, `echecs` et `energie` vraisemblables, et aucun effet visible sur la lampe (Majid regarde).
@@ -6036,7 +6036,7 @@ Expected, deux cas :
 
   Sans son accord, ne pas lancer E5 : `SONDE_ECHECS` passe à 0.
 
-- [ ] **Step 7 : E7, perte du parent (si Majid le veut).**
+- [x] **Step 7 : E7, perte du parent (si Majid le veut).**
   1. Majid coupe à l'interrupteur la lampe qui est le parent de la sonde (`etat.parent`).
   2. Expected :
      - dans la minute, `etat` donne `"membre":false` et `"recherche":true`, et la LED pulse en bleu ;
@@ -6046,7 +6046,7 @@ Expected, deux cas :
   3. Majid rallume la lampe.
   4. Lire les lignes `signal` de ce moment dans `essais/<date>/sonde.jsonl`. Ce que la pile a émis, et dans quel ordre, ira dans la section 8.
 
-- [ ] **Step 8 : E6, une nuit.**
+- [x] **Step 8 : E6, une nuit.**
 
 Run, en tâche de fond : `python3 outils/essai_sonde.py nuit 10 900`
 
@@ -6054,7 +6054,7 @@ Expected au matin :
 - une ligne `membre` et un résumé de tournée toutes les 15 minutes, sans `NON MEMBRE` ;
 - des lampes normales pendant la nuit, et rien d'anormal dans l'app Hue (Majid regarde).
 
-- [ ] **Step 9 : consigner les résultats.**
+- [x] **Step 9 : consigner les résultats.**
 
 Dans la spec, remplacer :
 
@@ -6091,7 +6091,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : les décisions de la tâche 8.
 - Produces : le firmware 1.0.0 sur la carte, base du morceau 2 (l'app).
 
-- [ ] **Step 1 : la version.**
+- [x] **Step 1 : la version.**
 
 Dans `sonde/src/version.h`, remplacer :
 
@@ -6129,7 +6129,7 @@ par :
 ; Sonde de maillage Zigbee, firmware 1.0.0 (spec :
 ```
 
-- [ ] **Step 2 : les commandes de l'essai, selon E4 et E5, et les lignes `signal`.**
+- [x] **Step 2 : les commandes de l'essai, selon E4 et E5, et les lignes `signal`.**
 
 Pour chaque élément que l'essai ne garde pas, dans `sonde/platformio.ini` :
 - E4 échoué : remplacer `    -DSONDE_ROUTES=1` par `    -DSONDE_ROUTES=0` ;
@@ -6153,7 +6153,7 @@ par la décision, par exemple :
 
 Le code reste. `SONDE_ROUTES=0` et `SONDE_ECHECS=0` le retirent à la compilation, et `sonde/test/lancer.sh` teste déjà les deux cas.
 
-- [ ] **Step 3 : la variante par défaut, selon E1.**
+- [x] **Step 3 : la variante par défaut, selon E1.**
 
 Si la variante retenue n'est pas `sonde`, dans `sonde/platformio.ini`, remplacer :
 
@@ -6163,7 +6163,7 @@ default_envs = sonde
 
 par la variante retenue, par exemple `default_envs = sonde_routeur`. Dans `sonde/README.md`, ajouter sous le tableau des variantes une phrase qui dit laquelle est retenue et pourquoi (E1 de la section 8 de la spec).
 
-- [ ] **Step 4 : la spec.**
+- [x] **Step 4 : la spec.**
 
 Dans l'en-tête de la spec, remplacer :
 
@@ -6183,7 +6183,7 @@ Puis, selon les décisions, dans la section 2 de la spec :
 - E5 : décrire `echecs` (son format est dans `sonde/src/main.cpp`, `rendreEchecs`) ou dire qu'elle est retirée ;
 - lignes `signal` : dire si elles sont gardées.
 
-- [ ] **Step 5 : vérifier, puis flasher la 1.0.0 (contrôleur, avec Majid).**
+- [x] **Step 5 : vérifier, puis flasher la 1.0.0 (contrôleur, avec Majid).**
 
 Run :
 
@@ -6201,7 +6201,7 @@ Expected :
 - `bonjour` donne `"version":"1.0.0"` ;
 - `etat` donne `"membre":true` sans nouvelle recherche dans l'app Hue.
 
-- [ ] **Step 6 : commit.**
+- [x] **Step 6 : commit.**
 
 ```bash
 git add sonde/src/version.h sonde/src/main.cpp sonde/platformio.ini sonde/README.md docs/superpowers/specs/2026-10-05-maillage-zigbee-sonde-design.md

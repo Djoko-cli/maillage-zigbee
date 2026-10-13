@@ -87,7 +87,7 @@
 - Consumes: rien.
 - Produces: une partition application de 0x3DA000 octets ; les tâches suivantes peuvent grossir le firmware.
 
-- [ ] **Step 1: Écrire la table**
+- [x] **Step 1: Écrire la table**
 
 `sonde/partitions.csv` :
 
@@ -106,7 +106,7 @@ rcp_fw,     data, spiffs,  0x3EF000,0x1000,
 coredump,   data, coredump,0x3F0000,0x10000,
 ```
 
-- [ ] **Step 2: Brancher la table dans `platformio.ini`**
+- [x] **Step 2: Brancher la table dans `platformio.ini`**
 
 Remplacer, dans la section `[env]` :
 
@@ -133,17 +133,17 @@ Et, dans le commentaire d'en-tête, remplacer les trois lignes qui commencent pa
 ; zb_storage demanderait un effacement (la sonde quitterait le reseau Hue).
 ```
 
-- [ ] **Step 3: Compiler les deux variantes**
+- [x] **Step 3: Compiler les deux variantes**
 
 Run : `cd sonde && ~/.platformio/penv/bin/pio run -e sonde -e verif 2>&1 | grep -E "Flash:|SUCCESS|FAILED"`
 Expected : deux `SUCCESS`, et `Flash: [=   ]  15.x% (used 60xxxx bytes from 4038656 bytes)` (le pourcentage baisse : même firmware, partition plus grande).
 
-- [ ] **Step 4: Vérifier les adresses gardées**
+- [x] **Step 4: Vérifier les adresses gardées**
 
 Run : `cd sonde && python3 ~/.platformio/packages/framework-arduinoespressif32/tools/gen_esp32part.py .pio/build/sonde/partitions.bin | grep -E "nvs|zb_storage|zb_fct|app0"`
 Expected : `nvs,data,nvs,0x9000,20K`, `app0,app,ota_0,0x10000,3944K`, `zb_storage,data,fat,0x3ea000,16K`, `zb_fct,data,fat,0x3ee000,4K`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sonde/partitions.csv sonde/platformio.ini
@@ -166,7 +166,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : rien.
 - Produces : l'espace de noms `h1` de `h1_proto.h` (`h1::Table`, `h1::parse`, `h1::keyId`, `h1::toHex`, `h1::fromHex`, `h1::wipe`, `h1::salutMac`, `h1::defiMac`, `h1::sessionKey`, `h1::messageMac`, constantes `h1::kKeyLen`, `h1::kSlots`, `h1::kHeaderMax`, `h1::kDefiLen`) ; `sonde/test/crypto_hote.cpp` fournit `h1::hmacSha256` et `h1::sha256` aux tests hôte.
 
-- [ ] **Step 1: Copier les sources**
+- [x] **Step 1: Copier les sources**
 
 ```bash
 B=~/Documents/Dev/esp32/benq
@@ -175,7 +175,7 @@ cp $B/src/h1_proto.h $B/src/h1_proto.cpp $B/src/h1_crypto.cpp sonde/src/
 cp $B/tools/host_tests/test_h1.cpp sonde/test/test_h1.cpp
 ```
 
-- [ ] **Step 2: Situer les copies**
+- [x] **Step 2: Situer les copies**
 
 En tête de `sonde/src/h1_proto.h`, juste après la ligne `//  Enveloppe H1 du transport reseau (docs/PROTOCOLE-JSON.md, 10.4) : briques pures`, ajouter :
 
@@ -187,7 +187,7 @@ En tête de `sonde/src/h1_proto.h`, juste après la ligne `//  Enveloppe H1 du t
 //  modifier le pont Halo et Maillage Thread.
 ```
 
-- [ ] **Step 3: Sortir la crypto de l'hôte dans son fichier**
+- [x] **Step 3: Sortir la crypto de l'hôte dans son fichier**
 
 Dans `sonde/test/test_h1.cpp`, couper le bloc `namespace h1 { bool hmacSha256(...) {...} bool sha256(...) {...} }` (et les `#include <CommonCrypto/...>`) et le mettre dans `sonde/test/crypto_hote.cpp` :
 
@@ -216,7 +216,7 @@ bool sha256(const void *p, size_t n, uint8_t out[32]) {
 
 Dans `test_h1.cpp`, remplacer la ligne `// Lancer : sh tools/test_halo1.sh` par `// Lancer : sh sonde/test/lancer.sh (repris du pont Halo, commit 3a1ad2f)` et la mention de `src/h1_crypto.cpp` par `sonde/test/crypto_hote.cpp`.
 
-- [ ] **Step 4: Ajouter le test à `lancer.sh`**
+- [x] **Step 4: Ajouter le test à `lancer.sh`**
 
 Après la ligne `compiler test_voyant "$ICI/test_voyant.cpp"` :
 
@@ -230,17 +230,17 @@ et après la dernière ligne qui lance un test (`"$TMP/test_voyant"` ou la derni
 "$TMP/test_h1"
 ```
 
-- [ ] **Step 5: Lancer**
+- [x] **Step 5: Lancer**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | tail -4`
 Expected : une ligne `test_h1 ... 0 echec(s)` (ou le bilan propre à test_h1), code de sortie 0. Si `-Werror` refuse un avertissement dans la copie de `test_h1.cpp` (le pont compile avec d'autres drapeaux), corriger l'avertissement dans la copie de test seulement, jamais dans `h1_proto.*`.
 
-- [ ] **Step 6: Compiler la carte**
+- [x] **Step 6: Compiler la carte**
 
 Run : `cd sonde && ~/.platformio/penv/bin/pio run -e verif 2>&1 | grep -E "SUCCESS|FAILED"`
 Expected : `SUCCESS` (`h1_crypto.cpp` compile avec mbedTLS ; rien ne l'appelle encore).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add sonde/src/h1_proto.h sonde/src/h1_proto.cpp sonde/src/h1_crypto.cpp sonde/test/crypto_hote.cpp sonde/test/test_h1.cpp sonde/test/lancer.sh
@@ -266,7 +266,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `bool lireHexa(const char *s, uint8_t *out, size_t max, size_t *n)`.
 - Syntaxe (précision de la spec 3.5, écrite ici) : `wifi <NOM HEXA> <MDP HEXA | -> <id>` ; `-` = réseau ouvert (un mot vide n'existe pas) ; `wifi` ; `wifi efface` ; `cle nouvelle <64 HEXA> <id>` ; `cle` ; `cle efface`. Hexa : MAJUSCULES seulement, nombre pair de chiffres ; un octet `00` est refusé dans le nom et le mot de passe.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 Ajouter à la fin de `main()` de `sonde/test/test_commande.cpp`, avant `return bilan(...)` :
 
@@ -322,12 +322,12 @@ Ajouter à la fin de `main()` de `sonde/test/test_commande.cpp`, avant `return b
   CHECK(est("cle autre", TypeCommande::kSyntaxe), "cle autre");
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | tail -3`
 Expected : erreur de compilation (`lireHexa` et `kWifi` inconnus).
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 Dans `sonde/src/commande.h`, compléter le commentaire d'en-tête (après la ligne `echecs <cible> <id> [<delai ms>]`) :
 
@@ -483,12 +483,12 @@ Dans `lireCommande`, avant `if (strcmp(m, "table") == 0)` :
   if (strcmp(m, "cle") == 0) return cle(mots, n);
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | grep -E "test_commande|ECHEC"`
 Expected : trois lignes `test_commande ... 0 echec(s)` (les trois variantes d'options), aucun `ECHEC`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sonde/src/commande.h sonde/src/commande.cpp sonde/test/test_commande.cpp
@@ -512,7 +512,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : `h1::hmacSha256`, `h1::keyId`, `h1::kKeyLen` (tâche 2).
 - Produces : `bool deriverCle(const uint8_t aleaApp[32], const uint8_t aleaCarte[32], uint8_t cle[32]);`
 
-- [ ] **Step 1: Écrire le test**
+- [x] **Step 1: Écrire le test**
 
 `sonde/test/test_cle_reseau.cpp` :
 
@@ -544,12 +544,12 @@ int main() {
 
 Dans `lancer.sh`, après la ligne `compiler test_h1 ...` : `compiler test_cle_reseau "$ICI/test_cle_reseau.cpp" "$SRC/cle_reseau.cpp" "$SRC/h1_proto.cpp" "$ICI/crypto_hote.cpp"`, et après `"$TMP/test_h1"` : `"$TMP/test_cle_reseau"`.
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | tail -3`
 Expected : `cle_reseau.h` introuvable.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `sonde/src/cle_reseau.h` :
 
@@ -582,12 +582,12 @@ bool deriverCle(const uint8_t aleaApp[32], const uint8_t aleaCarte[32], uint8_t 
 }
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | grep -E "test_cle_reseau|ECHEC"`
 Expected : `test_cle_reseau : 3 verifications, 0 echec(s)`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sonde/src/cle_reseau.h sonde/src/cle_reseau.cpp sonde/test/test_cle_reseau.cpp sonde/test/lancer.sh
@@ -614,7 +614,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `bool lireRequete(const uint8_t *charge, size_t n, uint32_t *rid, char commande[kCommandeMax + 1]);`
   - `size_t chargeReponse(uint32_t rid, const uint8_t *ligne, size_t n, uint8_t *sortie, size_t taille);`
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `sonde/test/test_canaux.cpp` :
 
@@ -695,12 +695,12 @@ int main() {
 
 Dans `lancer.sh` : `compiler test_canaux "$ICI/test_canaux.cpp" "$SRC/canaux.cpp" "$SRC/commande.cpp"` et `"$TMP/test_canaux"`.
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | tail -3`
 Expected : `canaux.h` introuvable.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `sonde/src/canaux.h` :
 
@@ -794,12 +794,12 @@ size_t chargeReponse(uint32_t rid, const uint8_t *ligne, size_t n, uint8_t *sort
 }
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | grep -E "test_canaux|ECHEC"`
 Expected : `test_canaux : ... 0 echec(s)`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sonde/src/canaux.h sonde/src/canaux.cpp sonde/test/test_canaux.cpp sonde/test/lancer.sh
@@ -823,7 +823,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Règles : une connexion = un numéro 0..2 ; la session H1 promue sur une connexion lui est liée (`Peer.port` = numéro de connexion) et tombe (`Table::end`) quand elle se ferme ; un message H1 refusé (forme, clé, MAC, rejeu) ne reçoit **rien** ; une ligne de plus de 4 200 octets ferme la connexion ; `CR` est ignoré.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `sonde/test/test_portail.cpp` :
 
@@ -1054,12 +1054,12 @@ int main() {
 
 Dans `lancer.sh` : `compiler test_portail "$ICI/test_portail.cpp" "$SRC/portail.cpp" "$SRC/h1_proto.cpp" "$SRC/canaux.cpp" "$SRC/commande.cpp" "$ICI/crypto_hote.cpp"` et `"$TMP/test_portail"`.
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | tail -3`
 Expected : `portail.h` introuvable.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `sonde/src/portail.h` :
 
@@ -1278,12 +1278,12 @@ uint8_t Portail::sessions() const {
 }
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | grep -E "test_portail|ECHEC"`
 Expected : `test_portail : ... 0 echec(s)`. Si `Table::seal` rend 0 pour une session terminée par `end` (cas « fermeture »), c'est attendu : `repondre` rend déjà false avant, par `connexionDe_`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sonde/src/portail.h sonde/src/portail.cpp sonde/test/test_portail.cpp sonde/test/lancer.sh
@@ -1323,7 +1323,7 @@ void ajouterCompteurs(Ligne &l);
 
 Pas de test hôte (WiFi, Preferences, ESPmDNS) : vérification par compilation, puis au banc (tâche 10).
 
-- [ ] **Step 1: Écrire l'en-tête**
+- [x] **Step 1: Écrire l'en-tête**
 
 `sonde/src/reseau.h` :
 
@@ -1372,7 +1372,7 @@ void ajouterCompteurs(Ligne &l);
 }  // namespace reseau
 ```
 
-- [ ] **Step 2: Écrire l'implémentation**
+- [x] **Step 2: Écrire l'implémentation**
 
 `sonde/src/reseau.cpp` :
 
@@ -1627,12 +1627,12 @@ void ajouterCompteurs(Ligne &l) {
 }  // namespace reseau
 ```
 
-- [ ] **Step 3: Compiler**
+- [x] **Step 3: Compiler**
 
 Run : `cd sonde && ~/.platformio/penv/bin/pio run -e verif 2>&1 | grep -E "error|SUCCESS|FAILED|Flash:"`
 Expected : `SUCCESS` ; `Flash:` d'environ 1,3 Mo sur 4 038 656 octets (WiFi et ESPmDNS sont liés même si `main.cpp` n'appelle encore rien : le compilateur les garde parce que `reseau.cpp` les référence). En cas d'erreur sur `esp_coex_wifi_i154_enable` introuvable, vérifier que `CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y` dans `~/.platformio/packages/framework-arduinoespressif32-libs/esp32c6/sdkconfig` (c'est le cas en 55.03.312-1).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add sonde/src/reseau.h sonde/src/reseau.cpp
@@ -1659,7 +1659,7 @@ Réponses (valeurs inventées) :
 - `cle nouvelle …` : `{"v":1,"t":"cle","id":3,"cle":"<64 HEXA>","empreinte":"91CB5C39"}`.
 - `cle` et `cle efface` : `{"v":1,"t":"cle","empreinte":"91CB5C39"|null,"sessions":1,"envois":12,"refus":0,"fermetures":0}`.
 
-- [ ] **Step 1: Inclusions, version et en-tête**
+- [x] **Step 1: Inclusions, version et en-tête**
 
 `sonde/src/version.h` : `#define SONDE_VERSION "1.1.0"` et, dans le commentaire, `0.9.0 pendant l'essai (spec de la sonde, section 4), 1.0.0 ensuite, 1.1.0 avec le Wi-Fi (spec sonde Wi-Fi).`
 
@@ -1680,7 +1680,7 @@ Dans le commentaire d'en-tête, après la ligne `//    oubli                    
 //  lignes signal a tous.
 ```
 
-- [ ] **Step 2: Sorties routées**
+- [x] **Step 2: Sorties routées**
 
 Remplacer `static void ecrire(void *, const uint8_t *octets, size_t n) { Serial.write(octets, n); }` par :
 
@@ -1741,13 +1741,13 @@ par
 
 et de même pour `rendre(sRoutes, jsonEntreeRoute)` et `rendreEchecs()`.
 
-- [ ] **Step 3: `bonjour` et `etat`**
+- [x] **Step 3: `bonjour` et `etat`**
 
 Dans `cmdBonjour()`, avant `finir();` : `sLigne.ajoute(",\"reseau\":%s", reseau::configure() ? "true" : "false");`
 
 Dans `cmdEtat()`, avant le dernier `finir();` : `reseau::ajouterEtat(sLigne);`
 
-- [ ] **Step 4: Nouvelles commandes**
+- [x] **Step 4: Nouvelles commandes**
 
 Après `cmdSuspendre()` :
 
@@ -1829,7 +1829,7 @@ static void cmdCleEfface() {
 
 (`redemarrer()` est défini plus bas : la déclaration avancée suffit.)
 
-- [ ] **Step 5: `executer` avec l'origine**
+- [x] **Step 5: `executer` avec l'origine**
 
 Remplacer toute la fonction `executer` par :
 
@@ -1867,7 +1867,7 @@ static void executer(const char *ligne, uint32_t maintenant, const Origine &o) {
 }
 ```
 
-- [ ] **Step 6: `setup` et `loop`**
+- [x] **Step 6: `setup` et `loop`**
 
 Au tout début de `setup()`, avant `Serial.begin(115200);` :
 
@@ -1899,14 +1899,14 @@ Dans `loop()`, remplacer `else if (sCmdLong) executer(sCommande, millis());` par
   }
 ```
 
-- [ ] **Step 7: Vérifier**
+- [x] **Step 7: Vérifier**
 
 Run : `sh sonde/test/lancer.sh 2>&1 | grep -c ECHEC; cd sonde && ~/.platformio/penv/bin/pio run -e sonde -e verif 2>&1 | grep -E "warning: enumeration|error|SUCCESS|FAILED|Flash:"`
 Expected : `0` ; deux `SUCCESS` ; aucune ligne `enumeration value ... not handled` ; `Flash:` vers 1,3 Mo sur 4 038 656 octets.
 
 Contrôle à la lecture du diff (Review Focus 5) : `executer` refuse avant `executerCommande` dès que `o.reseau` et que `distanceAutorisee` est faux ; aucune autre fonction n'appelle `executerCommande`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add sonde/src/main.cpp sonde/src/version.h
@@ -1927,7 +1927,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : `sonde_usb.ouvrir`, `sonde_usb.Sonde` (`commande(texte, types, id=None, delai=10.0)`) ; `outils/sonde.local.json` (`port`) comme `essai_sonde.py`.
 - Produces : `python3 outils/sonde_reseau.py wifi | cle | [--hote H] bonjour|etat|voisins|table <cible>|routes <cible>|ecoute <secondes>`. La clé est rangée dans `outils/cle_reseau.local` (64 hexa, droits 600, ignoré par git) et jamais affichée.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `outils/test/test_sonde_reseau.py` :
 
@@ -1992,12 +1992,12 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `python3 -m unittest discover -s outils/test -p "test_sonde_reseau.py" 2>&1 | tail -3`
 Expected : `ModuleNotFoundError: No module named 'sonde_reseau'`.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `outils/sonde_reseau.py` :
 
@@ -2243,12 +2243,12 @@ if __name__ == "__main__":
 
 Dans `.gitignore`, après `outils/sonde.local.json` : `outils/cle_reseau.local`.
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `python3 -m unittest discover -s outils/test -p "test_sonde_reseau.py" 2>&1 | tail -3; git check-ignore outils/cle_reseau.local; sh outils/tester.sh 2>&1 | tail -3`
 Expected : `OK` ; `outils/cle_reseau.local` ; tous les tests sans carte passent, garde `aucun dans les fichiers suivis`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add outils/sonde_reseau.py outils/test/test_sonde_reseau.py .gitignore
@@ -2263,13 +2263,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 Rien à coder. Chaque étape se fait dans un onglet du Terminal de l'app, doublé d'un guetteur en arrière-plan ; Maillage Zigbee est quitté avant tout flash.
 
-- [ ] **Step 1: Flash sans effacement**, `python3 outils/flasher.py` ; puis `python3 outils/essai_sonde.py etat` toutes les 8 s jusqu'à `"membre":true` (2 min au plus). Attendu : la sonde reste membre (nouvelle table de partitions, `zb_storage` en place), `bonjour.version` = `1.1.0`, `bonjour.reseau` = `false`, pas d'objet `reseau` dans `etat`.
-- [ ] **Step 2: Clé**, `python3 outils/sonde_reseau.py cle` : attendu « Cle rangee… empreinte XXXXXXXX ».
-- [ ] **Step 3: Wi-Fi**, Majid lance lui-même `python3 outils/sonde_reseau.py wifi` dans un onglet du Terminal (saisie masquée) ; la sonde redémarre ; `etat` par l'USB : `reseau.connecte` = `true`, canal et signal présents, la sonde est membre.
-- [ ] **Step 4: Réseau**, `python3 outils/sonde_reseau.py etat`, puis `table 0000` : réponses complètes ; `ecoute 600` pendant une tournée de l'outil USB : des lignes signal arrivent.
-- [ ] **Step 5: Refus**, à la main avec le client Python (`c.commande("oubli")`) : attendu `{"v":1,"t":"erreur","erreur":"refuse"}`, la sonde reste membre.
-- [ ] **Step 6: Chargeur mural**, Majid débranche la sonde du Mac et la branche sur un chargeur ; `etat` et `table 0000` par le réseau ; `membre` vrai.
-- [ ] **Step 7: Bilan** dans la mémoire du projet ; la partie 2 commence.
+- [x] **Step 1: Flash sans effacement**, `python3 outils/flasher.py` ; puis `python3 outils/essai_sonde.py etat` toutes les 8 s jusqu'à `"membre":true` (2 min au plus). Attendu : la sonde reste membre (nouvelle table de partitions, `zb_storage` en place), `bonjour.version` = `1.1.0`, `bonjour.reseau` = `false`, pas d'objet `reseau` dans `etat`.
+- [x] **Step 2: Clé**, `python3 outils/sonde_reseau.py cle` : attendu « Cle rangee… empreinte XXXXXXXX ».
+- [x] **Step 3: Wi-Fi**, Majid lance lui-même `python3 outils/sonde_reseau.py wifi` dans un onglet du Terminal (saisie masquée) ; la sonde redémarre ; `etat` par l'USB : `reseau.connecte` = `true`, canal et signal présents, la sonde est membre.
+- [x] **Step 4: Réseau**, `python3 outils/sonde_reseau.py etat`, puis `table 0000` : réponses complètes ; `ecoute 600` pendant une tournée de l'outil USB : des lignes signal arrivent.
+- [x] **Step 5: Refus**, à la main avec le client Python (`c.commande("oubli")`) : attendu `{"v":1,"t":"erreur","erreur":"refuse"}`, la sonde reste membre.
+- [x] **Step 6: Chargeur mural**, Majid débranche la sonde du Mac et la branche sur un chargeur ; `etat` et `table 0000` par le réseau ; `membre` vrai.
+- [x] **Step 7: Bilan** dans la mémoire du projet ; la partie 2 commence.
 
 ---
 
@@ -2286,7 +2286,7 @@ Avant la tâche 11 : la partie 1 est fusionnée et la sonde du banc est en 1.1.0
 **Interfaces:**
 - Produces (module `MaillageCoeur`, publics) : `enum H1` (`hexa(_:)`, `octets(hexa:)`, `aleatoire(_:)`, `kid(cle:)`, `salut(cle:na:)`, `verifierDefi(_:cle:na:)`, `cleSession(cle:na:nc:sid:)` ; internes : `mac(_:_:)`, `estHexa`, `egaux`), `struct FenetreAntiRejeu`, `struct SessionH1` (`init(sid:ks:)`, `sceller(_:) -> Data`, `ouvrir(_:) -> Data?`, `ecartes`).
 
-- [ ] **Step 1: Copier**
+- [x] **Step 1: Copier**
 
 ```bash
 B=~/Documents/Dev/esp32/benq/apps/macos
@@ -2295,7 +2295,7 @@ cp $B/HaloProtocole/Reseau/EnveloppeH1.swift MaillageCoeur/Reseau/EnveloppeH1.sw
 cp $B/HaloProtocoleTests/EnveloppeH1Tests.swift MaillageCoeurTests/EnveloppeH1Tests.swift
 ```
 
-- [ ] **Step 2: Adapter**
+- [x] **Step 2: Adapter**
 
 Dans `MaillageCoeurTests/EnveloppeH1Tests.swift` : `@testable import HaloProtocole` → `@testable import MaillageCoeur` ; le commentaire `/// Vecteurs de docs/PROTOCOLE-JSON.md 10.4 (les memes que tools/host_tests/test_h1.cpp).` → `/// Vecteurs du pont Halo (benq 3a1ad2f, docs/PROTOCOLE-JSON.md 10.4), les memes que sonde/test/test_h1.cpp.`
 
@@ -2309,12 +2309,12 @@ En tête de `MaillageCoeur/Reseau/EnveloppeH1.swift`, après les `import` :
 
 Si un nom de type entre en conflit dans `MaillageCoeur` (vérifier : `grep -rn "enum H1\|struct SessionH1\|FenetreAntiRejeu" MaillageCoeur MaillageZigbee`), le signaler au contrôleur sans renommer.
 
-- [ ] **Step 3: Lancer les tests**
+- [x] **Step 3: Lancer les tests**
 
 Run : `outils/tester-app.sh MaillageCoeurTests/EnveloppeH1Tests`
 Expected : `** TEST SUCCEEDED **`, 10 tests (ceux du pont).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add MaillageCoeur/Reseau/EnveloppeH1.swift MaillageCoeurTests/EnveloppeH1Tests.swift
@@ -2341,7 +2341,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `MessageSonde.wifi(WifiSonde)`, `MessageSonde.cle(CleSonde)`.
   - `CommandeSonde.wifi(nom: Data, motDePasse: Data, id: Int)`, `CommandeSonde.cleNouvelle(alea: Data, id: Int)`.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 Ajouter à `MaillageCoeurTests/ProtocoleSondeTests.swift` (dans la suite existante, ou une nouvelle `@Suite("Protocole de la sonde : acces par le reseau")`) :
 
@@ -2402,12 +2402,12 @@ struct ProtocoleReseauTests {
 }
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageCoeurTests/ProtocoleReseauTests`
 Expected : erreurs de compilation (`reseau`, `ReseauSonde`, `.wifi`, `.cle`, `accepteReseau` inconnus).
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 Dans `ProtocoleSonde.swift` :
 
@@ -2508,12 +2508,12 @@ et dans `ligne` :
         case let .cleNouvelle(alea, id): "cle nouvelle \(H1.hexa(alea)) \(id)\n"
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `outils/tester-app.sh MaillageCoeurTests/ProtocoleReseauTests MaillageCoeurTests`
 Expected : `** TEST SUCCEEDED **` (les tests existants du protocole passent toujours).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add MaillageCoeur/Sonde/ProtocoleSonde.swift MaillageCoeurTests/ProtocoleSondeTests.swift
@@ -2553,7 +2553,7 @@ struct DecoupeurLF: Sendable { mutating func ajouter(_ d: Data) -> (lignes: [Dat
 
 Règles : le SALUT part à l'ouverture ; sans DEFI valable dans `delaiPoigneeDeMain`, le transport est fermé (le flux finit) ; les commandes envoyées avant la poignée de main attendent et partent ensuite, dans l'ordre ; chaque commande reçoit un rid croissant à partir de 1 ; une ligne remonte si son rid est 0 (signal) ou un rid déjà envoyé sur cette connexion, sinon elle est ignorée.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `MaillageZigbeeTests/CanalReseauTests.swift` :
 
@@ -2740,12 +2740,12 @@ struct CanalReseauTests {
 }
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/CanalReseauTests`
 Expected : erreurs de compilation (`TransportLignes`, `CanalReseau`, `DecoupeurLF` inconnus).
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `MaillageZigbee/Sonde/CanalReseau.swift` :
 
@@ -2945,12 +2945,12 @@ final class TransportTCP: TransportLignes {
 
 `H1.mac` est interne au module `MaillageCoeur` : le fichier de test l'atteint par `@testable import MaillageCoeur`.
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/CanalReseauTests`
 Expected : `** TEST SUCCEEDED **`, 8 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add MaillageZigbee/Sonde/CanalReseau.swift MaillageZigbeeTests/CanalReseauTests.swift
@@ -2978,7 +2978,7 @@ func nouvelleCle(alea: Data) async throws -> CleSonde
 
 Une erreur générale (`{"t":"erreur",...}`) sert d'abord la requête réseau en cours, puis `cle nouvelle`, puis `wifi`, puis `etat`, puis `voisins`.
 
-- [ ] **Step 1: Renommer**
+- [x] **Step 1: Renommer**
 
 ```bash
 git mv MaillageZigbee/Sonde/SondeUSB.swift MaillageZigbee/Sonde/Sonde.swift
@@ -2991,7 +2991,7 @@ Dans `Sonde.swift`, le commentaire de l'acteur : `/// Sonde branchee en USB : en
 Run : `outils/tester-app.sh MaillageZigbeeTests`
 Expected : `** TEST SUCCEEDED **` (renommage seul).
 
-- [ ] **Step 2: Écrire les tests**
+- [x] **Step 2: Écrire les tests**
 
 Ajouter à `MaillageZigbeeTests/SondeTests.swift` :
 
@@ -3040,12 +3040,12 @@ struct MiseEnServiceTests {
 }
 ```
 
-- [ ] **Step 3: Vérifier l'échec**
+- [x] **Step 3: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/MiseEnServiceTests`
 Expected : `nouvelleCle` et `configurerWifi` inconnus.
 
-- [ ] **Step 4: Implémenter**
+- [x] **Step 4: Implémenter**
 
 Dans `Sonde.swift`, après `private var attenteVoisins = ...` :
 
@@ -3119,12 +3119,12 @@ et remplacer le corps du cas `.erreur` par :
 
 Dans `clore()` : `attenteWifi.liberer()` et `attenteCle.liberer()`.
 
-- [ ] **Step 5: Vérifier**
+- [x] **Step 5: Vérifier**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests`
 Expected : `** TEST SUCCEEDED **`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add MaillageZigbee/Sonde/Sonde.swift MaillageZigbee/Sonde/SondeMaillage.swift MaillageZigbeeTests/SondeTests.swift MaillageZigbeeTests/TourneeSondeTests.swift
@@ -3154,7 +3154,7 @@ enum CheminSonde {
 }
 ```
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `MaillageZigbeeTests/CheminSondeTests.swift` :
 
@@ -3190,12 +3190,12 @@ struct CheminSondeTests {
 }
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/CheminSondeTests`
 Expected : `CheminSonde` inconnu.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 `MaillageZigbee/Sonde/CheminSonde.swift` :
 
@@ -3246,12 +3246,12 @@ enum CheminSonde {
 }
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/CheminSondeTests`
 Expected : `** TEST SUCCEEDED **`, 4 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add MaillageZigbee/Sonde/CheminSonde.swift MaillageZigbeeTests/CheminSondeTests.swift
@@ -3286,7 +3286,7 @@ Comportement :
 - `connecterReseau()` : `deconnecter(.connexion)`, puis `Sonde(canal: ouvrirReseau(nom, cle), delaiCommande: .seconds(3) + .seconds(3), delaiTable: delaiTable + .seconds(3))` ; `bonjour` doit dire la sonde Zigbee **et** `ieee` égal à `sondeIeee`, sinon `refusee` ; ensuite `acces = .reseau`, `etat = .connectee(b)`, `lireEtat`, première tournée, et une tâche d'entretien qui relit `etat` toutes les `periodeEntretien` hors tournée (la session H1 de la sonde est oubliée après 10 min sans message). Échec : `etat = .injoignable`, nouvel essai après `delaiReessaiReseau` tant que le réseau reste le chemin choisi.
 - `deconnecter` remet `acces` à nil et annule l'entretien.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 `MaillageZigbeeTests/SondeReseauTests.swift` :
 
@@ -3448,12 +3448,12 @@ final class Compteur: @unchecked Sendable {
 
 `SondeMaillage.Etat` doit rester `Equatable` (le cas `injoignable` n'a pas de valeur associée).
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/SondeReseauTests`
 Expected : erreurs de compilation (`trousseau`, `ouvrirReseau`, `annoncesChangees`, `acces`, `reglageChemin`, `injoignable` inconnus).
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 Dans `SondeMaillage.swift` :
 
@@ -3640,12 +3640,12 @@ Dans `SondeMaillage.swift` :
 
 12. `liaisonFermee(_:)` : après `deconnecter(.absente)`, `reevaluer()` (une sonde réseau coupée est retentée si elle reste annoncée).
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests`
 Expected : `** TEST SUCCEEDED **` : les 8 tests de `SondeReseauTests` et tous les tests existants de la sonde (le chemin USB n'a pas changé de comportement sans clé ni annonce).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add MaillageZigbee/Sonde/SondeMaillage.swift MaillageZigbeeTests/SondeReseauTests.swift
@@ -3674,7 +3674,7 @@ var miseEnServicePossible: Bool  // sonde retenue connectee par l'USB, firmware 
 
 Ordre : **la clé d'abord, le Wi-Fi ensuite.** `wifi` fait redémarrer la sonde, ce qui ferme la liaison USB ; créer la clé avant garde toute la mise en service sur une seule connexion (précision de la spec 4.3, qui décrivait l'ordre inverse sans dire comment franchir le redémarrage). Le mot de passe ne passe que par les paramètres de la fonction : jamais gardé, jamais journalisé.
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 Ajouter à `SondeReseauTests` :
 
@@ -3743,12 +3743,12 @@ Ajouter à `SondeReseauTests` :
     }
 ```
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/SondeReseauTests`
 Expected : `autoriserReseau` et `miseEnServicePossible` inconnus.
 
-- [ ] **Step 3: Implémenter**
+- [x] **Step 3: Implémenter**
 
 Dans `SondeMaillage.swift` :
 
@@ -3786,12 +3786,12 @@ Dans `SondeMaillage.swift` :
     }
 ```
 
-- [ ] **Step 4: Vérifier**
+- [x] **Step 4: Vérifier**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests`
 Expected : `** TEST SUCCEEDED **`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add MaillageZigbee/Sonde/SondeMaillage.swift MaillageZigbeeTests/SondeReseauTests.swift
@@ -3812,7 +3812,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes : `SondeMaillage.reglageChemin`, `.acces`, `.cleReseauConnue`, `.miseEnServicePossible`, `.autoriserReseau(nomWifi:motDePasse:)`, `.etatSonde?.reseau`, `Etat.injoignable` (tâches 16-17) ; `ReglageChemin.libelle`, `Acces.libelle` (tâche 15).
 - Produces : `static func texteReseauSonde(_ r: ReseauSonde) -> String` sur la vue des Réglages ; l'état `.injoignable` affiché « Réseau — sonde injoignable ».
 
-- [ ] **Step 1: Écrire les tests**
+- [x] **Step 1: Écrire les tests**
 
 Ajouter à `MaillageZigbeeTests/AffichageSondeTests.swift` (dans la suite existante des textes de la sonde) :
 
@@ -3829,12 +3829,12 @@ Ajouter à `MaillageZigbeeTests/AffichageSondeTests.swift` (dans la suite exista
 
 (Si la vue des Réglages porte un autre nom que `FenetreReglages`, prendre celui qui définit `texteEtatSonde` : `grep -n "static func texteEtatSonde" MaillageZigbee/Vues/*.swift`.)
 
-- [ ] **Step 2: Vérifier l'échec**
+- [x] **Step 2: Vérifier l'échec**
 
 Run : `outils/tester-app.sh MaillageZigbeeTests/AffichageSondeTests`
 Expected : `texteReseauSonde` inconnu ; `switch` non exhaustif sur `.injoignable` dans `texteEtatSonde` et dans `MenuBarre.swift`.
 
-- [ ] **Step 3: Implémenter les textes**
+- [x] **Step 3: Implémenter les textes**
 
 Dans `texteEtatSonde`, après `case .absente:` : `case .injoignable: String(localized: "Réseau — sonde injoignable")`.
 Dans `MenuBarre.swift`, après `case .absente: return String(localized: "\(n) : absente")` : `case .injoignable: return String(localized: "\(n) : injoignable")`.
@@ -3855,7 +3855,7 @@ Après `texteEtatSonde` :
     }
 ```
 
-- [ ] **Step 4: Implémenter la vue**
+- [x] **Step 4: Implémenter la vue**
 
 Dans la vue des Réglages : `@State private var nomWifi = ""`, `@State private var motDePasseWifi = ""`, `@State private var messageReseau: String?`, `@State private var miseEnService = false`.
 
@@ -3904,7 +3904,7 @@ Puis, après le bouton « Oublier la sonde » et avant la note sur les ports, un
         }
 ```
 
-- [ ] **Step 5: Autorisations et textes**
+- [x] **Step 5: Autorisations et textes**
 
 `project.yml`, dans `info.properties` :
 
@@ -3919,12 +3919,12 @@ Puis, après le bouton « Oublier la sonde » et avant la note sur les ports, un
 
 `Localizable.xcstrings` : ajouter l'anglais de chaque nouvelle chaîne (« Automatique » → « Automatic », « USB seulement » → « USB only », « Réseau seulement » → « Network only », « Réseau » → « Network », « Chemin » → « Path », « Chemin de la sonde » → « Probe path », « Réseau — sonde injoignable » → « Network — probe unreachable », « %@ : injoignable » → « %@: unreachable », « Accès par le réseau » → « Network access », « Sonde 1.1.0 requise. » → « Probe 1.1.0 required. », « Nom du Wi-Fi (2,4 GHz) » → « Wi-Fi name (2.4 GHz) », « Mot de passe » → « Password », « Régénérer la clé » → « Regenerate key », « Autoriser l'accès réseau » → « Allow network access », « Wi-Fi de la sonde » → « Probe Wi-Fi », les messages de `autoriserReseau` et de `texteReseauSonde`, la note de bas de section). Lancer `outils/synchroniser-textes.sh` si le dépôt l'utilise pour extraire les clés (voir son en-tête), puis vérifier qu'aucune chaîne nouvelle n'est restée sans anglais : `grep -c '"state" : "new"' MaillageZigbee/Ressources/Localizable.xcstrings` doit rendre 0.
 
-- [ ] **Step 6: Vérifier**
+- [x] **Step 6: Vérifier**
 
 Run : `outils/tester-app.sh`
 Expected : `** TEST SUCCEEDED **` (toute l'app, y compris les tests de traduction existants).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add MaillageZigbee/Vues/FenetreReglages.swift MaillageZigbee/Vues/MenuBarre.swift project.yml MaillageZigbee/Ressources/Localizable.xcstrings MaillageZigbee/Ressources/InfoPlist.xcstrings MaillageZigbeeTests/AffichageSondeTests.swift
@@ -3940,19 +3940,19 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify : `project.yml` (`MARKETING_VERSION: "1.1.0"`, `CURRENT_PROJECT_VERSION` +1), `MaillageZigbeeTests/MisesAJourTests.swift`, `NOTES-VERSIONS.md`
 
-- [ ] **Step 1: Débloquer le test de version**
+- [x] **Step 1: Débloquer le test de version**
 
 Dans `MisesAJourTests.swift`, remplacer l'attente figée `#expect(info["CFBundleShortVersionString"] as? String == "1.0.0")` par une forme qui suit `project.yml` : la version doit être de la forme `X.Y.Z` (`#expect((info["CFBundleShortVersionString"] as? String)?.split(separator: ".").count == 3)`), pour ne plus casser à chaque version.
 
-- [ ] **Step 2: Versions**
+- [x] **Step 2: Versions**
 
 `project.yml` : `MARKETING_VERSION: "1.1.0"` ; `CURRENT_PROJECT_VERSION` : la valeur actuelle + 1.
 
-- [ ] **Step 3: Notes**
+- [x] **Step 3: Notes**
 
 En tête de `NOTES-VERSIONS.md`, une section `## 1.1.0` avec un bloc **English** puis un bloc **Français**, même contenu : la sonde peut vivre sur un chargeur et être interrogée par le réseau local (firmware de sonde 1.1.0) ; mise en service par l'USB dans Réglages › Sonde (nom et mot de passe du Wi-Fi, clé d'accès rangée dans le trousseau) ; chemin automatique ou manuel (USB, réseau) ; échanges signés, non chiffrés ; une sonde 1.0.0 reste servie par l'USB.
 
-- [ ] **Step 4: Vérifier et commiter**
+- [x] **Step 4: Vérifier et commiter**
 
 Run : `outils/tester-app.sh && sh outils/tester.sh`
 Expected : tout passe.
@@ -3968,10 +3968,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 20: Banc de l'app 1.1.0 (avec Majid)
 
-- [ ] **Step 1:** l'app compilée de la branche est lancée ; macOS demande l'accès au réseau local : Majid l'accorde.
-- [ ] **Step 2:** sonde branchée en USB : Réglages › Sonde, chemin « Automatique », « Autoriser l'accès réseau » avec le Wi-Fi saisi par Majid ; la sonde redémarre ; l'app la retrouve par l'USB ; « Wi-Fi de la sonde : connecté · canal … ».
-- [ ] **Step 3:** Majid débranche la sonde et la met sur un chargeur mural : l'état passe à « Réseau », une tournée complète passe par le réseau, le journal reçoit les signaux.
-- [ ] **Step 4:** réglage « USB seulement » : la sonde sur chargeur devient « absente » ; retour à « Automatique » : « Réseau » de nouveau.
-- [ ] **Step 5:** on rebranche la sonde en USB : l'app bascule sur l'USB.
+- [x] **Step 1:** l'app compilée de la branche est lancée ; macOS demande l'accès au réseau local : Majid l'accorde.
+- [x] **Step 2:** sonde branchée en USB : Réglages › Sonde, chemin « Automatique », « Autoriser l'accès réseau » avec le Wi-Fi saisi par Majid ; la sonde redémarre ; l'app la retrouve par l'USB ; « Wi-Fi de la sonde : connecté · canal … ».
+- [x] **Step 3:** Majid débranche la sonde et la met sur un chargeur mural : l'état passe à « Réseau », une tournée complète passe par le réseau, le journal reçoit les signaux.
+- [x] **Step 4:** réglage « USB seulement » : la sonde sur chargeur devient « absente » ; retour à « Automatique » : « Réseau » de nouveau.
+- [x] **Step 5:** on rebranche la sonde en USB : l'app bascule sur l'USB.
 - [ ] **Step 6:** une nuit sonde sur chargeur, l'app en marche ; comparaison avec E6 (pertes de parent par tournée, tables reçues).
-- [ ] **Step 7:** relecture finale de la branche par Opus, puis fusion et publication commune sonde 1.1.0 + app 1.1.0 (`outils/publier.sh`), avec les règles de push du dépôt.
+  Fait en partie (12/10) : 4 h 30 en Wi-Fi, 19 tournées toutes complètes, aucun changement de parent de la sonde ; la comparaison avec E6 reste impossible tant que l'app ne journalise pas les pertes de parent (backlog).
+- [x] **Step 7:** relecture finale de la branche par Opus, puis fusion et publication commune sonde 1.1.0 + app 1.1.0 (`outils/publier.sh`), avec les règles de push du dépôt.
