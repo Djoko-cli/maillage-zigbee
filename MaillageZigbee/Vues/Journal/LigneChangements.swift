@@ -1,7 +1,7 @@
 import MaillageCoeur
 import SwiftUI
 
-/// Les changements d'une ligne regroupee, un par ligne (« 20:58 → Plan de travail (droit) »), derriere un filet
+/// Les changements d'une ligne regroupee, un par ligne (« 20:58 → Etagere (droite) »), derriere un filet
 /// vertical a gauche.
 struct ListeChangements: View {
     let groupe: [Evenement]

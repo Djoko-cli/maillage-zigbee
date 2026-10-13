@@ -48,16 +48,16 @@ struct ReperesFicheTests {
                                         convertir: Self.date) == nil, "cadre sans largeur")
     }
 
-    /// Les textes : « 14:21 → Plan de travail (gauche) » (le jour aussi sur 7 j et 30 j), « ×4 », « et 3 autres »,
+    /// Les textes : « 14:21 → Etagere (gauche) » (le jour aussi sur 7 j et 30 j), « ×4 », « et 3 autres »,
     /// « et 1 autre » ; un nom inconnu reste l'adresse.
     @Test func textes() {
         let fr = Locale(identifier: "fr_FR"), utc = TimeZone(identifier: "UTC")!
         let d = Date(timeIntervalSince1970: 1_790_000_000)   // 2026-09-21 14:13:20 UTC
         let ch = ChangementParent(date: d, parent: I.lampadaireSalon)
-        let noms = [I.lampadaireSalon: "Plan de travail (gauche)"]
-        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .jour, locale: fr, fuseau: utc) == "14:13 → Plan de travail (gauche)")
-        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .semaine, locale: fr, fuseau: utc).hasSuffix("14:13 → Plan de travail (gauche)"))
-        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .semaine, locale: fr, fuseau: utc).count > "14:13 → Plan de travail (gauche)".count)
+        let noms = [I.lampadaireSalon: "Etagere (gauche)"]
+        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .jour, locale: fr, fuseau: utc) == "14:13 → Etagere (gauche)")
+        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .semaine, locale: fr, fuseau: utc).hasSuffix("14:13 → Etagere (gauche)"))
+        #expect(ReperesFiche.ligne(ch, noms: noms, periode: .semaine, locale: fr, fuseau: utc).count > "14:13 → Etagere (gauche)".count)
         #expect(ReperesFiche.ligne(ch, noms: [:], periode: .jour, locale: fr, fuseau: utc) == "14:13 → " + I.lampadaireSalon)
         #expect(ReperesFiche.texteNombre(RepereCourbe(changements: Array(repeating: ch, count: 4))) == "×4")
         #expect(ReperesFiche.texteAutres(3) == String(localized: "et \(3) autres"))

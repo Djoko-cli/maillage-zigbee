@@ -29,7 +29,7 @@ enum ReperesFiche {
         return ReperesCourbe.sous(date, parmi: reperes, duree: fin.timeIntervalSince(debut), largeur: Double(cadre.width))?.date
     }
 
-    /// Une ligne de la bulle : « 14:21 → Plan de travail (gauche) » ; en 7 j et 30 j, le jour aussi.
+    /// Une ligne de la bulle : « 14:21 → Etagere (gauche) » ; en 7 j et 30 j, le jour aussi.
     static func ligne(_ ch: ChangementParent, noms: [String: String], periode: PeriodeCourbes, locale: Locale,
                       fuseau: TimeZone = .current) -> String {
         EchelleSignal.heure(ch.date, periode: periode, locale: locale, fuseau: fuseau) + " → " + (noms[ch.parent] ?? ch.parent)

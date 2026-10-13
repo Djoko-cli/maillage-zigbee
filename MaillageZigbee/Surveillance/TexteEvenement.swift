@@ -108,7 +108,7 @@ enum TexteEvenement {
         return r.relais.joined(separator: r.alternent ? " ⇄ " : " → ") + " · " + finit
     }
 
-    /// Un changement dans le detail d'une ligne regroupee : « 20:58 → Plan de travail (droit) ».
+    /// Un changement dans le detail d'une ligne regroupee : « 20:58 → Etagere (droite) ».
     static func changement(_ e: Evenement) -> String {
         "\(heure(e.date)) → \(e.apres ?? "?")"
     }

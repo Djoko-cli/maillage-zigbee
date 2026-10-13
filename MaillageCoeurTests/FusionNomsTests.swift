@@ -135,25 +135,25 @@ struct FusionNomsTests {
     @Test func nomSouple() {
         // Trois jumeaux de la meme piece et du meme modele, dont Maison ecrit les noms avec « de » : la piece et le
         // modele seuls sont ambigus (3 x 3), le nom souple les distingue par leur numero.
-        let p = (1...3).map { Self.hue("Plafonnier cuisine \($0)", "Cuisine", ieee: "A00000000000010\($0)") }
-        let m = (1...3).map { Self.maison("Plafonnier de cuisine \($0)", "Cuisine") }
-        #expect(Self.noms(p, m) == ["A000000000000101": "Plafonnier de cuisine 1", "A000000000000102": "Plafonnier de cuisine 2",
-                                    "A000000000000103": "Plafonnier de cuisine 3"])
+        let p = (1...3).map { Self.hue("Applique couloir \($0)", "Couloir", ieee: "A00000000000010\($0)") }
+        let m = (1...3).map { Self.maison("Applique de couloir \($0)", "Couloir") }
+        #expect(Self.noms(p, m) == ["A000000000000101": "Applique de couloir 1", "A000000000000102": "Applique de couloir 2",
+                                    "A000000000000103": "Applique de couloir 3"])
         // Les memes, dans un ordre de Maison different : le numero decide, pas la position.
-        #expect(Self.noms(p, m.reversed()) == ["A000000000000101": "Plafonnier de cuisine 1", "A000000000000102": "Plafonnier de cuisine 2",
-                                              "A000000000000103": "Plafonnier de cuisine 3"])
+        #expect(Self.noms(p, m.reversed()) == ["A000000000000101": "Applique de couloir 1", "A000000000000102": "Applique de couloir 2",
+                                              "A000000000000103": "Applique de couloir 3"])
         // Parentheses, tirets, apostrophes, casse et accents : sans effet sur le nom souple, pieces differentes.
-        #expect(Self.noms([Self.hue("Interrupteur (bas)", "Escalier", ieee: "A000000000000111"),
-                           Self.hue("Interrupteur (haut)", "Palier", ieee: "A000000000000112"),
+        #expect(Self.noms([Self.hue("Commande (bas)", "Cave", ieee: "A000000000000111"),
+                           Self.hue("Commande (haut)", "Grenier", ieee: "A000000000000112"),
                            Self.hue("Lampe d'appoint - Salon", "Salon", ieee: "A000000000000113")],
-                          [Self.maison("Interrupteur escalier haut", "Etage"), Self.maison("Interrupteur Escalier Bas", "Entrée"),
+                          [Self.maison("Commande cave haut", "Etage"), Self.maison("Commande Cave Bas", "Entrée"),
                            Self.maison("LAMPE d\u{2019}appoint salon", "Séjour")])
                 == ["A000000000000111": "-", "A000000000000112": "-", "A000000000000113": "LAMPE d\u{2019}appoint salon"],
-                "« Interrupteur (bas) » ne devient pas « Interrupteur escalier bas » : un mot en plus")
-        #expect(Self.noms([Self.hue("Interrupteur escalier (bas)", "Escalier", ieee: "A000000000000114"),
-                           Self.hue("Interrupteur escalier (haut)", "Escalier", ieee: "A000000000000115")],
-                          [Self.maison("Interrupteur escalier haut", "Palier"), Self.maison("Interrupteur escalier bas", "Hall")])
-                == ["A000000000000114": "Interrupteur escalier bas", "A000000000000115": "Interrupteur escalier haut"],
+                "« Commande (bas) » ne devient pas « Commande cave bas » : un mot en plus")
+        #expect(Self.noms([Self.hue("Commande cave (bas)", "Cave", ieee: "A000000000000114"),
+                           Self.hue("Commande cave (haut)", "Cave", ieee: "A000000000000115")],
+                          [Self.maison("Commande cave haut", "Grenier"), Self.maison("Commande cave bas", "Hall")])
+                == ["A000000000000114": "Commande cave bas", "A000000000000115": "Commande cave haut"],
                 "parentheses retirees, bas et haut restent distincts")
         // Deux appareils qui ne different que par un mot de liaison, un seul candidat : personne n'est apparie.
         #expect(Self.noms([Self.hue("Lampe de salon", "Salon", ieee: "A000000000000121"),

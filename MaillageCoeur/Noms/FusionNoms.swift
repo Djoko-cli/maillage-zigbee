@@ -13,8 +13,8 @@ import Foundation
 ///    precedente, qui survit au renommage de la tuile ;
 /// 3. puis par le nom, egal apres normalisation (`normaliser` : casse, accents, espaces, apostrophes) ;
 /// 4. puis par le nom « souple » (`normaliserSouple`) : sans ponctuation ni petits mots de liaison (Maison porte le
-///    nom de la tuile, que l'utilisateur ecrit autrement que le nom du pont : « Plafonnier de cuisine 1 » pour
-///    « Plafonnier cuisine 1 ») ; les chiffres et les autres mots comptent ;
+///    nom de la tuile, que l'utilisateur ecrit autrement que le nom du pont : « Applique de couloir 1 » pour
+///    « Applique couloir 1 ») ; les chiffres et les autres mots comptent ;
 /// 5. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
 /// 6. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
 ///    apparie a cette etape.
