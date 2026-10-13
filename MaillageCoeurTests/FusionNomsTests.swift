@@ -202,30 +202,90 @@ struct FusionNomsTests {
         AccessoireReleve(nom: nom, piece: piece, fabricant: fabricant, modele: modele, id: id)
     }
 
-    /// Appariement memorise : chaque appariement trouve (par n'importe quelle passe) est retenu, adresse longue ->
-    /// identifiant HomeKit ; il est reapplique en premier, et survit au renommage de la tuile dans Maison.
+    /// Appariement memorise : chaque appariement trouve par la memoire, le nom exact ou le nom souple est retenu, adresse
+    /// longue -> identifiant HomeKit ; il est reapplique en premier, et survit au renommage de la tuile dans Maison. Un
+    /// appariement trouve par la piece et le modele (le repli, le plus faible) n'est pas retenu.
     @Test func memoireSurvitAuRenommage() throws {
         let p = [Self.hue("Lampe bureau", "Bureau", ieee: "a0000000000000b1"),
-                 Self.hue("Suspension", "Cuisine", ieee: "A0000000000000B2"),
-                 Self.hue("Seule", "Chambre", ieee: "A0000000000000B3")]
+                 Self.hue("Applique entree", "Entree", ieee: "A0000000000000B2"),
+                 Self.hue("Suspension", "Cuisine", ieee: "A0000000000000B3"),
+                 Self.hue("Seule", "Chambre", ieee: "A0000000000000B4")]
         let avant = Self.releve([Self.maison("Lampe bureau", "Bureau", id: "ID-1"),
-                                 Self.maison("Lustre", "Cuisine", id: "ID-2")])
+                                 Self.maison("Applique de l\u{2019}entrée", "Entrée", id: "ID-2"),
+                                 Self.maison("Lustre", "Cuisine", id: "ID-3")])
         let r1 = FusionNoms.fusionner(pont: Self.pont(p), maison: avant)
-        #expect(r1.bilan == FusionNoms.Bilan(apparies: 2, nonApparies: 1))
+        #expect(r1.bilan == FusionNoms.Bilan(apparies: 3, nonApparies: 1))
         #expect(r1.memoire.ids == ["A0000000000000B1": "ID-1", "A0000000000000B2": "ID-2"],
-                "par le nom et par la piece : adresses en majuscules, les non apparies absents")
-        // Maison renomme les tuiles et deplace la premiere : sans memoire, plus rien ne les relie.
+                "par le nom exact et par le nom souple : adresses en majuscules ; pas la piece et le modele, pas les non apparies")
+        // Maison renomme les tuiles et deplace les deux premieres : sans memoire, plus rien ne les relie.
         let apres = Self.releve([Self.maison("Applique du couloir", "Couloir", id: "ID-1"),
-                                 Self.maison("Lustre", "Salon", id: "ID-2")])
+                                 Self.maison("Plafonnier salon", "Salon", id: "ID-2"),
+                                 Self.maison("Lustre", "Salon", id: "ID-3")])
         let sans = FusionNoms.fusionner(pont: Self.pont(p), maison: apres)
-        #expect(sans.bilan == FusionNoms.Bilan(apparies: 0, nonApparies: 3))
+        #expect(sans.bilan == FusionNoms.Bilan(apparies: 0, nonApparies: 4))
         let avec = FusionNoms.fusionner(pont: Self.pont(p), maison: apres, memoire: r1.memoire)
-        #expect(avec.bilan == FusionNoms.Bilan(apparies: 2, nonApparies: 1))
+        #expect(avec.bilan == FusionNoms.Bilan(apparies: 2, nonApparies: 2), "la suspension : pas retenue, plus de repli")
         let n = try #require(avec.noms)
         let lampe = try #require(n.accessoire(ieee: "A0000000000000B1"))
         #expect(lampe.nom == "Applique du couloir" && lampe.piece == "Couloir" && lampe.idMaison == "ID-1" && lampe.origine == .maison)
-        #expect(n.accessoire(ieee: "A0000000000000B2")?.nom == "Lustre")
+        #expect(n.accessoire(ieee: "A0000000000000B2")?.nom == "Plafonnier salon")
+        #expect(n.accessoire(ieee: "A0000000000000B3")?.origine == .pont)
         #expect(avec.memoire == r1.memoire, "la memoire reste la meme")
+    }
+
+    /// Un appariement trouve seulement par la piece et le modele n'est jamais memorise : s'il est faux, il ne l'est
+    /// pas pour toujours. Au tour suivant, la piece et le modele le retrouvent (ou non), mais la memoire ne le garde pas.
+    @Test func memoireIgnoreLeRepli() {
+        let p = [Self.hue("Suspension", "Cuisine", ieee: "A0000000000000B1")]
+        let m = Self.releve([Self.maison("Lustre", "Cuisine", id: "ID-1")])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: m)
+        #expect(r.bilan == FusionNoms.Bilan(apparies: 1, nonApparies: 0) && r.noms?.accessoires.first?.idMaison == "ID-1")
+        #expect(r.memoire.ids.isEmpty)
+        // Une entree perimee dont l'appareil retrouve ensuite un accessoire par le repli : l'ancienne entree est oubliee,
+        // la nouvelle n'est pas ecrite.
+        let perimee = MemoireAppariements(ids: ["A0000000000000B1": "ID-PERDU"])
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: perimee).memoire.ids.isEmpty)
+        // Une entree reappliquee par la memoire reste.
+        let valide = MemoireAppariements(ids: ["A0000000000000B1": "ID-1"])
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: valide).memoire == valide)
+    }
+
+    /// Un nom exact unique des deux cotes l'emporte sur une entree de la memoire qui le contredit, et la memoire est mise a
+    /// jour. Un nom exact ambigu (deux accessoires du meme nom) ne la contredit pas.
+    @Test func nomExactEmporteSurLaMemoire() throws {
+        let p = [Self.hue("Lampe bureau", "Bureau", ieee: "A0000000000000B1")]
+        let m = Self.releve([Self.maison("Lampe bureau", "Bureau", id: "ID-1"), Self.maison("Autre", "Salon", id: "ID-2")])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: MemoireAppariements(ids: ["A0000000000000B1": "ID-2"]))
+        #expect(r.noms?.accessoires.first?.idMaison == "ID-1" && r.noms?.accessoires.first?.nom == "Lampe bureau")
+        #expect(r.memoire.ids == ["A0000000000000B1": "ID-1"], "la memoire est corrigee")
+        // Deux accessoires de ce nom : le nom exact n'est pas unique, la memoire garde la main.
+        let deux = Self.releve([Self.maison("Lampe bureau", "Bureau", id: "ID-1"), Self.maison("Lampe bureau", "Salon", id: "ID-2")])
+        let r2 = FusionNoms.fusionner(pont: Self.pont(p), maison: deux, memoire: MemoireAppariements(ids: ["A0000000000000B1": "ID-2"]))
+        #expect(r2.noms?.accessoires.first?.idMaison == "ID-2" && r2.memoire.ids == ["A0000000000000B1": "ID-2"])
+        // Deux appareils du meme nom pour un accessoire : le nom exact n'est pas unique de ce cote non plus.
+        let jumeaux = [Self.hue("Lampe bureau", "Bureau", ieee: "A0000000000000B1"), Self.hue("Lampe bureau", "Bureau", ieee: "A0000000000000B2")]
+        let r3 = FusionNoms.fusionner(pont: Self.pont(jumeaux), maison: m, memoire: MemoireAppariements(ids: ["A0000000000000B1": "ID-2"]))
+        #expect(r3.noms?.accessoire(ieee: "A0000000000000B1")?.idMaison == "ID-2", "la memoire garde la main")
+    }
+
+    /// La memoire n'est reappliquee que si le modele de l'accessoire de Maison concorde encore avec celui de l'appareil du
+    /// pont (nom du produit ou code), quand les deux sont connus : une tuile remplacee par un autre appareil n'est pas
+    /// celle de l'entree.
+    @Test func memoireVerifieLeModele() {
+        let p = [Self.hue("Lampe", "Salon", modele: "Hue White", idModele: "LWB010", ieee: "A0000000000000B1"),
+                 Self.hue("Spot", "Salon", modele: "Hue color lamp", idModele: "LCA001", ieee: "A0000000000000B2"),
+                 Self.hue("Applique", "Salon", modele: nil, ieee: "A0000000000000B3"),
+                 Self.hue("Lustre", "Salon", ieee: "A0000000000000B4")]
+        let m = Self.releve([Self.maison("Nom 1", "Cuisine", id: "ID-1", modele: "Hue color lamp"),
+                             Self.maison("Nom 2", "Cuisine", id: "ID-2", modele: "LCA001"),
+                             Self.maison("Nom 3", "Cuisine", id: "ID-3", modele: "SML001"),
+                             Self.maison("Nom 4", "Cuisine", id: "ID-4", modele: nil)])
+        let memoire = MemoireAppariements(ids: ["A0000000000000B1": "ID-1", "A0000000000000B2": "ID-2",
+                                                "A0000000000000B3": "ID-3", "A0000000000000B4": "ID-4"])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: memoire)
+        #expect(r.bilan == FusionNoms.Bilan(apparies: 3, nonApparies: 1))
+        #expect(r.memoire.ids == ["A0000000000000B2": "ID-2", "A0000000000000B3": "ID-3", "A0000000000000B4": "ID-4"],
+                "B1 : autre modele, entree oubliee ; B2 : le code concorde ; B3 et B4 : un modele inconnu")
     }
 
     /// Une entree perimee est oubliee : l'identifiant n'existe plus dans le releve (accessoire supprime), ou n'est plus

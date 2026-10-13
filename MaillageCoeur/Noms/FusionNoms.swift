@@ -10,7 +10,9 @@ import Foundation
 ///    noeud Matter d'un pont Hue de Maison (accessoire de categorie pont, de Signify ou de Philips) ; le releve du
 ///    Passeur ne dit pas quel pont porte un accessoire ;
 /// 2. d'abord par la memoire des appariements (`MemoireAppariements`) : l'identifiant HomeKit trouve a une fusion
-///    precedente, qui survit au renommage de la tuile ;
+///    precedente, qui survit au renommage de la tuile ; elle n'est reappliquee que si le modele de l'accessoire de
+///    Maison concorde encore avec celui de l'appareil du pont (quand les deux sont connus), et un nom exact unique des
+///    deux cotes l'emporte sur une entree qui le contredit ;
 /// 3. puis par le nom, egal apres normalisation (`normaliser` : casse, accents, espaces, apostrophes) ;
 /// 4. puis par le nom « souple » (`normaliserSouple`) : sans ponctuation ni petits mots de liaison (Maison porte le
 ///    nom de la tuile, que l'utilisateur ecrit autrement que le nom du pont : « Applique de couloir 1 » pour
@@ -18,6 +20,8 @@ import Foundation
 /// 5. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
 /// 6. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
 ///    apparie a cette etape.
+/// Seuls les appariements de la memoire, du nom exact et du nom souple sont memorises pour la fusion suivante : celui de
+/// la piece et du modele, le plus faible, ne l'est pas (un faux appariement ne durerait pas pour toujours).
 /// Un appareil apparie prend le nom et la piece de Maison ; un autre garde ceux de l'app Hue (sa piece prend
 /// l'ecriture de Maison quand Maison a la meme, a la normalisation pres : elle trouve alors son etage). `origine` le
 /// dit, pour la fiche. L'identifiant HomeKit de l'accessoire de Maison apparie suit l'appareil (`idMaison`).
@@ -48,14 +52,14 @@ public enum FusionNoms {
     /// releve de Maison reussi : les noms du pont tels quels, sans origine.
     ///
     /// `memoire` : les appariements deja trouves (`MemoireAppariements`), reappliques avant tout. Le resultat porte la
-    /// memoire a garder : les appariements de cette fusion, par n'importe quelle passe ; les entrees dont l'accessoire
-    /// n'est plus dans le releve (ou n'est plus apparie) sont oubliees. Un releve sans identifiants (version 1) ne dit
-    /// rien : la memoire reste intacte.
+    /// memoire a garder : les appariements de cette fusion trouves par la memoire, le nom exact ou le nom souple (pas
+    /// ceux de la piece et du modele) ; les entrees dont l'accessoire n'est plus dans le releve (ou n'est plus apparie)
+    /// sont oubliees. Un releve sans identifiants (version 1) ne dit rien : la memoire reste intacte.
     public static func fusionner(pont: NomsMaison?, maison: ReleveMaison?,
                                  memoire: MemoireAppariements = MemoireAppariements()) -> Resultat {
         guard var n = pont else { return Resultat(noms: nil, bilan: nil, memoire: memoire) }
         guard let r = maison, r.statut == .ok else { return Resultat(noms: pont, bilan: nil, memoire: memoire) }
-        let paires = apparier(pont: n.accessoires, maison: r.accessoires, memoire: memoire.ids)
+        let (paires, faibles) = appariement(pont: n.accessoires, maison: r.accessoires, memoire: memoire.ids)
         let pieces = piecesDeMaison(r)
         func ecriture(_ piece: String?) -> String? {
             piece.map { pieces[normaliser($0)] ?? $0 }
@@ -74,13 +78,15 @@ public enum FusionNoms {
                 n.accessoires[i].idMaison = nil
             }
         }
+        // Les adresses longues dans l'ordre du pont, celui des indices de `paires` (la liste est triee ensuite).
+        let ieees = n.accessoires.map(\.ieee)
         n.accessoires.sort { ($0.nom, $0.ieee ?? "") < ($1.nom, $1.ieee ?? "") }
         if let z = r.zones, !z.isEmpty { n.zones = z }
         if let d = r.domicile, !d.isEmpty { n.domicile = d }
         var gardee = memoire
         if r.accessoires.contains(where: { $0.id?.isEmpty == false }) {
             gardee.ids = Dictionary(paires.compactMap { i, j -> (String, String)? in
-                guard let ieee = n.accessoires[i].ieee, let id = r.accessoires[j].id, !id.isEmpty else { return nil }
+                guard !faibles.contains(i), let ieee = ieees[i], let id = r.accessoires[j].id, !id.isEmpty else { return nil }
                 return (ieee.uppercased(), id)
             }, uniquingKeysWith: { a, _ in a })
         }
@@ -92,19 +98,39 @@ public enum FusionNoms {
     /// -> identifiant HomeKit (`MemoireAppariements.ids`), appliquee avant les passes.
     public static func apparier(pont: [AccessoireMaison], maison: [AccessoireReleve],
                                 memoire: [String: String] = [:]) -> [Int: Int] {
+        appariement(pont: pont, maison: maison, memoire: memoire).paires
+    }
+
+    /// Comme `apparier`, avec les appareils du pont (indices) dont l'appariement vient de la piece et du modele : le plus
+    /// faible, a ne pas memoriser.
+    static func appariement(pont: [AccessoireMaison], maison: [AccessoireReleve],
+                            memoire: [String: String]) -> (paires: [Int: Int], faibles: Set<Int>) {
         var libres = Set(candidats(maison))
         var paires: [Int: Int] = [:]
         // 0. Par la memoire : l'accessoire de Maison de cet identifiant HomeKit, s'il est encore candidat, sans
         // doublon dans le releve, et que le seul appareil du pont a le reclamer.
         var parId: [String: [Int]] = [:]
         for j in libres { if let id = maison[j].id, !id.isEmpty { parId[id, default: []].append(j) } }
+        let nomsMaison = maison.map { normaliser($0.nom) }
+        // Un nom exact unique des deux cotes l'emporte sur l'entree de la memoire qui le contredit.
+        var exacts: [Int: Int] = [:]
+        for (i, p) in pont.enumerated() {
+            let nom = normaliser(p.nom)
+            guard !nom.isEmpty else { continue }
+            let trouves = libres.filter { nomsMaison[$0] == nom }
+            if trouves.count == 1, let j = trouves.first { exacts[i] = j }
+        }
+        var demandesExactes: [Int: Int] = [:]
+        for j in exacts.values { demandesExactes[j, default: 0] += 1 }
         var propositions: [Int: Int] = [:]
         for (i, p) in pont.enumerated() {
             guard let ieee = p.ieee, let id = memoire[ieee.uppercased()], let js = parId[id], js.count == 1 else { continue }
+            if let e = exacts[i], e != js[0], demandesExactes[e] == 1 { continue }
+            // Le modele de la tuile doit concorder encore avec celui de l'appareil (quand les deux sont connus).
+            if !modelesConcordent(p, maison[js[0]]) { continue }
             propositions[i] = js[0]
         }
         retenir(propositions, dans: &paires, libres: &libres)
-        let nomsMaison = maison.map { normaliser($0.nom) }
         // 1. Par le nom exact (a la normalisation pres).
         propositions = [:]
         for (i, p) in pont.enumerated() where paires[i] == nil {
@@ -128,7 +154,7 @@ public enum FusionNoms {
         propositions = [:]
         for (i, p) in pont.enumerated() where paires[i] == nil {
             let piece = normaliser(p.piece ?? "")
-            let modeles = Set([p.modele, p.idModele].compactMap { $0 }.map(normaliser).filter { !$0.isEmpty })
+            let modeles = modelesDe(p)
             guard !piece.isEmpty, !modeles.isEmpty else { continue }
             let trouves = libres.filter {
                 normaliser(maison[$0].piece ?? "") == piece && modeles.contains(normaliser(maison[$0].modele ?? ""))
@@ -136,7 +162,19 @@ public enum FusionNoms {
             if trouves.count == 1, let j = trouves.first { propositions[i] = j }
         }
         retenir(propositions, dans: &paires, libres: &libres)
-        return paires
+        return (paires, Set(propositions.keys.filter { paires[$0] == propositions[$0] }))
+    }
+
+    /// Nom du produit et code du modele d'un appareil du pont, normalises ; vide s'ils sont inconnus.
+    private static func modelesDe(_ p: AccessoireMaison) -> Set<String> {
+        Set([p.modele, p.idModele].compactMap { $0 }.map(normaliser).filter { !$0.isEmpty })
+    }
+
+    /// Le modele de l'accessoire de Maison est celui de l'appareil du pont, ou l'un des deux est inconnu.
+    private static func modelesConcordent(_ p: AccessoireMaison, _ m: AccessoireReleve) -> Bool {
+        let modeles = modelesDe(p)
+        let modele = normaliser(m.modele ?? "")
+        return modeles.isEmpty || modele.isEmpty || modeles.contains(modele)
     }
 
     /// Garde les propositions dont l'accessoire de Maison n'est demande que par un appareil du pont.
