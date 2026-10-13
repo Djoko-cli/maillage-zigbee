@@ -3473,18 +3473,18 @@
         }
       }
     },
-    "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue." : {
+    "Passeur Noms n'est pas installé sur ce Mac (outils/passeur.sh de Maillage Thread) : les noms viennent de l'app Hue." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms is not installed on this Mac: names come from the Hue app."
+            "value" : "Passeur Noms is not installed on this Mac (outils/passeur.sh of Maillage Thread): names come from the Hue app."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue."
+            "value" : "Passeur Noms n'est pas installé sur ce Mac (outils/passeur.sh de Maillage Thread) : les noms viennent de l'app Hue."
           }
         }
       }

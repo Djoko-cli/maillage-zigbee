@@ -310,7 +310,7 @@ struct NomsPasseurTests {
         n.demarrer()
         _ = await Self.cible(lancements, fois: 3)
         #expect(lancements.tous.count >= 3)
-        #expect(n.probleme == String(localized: "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue."))
+        #expect(n.probleme == String(localized: "Passeur Noms n'est pas installé sur ce Mac (outils/passeur.sh de Maillage Thread) : les noms viennent de l'app Hue."))
         #expect(n.passeurAbsent)
         #expect(n.tentative >= 2)
         let refuse = NomsPasseur(cache: cache, attentes: [.seconds(60)],
@@ -448,7 +448,8 @@ struct NomsPasseurTests {
     /// demarre pas, lancement refuse ; seuls les deux premiers disent d'installer le demon.
     @Test func textesDesEchecs() {
         #expect(NomsPasseur.texte(.introuvable(ancien: false))
-                == String(localized: "Passeur Noms n'est pas installé sur ce Mac : les noms viennent de l'app Hue."))
+                == String(localized: "Passeur Noms n'est pas installé sur ce Mac (outils/passeur.sh de Maillage Thread) : les noms viennent de l'app Hue."))
+        #expect(NomsPasseur.texte(.introuvable(ancien: false)).contains("outils/passeur.sh"), "dit comment l'installer")
         #expect(NomsPasseur.texte(.introuvable(ancien: true))
                 == String(localized: "Passeur Noms est l'ancienne version : relance outils/passeur.sh de Maillage Thread."))
         #expect(NomsPasseur.texte(.neDemarrePas) == String(localized: "Passeur Noms ne démarre pas : relance outils/passeur.sh."))
