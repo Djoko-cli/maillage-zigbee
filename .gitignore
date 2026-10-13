@@ -37,6 +37,7 @@ xcuserdata/
 .swiftpm/
 .DS_Store
 
-# Cache des noms du pont et du releve de Maison (Application Support, jamais dans le depot)
+# Cache des noms du pont et du releve de Maison, et memoire des appariements (Application Support, jamais dans le depot)
 noms-pont.json
 releve-maison.json
+appariements-maison.json
