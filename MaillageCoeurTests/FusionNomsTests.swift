@@ -177,6 +177,98 @@ struct FusionNomsTests {
                 == ["A000000000000134": "Lampe salon"])
     }
 
+    /// Un accessoire de Maison avec son identifiant HomeKit.
+    static func maison(_ nom: String, _ piece: String?, id: String, modele: String? = "Hue White",
+                       fabricant: String? = signify) -> AccessoireReleve {
+        AccessoireReleve(nom: nom, piece: piece, fabricant: fabricant, modele: modele, id: id)
+    }
+
+    /// Appariement memorise : chaque appariement trouve (par n'importe quelle passe) est retenu, adresse longue ->
+    /// identifiant HomeKit ; il est reapplique en premier, et survit au renommage de la tuile dans Maison.
+    @Test func memoireSurvitAuRenommage() throws {
+        let p = [Self.hue("Lampe bureau", "Bureau", ieee: "a0000000000000b1"),
+                 Self.hue("Suspension", "Cuisine", ieee: "A0000000000000B2"),
+                 Self.hue("Seule", "Chambre", ieee: "A0000000000000B3")]
+        let avant = Self.releve([Self.maison("Lampe bureau", "Bureau", id: "ID-1"),
+                                 Self.maison("Lustre", "Cuisine", id: "ID-2")])
+        let r1 = FusionNoms.fusionner(pont: Self.pont(p), maison: avant)
+        #expect(r1.bilan == FusionNoms.Bilan(apparies: 2, nonApparies: 1))
+        #expect(r1.memoire.ids == ["A0000000000000B1": "ID-1", "A0000000000000B2": "ID-2"],
+                "par le nom et par la piece : adresses en majuscules, les non apparies absents")
+        // Maison renomme les tuiles et deplace la premiere : sans memoire, plus rien ne les relie.
+        let apres = Self.releve([Self.maison("Applique du couloir", "Couloir", id: "ID-1"),
+                                 Self.maison("Lustre", "Salon", id: "ID-2")])
+        let sans = FusionNoms.fusionner(pont: Self.pont(p), maison: apres)
+        #expect(sans.bilan == FusionNoms.Bilan(apparies: 0, nonApparies: 3))
+        let avec = FusionNoms.fusionner(pont: Self.pont(p), maison: apres, memoire: r1.memoire)
+        #expect(avec.bilan == FusionNoms.Bilan(apparies: 2, nonApparies: 1))
+        let n = try #require(avec.noms)
+        let lampe = try #require(n.accessoire(ieee: "A0000000000000B1"))
+        #expect(lampe.nom == "Applique du couloir" && lampe.piece == "Couloir" && lampe.idMaison == "ID-1" && lampe.origine == .maison)
+        #expect(n.accessoire(ieee: "A0000000000000B2")?.nom == "Lustre")
+        #expect(avec.memoire == r1.memoire, "la memoire reste la meme")
+    }
+
+    /// Une entree perimee est oubliee : l'identifiant n'existe plus dans le releve (accessoire supprime), ou n'est plus
+    /// celui d'un candidat (autre marque). L'appareil retombe alors sur les passes du nom et de la piece.
+    @Test func memoirePerimee() {
+        let p = [Self.hue("Lampe", "Salon", ieee: "A0000000000000B1"), Self.hue("Spot", "Cuisine", ieee: "A0000000000000B2")]
+        let memoire = MemoireAppariements(ids: ["A0000000000000B1": "ID-PERDU", "A0000000000000B2": "ID-PRISE",
+                                                "A0000000000000B9": "ID-SANS-APPAREIL"])
+        let m = Self.releve([Self.maison("Lampe", "Salon", id: "ID-1"),
+                             Self.maison("Prise", "Cuisine", id: "ID-PRISE", fabricant: "Fabricant inventé")])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: memoire)
+        #expect(r.bilan == FusionNoms.Bilan(apparies: 1, nonApparies: 1), "la lampe par le nom, le spot : la prise n'est pas du pont")
+        #expect(r.memoire.ids == ["A0000000000000B1": "ID-1"], "les entrees perimees sont oubliees")
+    }
+
+    /// Un identifiant reclame par deux appareils, ou present deux fois dans le releve, n'est applique a personne ; un
+    /// accessoire retenu par la memoire n'est plus candidat pour le nom d'un autre appareil.
+    @Test func memoireNeVolePersonne() {
+        let p = [Self.hue("Lampe A", "Salon", ieee: "A0000000000000B1"), Self.hue("Lampe B", "Salon", ieee: "A0000000000000B2")]
+        let m = Self.releve([Self.maison("Autre nom", "Cuisine", id: "ID-1")])
+        let memoire = MemoireAppariements(ids: ["A0000000000000B1": "ID-1", "A0000000000000B2": "ID-1"])
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: m, memoire: memoire).bilan
+                == FusionNoms.Bilan(apparies: 0, nonApparies: 2))
+        let doublon = Self.releve([Self.maison("Un", "Cuisine", id: "ID-1"), Self.maison("Deux", "Salon", id: "ID-1")])
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: doublon,
+                                     memoire: MemoireAppariements(ids: ["A0000000000000B1": "ID-1"])).bilan
+                == FusionNoms.Bilan(apparies: 0, nonApparies: 2))
+        // B porte le nom exact de l'accessoire que la memoire donne a A : A le garde, B reste non apparie.
+        let m2 = Self.releve([Self.maison("Lampe B", "Cuisine", id: "ID-1")])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: m2, memoire: MemoireAppariements(ids: ["A0000000000000B1": "ID-1"]))
+        #expect(r.noms?.accessoire(ieee: "A0000000000000B1")?.idMaison == "ID-1")
+        #expect(r.noms?.accessoire(ieee: "A0000000000000B2")?.origine == .pont)
+    }
+
+    /// Un releve sans identifiants (version 1) ne dit rien : la memoire reste telle quelle, intacte.
+    @Test func memoireIntacteSansIdentifiants() {
+        let p = [Self.hue("Lampe", "Salon", ieee: "A0000000000000B1")]
+        let memoire = MemoireAppariements(ids: ["A0000000000000B1": "ID-1"])
+        let r = FusionNoms.fusionner(pont: Self.pont(p), maison: Self.releve([Self.maison("Lampe", "Salon")]), memoire: memoire)
+        #expect(r.bilan?.apparies == 1 && r.memoire == memoire)
+        #expect(FusionNoms.fusionner(pont: Self.pont(p), maison: nil, memoire: memoire).memoire == memoire)
+        #expect(FusionNoms.fusionner(pont: nil, maison: Self.releve([]), memoire: memoire).memoire == memoire)
+    }
+
+    /// Le fichier de la memoire : JSON, ecrit d'un bloc, relu tel quel ; absent, illisible ou d'une version plus
+    /// recente : vide (jamais d'erreur).
+    @Test func memoireSurDisque() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("memoire-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let fichier = dossier.appendingPathComponent("appariements-maison.json")
+        #expect(MemoireAppariements.lire(fichier).ids.isEmpty, "absent")
+        let m = MemoireAppariements(ids: ["A0000000000000B1": "ID-1", "A0000000000000B2": "ID-2"])
+        try m.ecrire(dans: fichier)
+        #expect(MemoireAppariements.lire(fichier) == m)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: dossier.path) == ["appariements-maison.json"],
+                "pas de fichier temporaire")
+        try Data("pas du json".utf8).write(to: fichier)
+        #expect(MemoireAppariements.lire(fichier).ids.isEmpty, "illisible")
+        try Data(#"{"version":99,"ids":{"A0000000000000B1":"ID-1"}}"#.utf8).write(to: fichier)
+        #expect(MemoireAppariements.lire(fichier).ids.isEmpty, "version plus recente")
+    }
+
     /// Candidats : de Signify ou de Philips, ou sur le noeud Matter d'un pont Hue de Maison ; jamais un accessoire d'une
     /// autre marque (meme du meme nom), ni sans nom.
     @Test func candidats() {

@@ -168,6 +168,45 @@ struct SurveillanceTests {
         #expect(suivant.maillageRecu == recu.addingTimeInterval(900) && !suivant.maillageIncomplet)
     }
 
+    /// L'appariement trouve est garde sur disque (`appariements-maison.json`, a cote du releve) : une surveillance
+    /// relancee sur le meme dossier le reapplique, meme si Maison a renomme la tuile entre-temps. Sans dossier, rien
+    /// n'est ecrit.
+    @Test func appariementsMemorises() throws {
+        let dossier = FileManager.default.temporaryDirectory.appendingPathComponent("maillage-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let fichier = dossier.appendingPathComponent("appariements-maison.json")
+        let ieee = "A0000000000000B1"
+        let date = Date(timeIntervalSince1970: 1_790_000_000)
+        let signify = "Signify Netherlands B.V."
+        let pont = NomsMaison(date: date,
+                              accessoires: [AccessoireMaison(nom: "Lampe bureau", piece: "Bureau", fabricant: signify,
+                                                             modele: "Hue White", ieee: ieee)])
+        func releve(_ nom: String, _ piece: String, id: String) -> ReleveMaison {
+            ReleveMaison(date: date, accessoires: [AccessoireReleve(nom: nom, piece: piece, fabricant: signify,
+                                                                    modele: "Hue White", id: id)])
+        }
+        let s = Surveillance(mode: .direct, dossier: dossier)
+        s.nomsPont = pont
+        s.releveMaison = releve("Lampe bureau", "Bureau", id: "ID-1")
+        #expect(MemoireAppariements.lire(fichier).ids == [ieee: "ID-1"])
+
+        let relance = Surveillance(mode: .direct, dossier: dossier)
+        relance.nomsPont = pont
+        relance.releveMaison = releve("Applique du couloir", "Couloir", id: "ID-1")
+        let a = try #require(relance.noms.maison?.accessoire(ieee: ieee))
+        #expect(a.nom == "Applique du couloir" && a.origine == .maison && a.idMaison == "ID-1")
+        #expect(MemoireAppariements.lire(fichier).ids == [ieee: "ID-1"])
+
+        // Le releve ne contient plus l'accessoire : l'entree est oubliee, sur disque aussi.
+        relance.releveMaison = releve("Autre", "Cave", id: "ID-9")
+        #expect(MemoireAppariements.lire(fichier).ids.isEmpty)
+
+        let sans = Surveillance(mode: .direct, dossier: nil)
+        sans.nomsPont = pont
+        sans.releveMaison = releve("Lampe bureau", "Bureau", id: "ID-1")
+        #expect(sans.noms.maison?.accessoire(ieee: ieee)?.idMaison == "ID-1")
+    }
+
     /// Un maillage relu au lancement est montre quel que soit son age (apres une nuit, c'est le cas vise), avec la
     /// pastille « ancien », jusqu'a la premiere tournee qui le remplace ; la peremption de 45 min reprend ensuite pour
     /// un maillage recu pendant que l'app tourne.

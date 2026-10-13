@@ -101,6 +101,9 @@ final class Surveillance {
     @ObservationIgnored private let fichierSurnoms: URL?
     /// Le dernier maillage garde (`MaillageGarde`) : mode direct avec un dossier ; nil : nulle part (demo, tests).
     @ObservationIgnored private let fichierMaillage: URL?
+    /// Les appariements de Maison memorises (`MemoireAppariements`) : mode direct avec un dossier ; nil : nulle part.
+    @ObservationIgnored private let fichierAppariements: URL?
+    @ObservationIgnored private var appariements = MemoireAppariements()
     @ObservationIgnored private var alertes = Alertes()
     @ObservationIgnored private var suiviMaillage = SuiviMaillage()
     /// L'etat de connexion de chaque appareil selon le pont, d'une lecture a l'autre : « disparu », « revenu ».
@@ -140,12 +143,15 @@ final class Surveillance {
             journal = dossier.map { JournalFichiers(dossier: $0.appendingPathComponent("Journal")) }
             fichierSurnoms = dossier?.appendingPathComponent("surnoms.json")
             fichierMaillage = dossier?.appendingPathComponent("dernier-maillage.json")
+            fichierAppariements = dossier.map(MemoireAppariements.fichier(dossier:))
+            appariements = fichierAppariements.map(MemoireAppariements.lire) ?? MemoireAppariements()
             noms = ResolveurNoms(surnoms: fichierSurnoms.map(Surnoms.lire) ?? [:])
             fichiersHistorique = dossier.map { HistoriqueFichiers(dossier: $0) }
         case .demo:
             journal = nil
             fichierSurnoms = nil
             fichierMaillage = nil
+            fichierAppariements = nil
             nomsPont = NomsDemo.maison
             releveMaison = NomsDemo.releveMaison
             let f = FusionNoms.fusionner(pont: NomsDemo.maison, maison: NomsDemo.releveMaison)
@@ -166,9 +172,13 @@ final class Surveillance {
 
     /// Les noms du pont, nommes par Maison (`FusionNoms`) : a chaque nouveau releve, de l'un ou de l'autre.
     private func fusionner() {
-        let f = FusionNoms.fusionner(pont: nomsPont, maison: releveMaison)
+        let f = FusionNoms.fusionner(pont: nomsPont, maison: releveMaison, memoire: appariements)
         noms.maison = f.noms
         bilanFusion = f.bilan
+        if f.memoire != appariements {
+            appariements = f.memoire
+            if let fichierAppariements { try? appariements.ecrire(dans: fichierAppariements) }
+        }
     }
 
     func demarrer() {

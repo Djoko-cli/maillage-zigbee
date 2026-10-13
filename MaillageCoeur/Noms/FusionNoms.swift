@@ -9,12 +9,14 @@ import Foundation
 /// 1. parmi les candidats : les accessoires de Maison de Signify ou de Philips (fabricant), et ceux qui partagent le
 ///    noeud Matter d'un pont Hue de Maison (accessoire de categorie pont, de Signify ou de Philips) ; le releve du
 ///    Passeur ne dit pas quel pont porte un accessoire ;
-/// 2. d'abord par le nom, egal apres normalisation (`normaliser` : casse, accents, espaces, apostrophes) ;
-/// 3. puis par le nom « souple » (`normaliserSouple`) : sans ponctuation ni petits mots de liaison (Maison porte le
+/// 2. d'abord par la memoire des appariements (`MemoireAppariements`) : l'identifiant HomeKit trouve a une fusion
+///    precedente, qui survit au renommage de la tuile ;
+/// 3. puis par le nom, egal apres normalisation (`normaliser` : casse, accents, espaces, apostrophes) ;
+/// 4. puis par le nom « souple » (`normaliserSouple`) : sans ponctuation ni petits mots de liaison (Maison porte le
 ///    nom de la tuile, que l'utilisateur ecrit autrement que le nom du pont : « Plafonnier de cuisine 1 » pour
 ///    « Plafonnier cuisine 1 ») ; les chiffres et les autres mots comptent ;
-/// 4. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
-/// 5. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
+/// 5. a defaut, par la piece et le modele (nom du produit ou code du modele du pont) ;
+/// 6. jamais d'appariement ambigu : deux candidats pour un appareil, ou deux appareils pour un candidat, et aucun n'est
 ///    apparie a cette etape.
 /// Un appareil apparie prend le nom et la piece de Maison ; un autre garde ceux de l'app Hue (sa piece prend
 /// l'ecriture de Maison quand Maison a la meme, a la normalisation pres : elle trouve alors son etage). `origine` le
@@ -38,14 +40,22 @@ public enum FusionNoms {
         public var noms: NomsMaison?
         /// nil sans noms du pont, ou sans releve de Maison reussi.
         public var bilan: Bilan?
+        /// Les appariements a garder pour la fusion suivante ; celle donnee, telle quelle, quand cette fusion n'en dit rien.
+        public var memoire = MemoireAppariements()
     }
 
     /// Les noms du pont, nommes par Maison. Sans noms du pont : rien (Maison seule ne donne aucune adresse longue). Sans
     /// releve de Maison reussi : les noms du pont tels quels, sans origine.
-    public static func fusionner(pont: NomsMaison?, maison: ReleveMaison?) -> Resultat {
-        guard var n = pont else { return Resultat(noms: nil, bilan: nil) }
-        guard let r = maison, r.statut == .ok else { return Resultat(noms: pont, bilan: nil) }
-        let paires = apparier(pont: n.accessoires, maison: r.accessoires)
+    ///
+    /// `memoire` : les appariements deja trouves (`MemoireAppariements`), reappliques avant tout. Le resultat porte la
+    /// memoire a garder : les appariements de cette fusion, par n'importe quelle passe ; les entrees dont l'accessoire
+    /// n'est plus dans le releve (ou n'est plus apparie) sont oubliees. Un releve sans identifiants (version 1) ne dit
+    /// rien : la memoire reste intacte.
+    public static func fusionner(pont: NomsMaison?, maison: ReleveMaison?,
+                                 memoire: MemoireAppariements = MemoireAppariements()) -> Resultat {
+        guard var n = pont else { return Resultat(noms: nil, bilan: nil, memoire: memoire) }
+        guard let r = maison, r.statut == .ok else { return Resultat(noms: pont, bilan: nil, memoire: memoire) }
+        let paires = apparier(pont: n.accessoires, maison: r.accessoires, memoire: memoire.ids)
         let pieces = piecesDeMaison(r)
         func ecriture(_ piece: String?) -> String? {
             piece.map { pieces[normaliser($0)] ?? $0 }
@@ -67,17 +77,37 @@ public enum FusionNoms {
         n.accessoires.sort { ($0.nom, $0.ieee ?? "") < ($1.nom, $1.ieee ?? "") }
         if let z = r.zones, !z.isEmpty { n.zones = z }
         if let d = r.domicile, !d.isEmpty { n.domicile = d }
-        return Resultat(noms: n, bilan: Bilan(apparies: paires.count, nonApparies: n.accessoires.count - paires.count))
+        var gardee = memoire
+        if r.accessoires.contains(where: { $0.id?.isEmpty == false }) {
+            gardee.ids = Dictionary(paires.compactMap { i, j -> (String, String)? in
+                guard let ieee = n.accessoires[i].ieee, let id = r.accessoires[j].id, !id.isEmpty else { return nil }
+                return (ieee.uppercased(), id)
+            }, uniquingKeysWith: { a, _ in a })
+        }
+        return Resultat(noms: n, bilan: Bilan(apparies: paires.count, nonApparies: n.accessoires.count - paires.count),
+                        memoire: gardee)
     }
 
-    /// Appareil du pont (indice) -> accessoire de Maison (indice), un pour un (voir le type).
-    public static func apparier(pont: [AccessoireMaison], maison: [AccessoireReleve]) -> [Int: Int] {
+    /// Appareil du pont (indice) -> accessoire de Maison (indice), un pour un (voir le type). `memoire` : adresse longue
+    /// -> identifiant HomeKit (`MemoireAppariements.ids`), appliquee avant les passes.
+    public static func apparier(pont: [AccessoireMaison], maison: [AccessoireReleve],
+                                memoire: [String: String] = [:]) -> [Int: Int] {
         var libres = Set(candidats(maison))
         var paires: [Int: Int] = [:]
-        let nomsMaison = maison.map { normaliser($0.nom) }
-        // 1. Par le nom exact (a la normalisation pres).
+        // 0. Par la memoire : l'accessoire de Maison de cet identifiant HomeKit, s'il est encore candidat, sans
+        // doublon dans le releve, et que le seul appareil du pont a le reclamer.
+        var parId: [String: [Int]] = [:]
+        for j in libres { if let id = maison[j].id, !id.isEmpty { parId[id, default: []].append(j) } }
         var propositions: [Int: Int] = [:]
         for (i, p) in pont.enumerated() {
+            guard let ieee = p.ieee, let id = memoire[ieee.uppercased()], let js = parId[id], js.count == 1 else { continue }
+            propositions[i] = js[0]
+        }
+        retenir(propositions, dans: &paires, libres: &libres)
+        let nomsMaison = maison.map { normaliser($0.nom) }
+        // 1. Par le nom exact (a la normalisation pres).
+        propositions = [:]
+        for (i, p) in pont.enumerated() where paires[i] == nil {
             let nom = normaliser(p.nom)
             guard !nom.isEmpty else { continue }
             let trouves = libres.filter { nomsMaison[$0] == nom }
