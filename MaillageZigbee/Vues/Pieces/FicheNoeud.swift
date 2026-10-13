@@ -158,9 +158,10 @@ struct FicheNoeud: View {
                         nomsPont.identifier(ieee: id)
                     }
                 }
-                // Par Maison : l'appareil a ete retrouve dans Maison (son `idMaison`). Les deux boutons coexistent.
-                if let nomsPasseur, let idMaison = accessoire?.idMaison, Self.identifiableParMaison(accessoire) {
-                    BoutonIdentifierMaison(passeur: nomsPasseur, accessoire: idMaison)
+                // Par Maison : toujours offert pour un appareil du pont, grise tant qu'il n'a pas ete retrouve dans Maison
+                // (son `idMaison`) ou que le demon n'est pas connecte. Les deux boutons coexistent.
+                if Self.proposeIdentifierParMaison(accessoire) {
+                    BoutonIdentifierMaison(passeur: nomsPasseur, accessoire: accessoire?.idMaison)
                 }
                 if let piecesChoisies, let entree,
                    let placement = PiecesChoisies.placement(id, dans: surveillance, entree: entree) {
@@ -571,20 +572,24 @@ struct FicheNoeud: View {
 }
 
 extension FicheNoeud {
-    /// L'appareil a ete retrouve dans Maison, dont le releve donne l'`id` de l'accessoire (releve d'apres le demon).
-    static func identifiableParMaison(_ a: AccessoireMaison?) -> Bool {
-        a?.idMaison?.isEmpty == false
+    /// « Identifier par Maison » est offert (grise s'il n'y a pas d'`id` ou de demon) pour tout appareil que le pont
+    /// connait, comme dans Maillage Thread ; pas pour un noeud que le pont ne connait pas.
+    static func proposeIdentifierParMaison(_ a: AccessoireMaison?) -> Bool {
+        a != nil
     }
 }
 
 /// « Identifier par Maison » : le demon Passeur Noms appelle `identify()` sur l'accessoire de Maison apparie a
-/// l'appareil. Grise sans demon connecte. Le resultat s'affiche quelques secondes sous les boutons de la fiche.
+/// l'appareil. Grise sans demon connecte (ou sans `NomsPasseur`, dans les vues de test), et sans `id` de Maison
+/// (appareil non apparie, releve d'avant le demon). Le resultat s'affiche quelques secondes sous les boutons de la fiche.
 struct BoutonIdentifierMaison: View {
-    let passeur: NomsPasseur
-    /// L'`id` de l'accessoire de Maison.
-    let accessoire: String
+    let passeur: NomsPasseur?
+    /// L'`id` de l'accessoire de Maison ; nil si l'appareil n'a pas ete retrouve dans Maison.
+    let accessoire: String?
 
-    nonisolated static func actif(connecte: Bool) -> Bool { connecte }
+    nonisolated static func actif(connecte: Bool, accessoire: String?) -> Bool {
+        connecte && accessoire?.isEmpty == false
+    }
 
     /// Le resultat de la derniere identification, s'il est pour cet accessoire.
     nonisolated static func texte(_ i: NomsPasseur.Identification?, accessoire: String?) -> String? {
@@ -593,11 +598,11 @@ struct BoutonIdentifierMaison: View {
     }
 
     var body: some View {
-        Button { passeur.identifier(accessoire: accessoire) } label: {
+        Button { if let accessoire { passeur?.identifier(accessoire: accessoire) } } label: {
             Label("Identifier par Maison", systemImage: "homekit")
         }
         .boutonDeFiche()
-        .disabled(!Self.actif(connecte: passeur.connecte))
+        .disabled(!Self.actif(connecte: passeur?.connecte == true, accessoire: accessoire))
         .help("Fait clignoter l'appareil, par Maison (Passeur Noms), pour le repérer")
     }
 }

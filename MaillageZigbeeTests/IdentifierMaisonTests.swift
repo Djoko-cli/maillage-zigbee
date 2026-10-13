@@ -12,16 +12,18 @@ import Testing
 struct IdentifierMaisonTests {
     static let id = "8D3C2A10-0000-4000-8000-000000000001"
 
-    /// Offert pour un appareil apparie a un accessoire qui a un `id` ; actif seulement avec un demon connecte.
+    /// Offert pour tout appareil du pont (comme dans Maillage Thread), grise sans `id` de Maison ou sans demon connecte :
+    /// actif seulement pour un appareil apparie a un accessoire qui a un `id`, avec un demon connecte.
     @Test func boutonOffertEtActif() {
         let apparie = AccessoireMaison(nom: "Lampe", ieee: "A000000000000015", idMaison: Self.id)
         let sans = AccessoireMaison(nom: "Lampe", ieee: "A000000000000015")
-        #expect(FicheNoeud.identifiableParMaison(apparie))
-        #expect(!FicheNoeud.identifiableParMaison(sans), "pas apparie, ou releve sans id")
-        #expect(!FicheNoeud.identifiableParMaison(nil))
-        #expect(!FicheNoeud.identifiableParMaison(AccessoireMaison(nom: "Lampe", idMaison: "")))
-        #expect(BoutonIdentifierMaison.actif(connecte: true))
-        #expect(!BoutonIdentifierMaison.actif(connecte: false))
+        #expect(FicheNoeud.proposeIdentifierParMaison(apparie) && FicheNoeud.proposeIdentifierParMaison(sans),
+                "grise, pas absent, sans id")
+        #expect(!FicheNoeud.proposeIdentifierParMaison(nil), "un appareil que le pont ne connait pas")
+        #expect(BoutonIdentifierMaison.actif(connecte: true, accessoire: Self.id))
+        #expect(!BoutonIdentifierMaison.actif(connecte: false, accessoire: Self.id), "sans demon connecte")
+        #expect(!BoutonIdentifierMaison.actif(connecte: true, accessoire: nil), "sans id de Maison")
+        #expect(!BoutonIdentifierMaison.actif(connecte: true, accessoire: ""))
     }
 
     /// Le bouton envoie `identifier` au demon pour l'`id` de Maison ; la reponse s'affiche pour cet accessoire.
@@ -38,7 +40,7 @@ struct IdentifierMaisonTests {
     }
 
     /// La fiche d'un appareil apparie se construit avec le bouton, avec et sans demon ; sans NomsPasseur dans
-    /// l'environnement (vues de test), pas de bouton.
+    /// l'environnement (vues de test), le bouton est grise.
     @Test func ficheAvecLeBouton() {
         let s = Surveillance(mode: .demo, dossier: nil)
         s.demarrer()
