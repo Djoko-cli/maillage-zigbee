@@ -1,0 +1,914 @@
+{
+  "domicile" : "Maison (démo)",
+  "etages" : [
+    {
+      "cle" : "zone:Combles",
+      "dehors" : false,
+      "niveau" : 3,
+      "principal" : true
+    },
+    {
+      "cle" : "zone:Jardin",
+      "dehors" : false,
+      "niveau" : 1,
+      "principal" : true
+    },
+    {
+      "cle" : "zone:Rez-de-chaussée",
+      "dehors" : false,
+      "niveau" : 0,
+      "principal" : true
+    },
+    {
+      "cle" : "zone:Étage",
+      "dehors" : false,
+      "niveau" : 2,
+      "principal" : true
+    }
+  ],
+  "liens" : [
+    {
+      "de" : "A000000000000001",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000010"
+    },
+    {
+      "de" : "A000000000000001",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000011"
+    },
+    {
+      "de" : "A000000000000001",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000012"
+    },
+    {
+      "de" : "A000000000000001",
+      "genre" : "radio",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000015"
+    },
+    {
+      "de" : "A000000000000010",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000001"
+    },
+    {
+      "de" : "A000000000000010",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000011"
+    },
+    {
+      "de" : "A000000000000010",
+      "genre" : "radio",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000014"
+    },
+    {
+      "de" : "A000000000000011",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000001"
+    },
+    {
+      "de" : "A000000000000011",
+      "genre" : "radio",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000015"
+    },
+    {
+      "de" : "A000000000000012",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000001"
+    },
+    {
+      "de" : "A000000000000012",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000013"
+    },
+    {
+      "de" : "A000000000000013",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000012"
+    },
+    {
+      "de" : "A000000000000013",
+      "genre" : "radio",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A00000000000001B"
+    },
+    {
+      "de" : "A000000000000014",
+      "genre" : "chemin",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000010"
+    },
+    {
+      "de" : "A000000000000014",
+      "genre" : "radio",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A0000000000000FD"
+    },
+    {
+      "de" : "A000000000000015",
+      "genre" : "chemin",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000011"
+    },
+    {
+      "de" : "A000000000000015",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000016"
+    },
+    {
+      "de" : "A000000000000016",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000015"
+    },
+    {
+      "de" : "A000000000000016",
+      "genre" : "radio",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000017"
+    },
+    {
+      "de" : "A000000000000016",
+      "genre" : "radio",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A000000000000019"
+    },
+    {
+      "de" : "A000000000000017",
+      "genre" : "chemin",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000016"
+    },
+    {
+      "de" : "A000000000000017",
+      "genre" : "radio",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A00000000000001A"
+    },
+    {
+      "de" : "A000000000000019",
+      "genre" : "chemin",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A000000000000016"
+    },
+    {
+      "de" : "A000000000000019",
+      "genre" : "radio",
+      "qualite" : 0,
+      "suppose" : false,
+      "vers" : "A00000000000001C"
+    },
+    {
+      "de" : "A00000000000001A",
+      "genre" : "chemin",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A000000000000017"
+    },
+    {
+      "de" : "A00000000000001A",
+      "genre" : "radio",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A00000000000001C"
+    },
+    {
+      "de" : "A00000000000001B",
+      "genre" : "chemin",
+      "qualite" : 1,
+      "suppose" : true,
+      "vers" : "A000000000000013"
+    },
+    {
+      "de" : "A00000000000001C",
+      "genre" : "chemin",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A00000000000001A"
+    },
+    {
+      "de" : "A000000000000020",
+      "genre" : "parent",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000016"
+    },
+    {
+      "de" : "A000000000000021",
+      "genre" : "parent",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A000000000000001"
+    },
+    {
+      "de" : "A000000000000022",
+      "genre" : "parent",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000012"
+    },
+    {
+      "de" : "A000000000000023",
+      "genre" : "parent",
+      "qualite" : 1,
+      "suppose" : false,
+      "vers" : "A00000000000001B"
+    },
+    {
+      "de" : "A000000000000024",
+      "genre" : "parent",
+      "qualite" : 3,
+      "suppose" : true,
+      "vers" : "A000000000000016"
+    },
+    {
+      "de" : "A000000000000025",
+      "genre" : "parent",
+      "qualite" : 2,
+      "suppose" : false,
+      "vers" : "A00000000000001C"
+    },
+    {
+      "de" : "A000000000000026",
+      "genre" : "parent",
+      "qualite" : 0,
+      "suppose" : false,
+      "vers" : "A000000000000013"
+    },
+    {
+      "de" : "A0000000000000FD",
+      "genre" : "chemin",
+      "qualite" : 1,
+      "suppose" : true,
+      "vers" : "A000000000000014"
+    },
+    {
+      "de" : "A0000000000000FE",
+      "genre" : "parent",
+      "qualite" : 3,
+      "suppose" : false,
+      "vers" : "A000000000000015"
+    }
+  ],
+  "noeuds" : [
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000001",
+      "genre" : "centre",
+      "id" : "A000000000000001",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000010",
+      "genre" : "routeur",
+      "id" : "A000000000000010",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000011",
+      "genre" : "routeur",
+      "id" : "A000000000000011",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000012",
+      "genre" : "routeur",
+      "id" : "A000000000000012",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000013",
+      "genre" : "routeur",
+      "id" : "A000000000000013",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000014",
+      "genre" : "routeur",
+      "id" : "A000000000000014",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000015",
+      "genre" : "routeur",
+      "id" : "A000000000000015",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000016",
+      "genre" : "routeur",
+      "id" : "A000000000000016",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000017",
+      "genre" : "routeur",
+      "id" : "A000000000000017",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "disparu",
+      "extMac" : "A000000000000018",
+      "genre" : "appareil",
+      "id" : "A000000000000018",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A000000000000019",
+      "genre" : "routeur",
+      "id" : "A000000000000019",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A00000000000001A",
+      "genre" : "routeur",
+      "id" : "A00000000000001A",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A00000000000001B",
+      "genre" : "routeur",
+      "id" : "A00000000000001B",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "etat" : "joignable",
+      "extMac" : "A00000000000001C",
+      "genre" : "routeur",
+      "id" : "A00000000000001C",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000020",
+      "genre" : "appareil",
+      "id" : "A000000000000020",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000021",
+      "genre" : "appareil",
+      "id" : "A000000000000021",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000022",
+      "genre" : "appareil",
+      "id" : "A000000000000022",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000023",
+      "genre" : "appareil",
+      "id" : "A000000000000023",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000024",
+      "genre" : "appareil",
+      "id" : "A000000000000024",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000025",
+      "genre" : "appareil",
+      "id" : "A000000000000025",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : true,
+      "etat" : "joignable",
+      "extMac" : "A000000000000026",
+      "genre" : "appareil",
+      "id" : "A000000000000026",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "extMac" : "A0000000000000FD",
+      "genre" : "routeur",
+      "id" : "A0000000000000FD",
+      "inconnu" : true,
+      "partition" : "zigbee",
+      "routeur" : true,
+      "sonde" : false
+    },
+    {
+      "bordure" : false,
+      "endormi" : false,
+      "extMac" : "A0000000000000FE",
+      "genre" : "appareil",
+      "id" : "A0000000000000FE",
+      "inconnu" : false,
+      "partition" : "zigbee",
+      "routeur" : false,
+      "sonde" : true
+    }
+  ],
+  "pieces" : [
+    {
+      "cle" : "piece:Abri",
+      "etage" : "zone:Jardin",
+      "noeuds" : [
+        "A000000000000023"
+      ],
+      "teinte" : 3
+    },
+    {
+      "cle" : "piece:Buanderie",
+      "etage" : "zone:Rez-de-chaussée",
+      "noeuds" : [
+        "A000000000000026"
+      ],
+      "teinte" : 4
+    },
+    {
+      "cle" : "piece:Bureau",
+      "etage" : "zone:Étage",
+      "noeuds" : [
+        "A000000000000015"
+      ],
+      "teinte" : 7
+    },
+    {
+      "cle" : "piece:Chambre",
+      "etage" : "zone:Étage",
+      "noeuds" : [
+        "A000000000000016",
+        "A000000000000024"
+      ],
+      "teinte" : 3
+    },
+    {
+      "cle" : "piece:Chambre d'amis",
+      "etage" : "zone:Étage",
+      "noeuds" : [
+        "A000000000000017"
+      ],
+      "teinte" : 6
+    },
+    {
+      "cle" : "piece:Cuisine",
+      "etage" : "zone:Rez-de-chaussée",
+      "noeuds" : [
+        "A000000000000012",
+        "A000000000000013",
+        "A000000000000022"
+      ],
+      "teinte" : 1
+    },
+    {
+      "cle" : "piece:Entrée",
+      "etage" : "zone:Rez-de-chaussée",
+      "noeuds" : [
+        "A000000000000014",
+        "A000000000000021"
+      ],
+      "teinte" : 7
+    },
+    {
+      "cle" : "piece:Grenier",
+      "etage" : "zone:Combles",
+      "noeuds" : [
+        "A00000000000001C",
+        "A000000000000025"
+      ],
+      "teinte" : 5
+    },
+    {
+      "cle" : "piece:Salle de bain",
+      "etage" : "zone:Étage",
+      "noeuds" : [
+        "A000000000000019"
+      ],
+      "teinte" : 4
+    },
+    {
+      "cle" : "piece:Salle de jeux",
+      "etage" : "zone:Combles",
+      "noeuds" : [
+        "A00000000000001A"
+      ],
+      "teinte" : 6
+    },
+    {
+      "cle" : "piece:Salon",
+      "etage" : "zone:Rez-de-chaussée",
+      "noeuds" : [
+        "A000000000000001",
+        "A000000000000010",
+        "A000000000000011",
+        "A000000000000018",
+        "A000000000000020"
+      ],
+      "teinte" : 2
+    },
+    {
+      "cle" : "piece:Terrasse",
+      "etage" : "zone:Jardin",
+      "noeuds" : [
+        "A00000000000001B"
+      ],
+      "teinte" : 2
+    },
+    {
+      "cle" : "sans-piece",
+      "etage" : "zone:Rez-de-chaussée",
+      "noeuds" : [
+        "A0000000000000FD",
+        "A0000000000000FE"
+      ],
+      "teinte" : 3
+    }
+  ],
+  "scene" : [
+    {
+      "chef" : true,
+      "genre" : "centre",
+      "id" : "A000000000000001",
+      "libelle" : "Pont Hue",
+      "piece" : "piece:Salon",
+      "pile" : false,
+      "rang" : 1,
+      "rayon" : 15
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000010",
+      "libelle" : "Plafonnier salon",
+      "piece" : "piece:Salon",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000011",
+      "libelle" : "Lampadaire salon",
+      "piece" : "piece:Salon",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000012",
+      "libelle" : "Suspension de l'îlot",
+      "piece" : "piece:Cuisine",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000013",
+      "libelle" : "Ruban cuisine",
+      "piece" : "piece:Cuisine",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000014",
+      "libelle" : "Ampoule entrée",
+      "piece" : "piece:Entrée",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000015",
+      "libelle" : "Lampe bureau",
+      "piece" : "piece:Bureau",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000016",
+      "libelle" : "Lampe chambre",
+      "piece" : "piece:Chambre",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000017",
+      "libelle" : "Lampe chambre d'amis",
+      "piece" : "piece:Chambre d'amis",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000018",
+      "libelle" : "Prise salon",
+      "piece" : "piece:Salon",
+      "pile" : false,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A000000000000019",
+      "libelle" : "Lampe Salle de Bain",
+      "piece" : "piece:Salle de bain",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A00000000000001A",
+      "libelle" : "Lampe arcade",
+      "piece" : "piece:Salle de jeux",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A00000000000001B",
+      "libelle" : "Prise terrasse",
+      "piece" : "piece:Terrasse",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A00000000000001C",
+      "libelle" : "Lampe grenier",
+      "piece" : "piece:Grenier",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000020",
+      "libelle" : "Interrupteur salon",
+      "piece" : "piece:Salon",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000021",
+      "libelle" : "Détecteur entrée",
+      "piece" : "piece:Entrée",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000022",
+      "libelle" : "Variateur cuisine",
+      "piece" : "piece:Cuisine",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000023",
+      "libelle" : "Détecteur abri",
+      "piece" : "piece:Abri",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000024",
+      "libelle" : "Télécommande chambre",
+      "piece" : "piece:Chambre",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000025",
+      "libelle" : "Capteur grenier",
+      "piece" : "piece:Grenier",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A000000000000026",
+      "libelle" : "Capteur de fuite",
+      "piece" : "piece:Buanderie",
+      "pile" : true,
+      "rang" : 3,
+      "rayon" : 7
+    },
+    {
+      "chef" : false,
+      "genre" : "routeur",
+      "id" : "A0000000000000FD",
+      "libelle" : "A0000000000000FD",
+      "piece" : "sans-piece",
+      "pile" : false,
+      "rang" : 2,
+      "rayon" : 8
+    },
+    {
+      "chef" : false,
+      "genre" : "appareil",
+      "id" : "A0000000000000FE",
+      "libelle" : "Sonde",
+      "piece" : "sans-piece",
+      "pile" : false,
+      "rang" : 3,
+      "rayon" : 7
+    }
+  ]
+}
