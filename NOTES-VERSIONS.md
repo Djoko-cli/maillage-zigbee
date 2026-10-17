@@ -15,7 +15,7 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
 - New menu entry, "Export for Maillage IoT…": a save panel asks where to write an export folder, which Maillage IoT
   reads to take over your data. The folder holds a manifest (with the size and SHA-256 of every file), a copy of the
   app's data (the journal and the whole mesh history included), and the settings worth keeping (probe, Hue bridge
-  choice, notifications, views, and the probe's round budget).
+  choice, notifications, views, and the page counts of the probe's last tables).
 - Nothing secret is exported: neither the keys kept in the Mac's keychain (Hue bridge, probe) nor the Wi-Fi password.
   What the export leaves out (Sparkle settings, window positions, and any unknown file) is listed in the manifest.
 - The export changes nothing in the app, which keeps working normally. It is written to a temporary folder, read back
@@ -30,7 +30,7 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
 - Nouvelle entrée de menu, « Exporter pour Maillage IoT… » : un panneau d'enregistrement demande où écrire un dossier
   d'export, que Maillage IoT lit pour reprendre vos données. Le dossier contient un manifeste (avec la taille et le
   SHA-256 de chaque fichier), une copie des données de l'app (le journal et tout l'historique du maillage compris) et
-  les réglages utiles (sonde, choix du pont Hue, notifications, vues, et le budget de tournée de la sonde).
+  les réglages utiles (sonde, choix du pont Hue, notifications, vues, et le nombre de pages des dernières tables de la sonde).
 - Rien de secret n'est exporté : ni les clés gardées dans le trousseau du Mac (pont Hue, sonde), ni le mot de passe du
   Wi-Fi. Ce que l'export laisse de côté (réglages de Sparkle, positions des fenêtres, fichiers inconnus) est listé dans
   le manifeste.
