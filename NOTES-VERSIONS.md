@@ -6,6 +6,40 @@ the notes of the GitHub release and those of the update window.
 Maillage Zigbee : une section par version publiée, en anglais puis en français. `outils/publier.sh` en tire les
 notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour.
 
+## 1.2.0
+
+**English**
+
+- Maillage Zigbee is becoming Maillage IoT, a single app that brings Maillage Thread and Maillage Zigbee together.
+  The menu now carries a notice saying so, with a download link once Maillage IoT is published.
+- New menu entry, "Export for Maillage IoT…": a save panel asks where to write an export folder, which Maillage IoT
+  reads to take over your data. The folder holds a manifest (with the size and SHA-256 of every file), a copy of the
+  app's data (the journal and the whole mesh history included), and the settings worth keeping (probe, Hue bridge
+  choice, notifications, views, and the probe's round budget).
+- Nothing secret is exported: neither the keys kept in the Mac's keychain (Hue bridge, probe) nor the Wi-Fi password.
+  What the export leaves out (Sparkle settings, window positions, and any unknown file) is listed in the manifest.
+- The export changes nothing in the app, which keeps working normally. It is written to a temporary folder, read back
+  and checked file by file, and only then moved to the place you chose; if the check fails, nothing is written.
+- Once the export is done, the app offers to stop opening Maillage Zigbee at login, so that the two apps do not
+  compete for the USB probe when the Mac starts.
+
+**Français**
+
+- Maillage Zigbee devient Maillage IoT, une seule app qui réunit Maillage Thread et Maillage Zigbee. Le menu porte
+  désormais une annonce en ce sens, avec un lien de téléchargement dès que Maillage IoT est publiée.
+- Nouvelle entrée de menu, « Exporter pour Maillage IoT… » : un panneau d'enregistrement demande où écrire un dossier
+  d'export, que Maillage IoT lit pour reprendre vos données. Le dossier contient un manifeste (avec la taille et le
+  SHA-256 de chaque fichier), une copie des données de l'app (le journal et tout l'historique du maillage compris) et
+  les réglages utiles (sonde, choix du pont Hue, notifications, vues, et le budget de tournée de la sonde).
+- Rien de secret n'est exporté : ni les clés gardées dans le trousseau du Mac (pont Hue, sonde), ni le mot de passe du
+  Wi-Fi. Ce que l'export laisse de côté (réglages de Sparkle, positions des fenêtres, fichiers inconnus) est listé dans
+  le manifeste.
+- L'export ne modifie rien dans l'app, qui continue de marcher normalement. Il est écrit dans un dossier temporaire,
+  relu et vérifié fichier par fichier, puis seulement déplacé à l'endroit choisi ; si la vérification échoue, rien
+  n'est écrit.
+- Une fois l'export fait, l'app propose de ne plus ouvrir Maillage Zigbee à l'ouverture de session, pour que les deux
+  apps ne se disputent pas la sonde USB au démarrage du Mac.
+
 ## 1.1.1
 
 **English**
