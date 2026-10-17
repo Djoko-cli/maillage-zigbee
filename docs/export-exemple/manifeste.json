@@ -1,0 +1,93 @@
+{
+  "app" : "zigbee",
+  "date" : "2026-10-17T12:00:00Z",
+  "fichiers" : [
+    {
+      "chemin" : "Journal/journal-2026-05.jsonl",
+      "sha256" : "9528a3a5a38d275b4a689f798fe6f1795211cf6e453963174dc11d47e83df98f",
+      "taille" : 168
+    },
+    {
+      "chemin" : "Journal/journal-2026-06.jsonl",
+      "sha256" : "1e3b26d29e75295892ca002ae69f4137102ccca555fa217fe817ce2c6a0ab7ca",
+      "taille" : 165
+    },
+    {
+      "chemin" : "Journal/journal-2026-10.jsonl",
+      "sha256" : "0636cec3b1dfc45825fc88a4542d1063353de29c6c5f0b51b96e703e0e4c0a9d",
+      "taille" : 711
+    },
+    {
+      "chemin" : "appariements-maison.json",
+      "sha256" : "eb1ded6d2503a197ef0d4def199b875bab0e97390500fdca866ea2ab2dca69aa",
+      "taille" : 165
+    },
+    {
+      "chemin" : "dernier-maillage.json",
+      "sha256" : "81c992719fa01577bbfca5e92e1276d8a49a81abbd44988a0e84d9a9263be809",
+      "taille" : 1591
+    },
+    {
+      "chemin" : "maillage-2026-05.jsonl",
+      "sha256" : "ab5ab21309e1f941813fd19d6672cabc8f2f0f4ef2cb8e0ccef7b01e62600d6d",
+      "taille" : 609
+    },
+    {
+      "chemin" : "maillage-2026-06.jsonl",
+      "sha256" : "1e95791e254603a597e5c472e68df963949a2ae5a624a24ff6428350d6536796",
+      "taille" : 1218
+    },
+    {
+      "chemin" : "maillage-2026-10.jsonl",
+      "sha256" : "68cf65e200bf9b94a2bc81e3ee36446ce0c484f91d6ad7dc13da19c9d98def71",
+      "taille" : 1827
+    },
+    {
+      "chemin" : "noms-pont.json",
+      "sha256" : "5f7254e28661839d1a97c809bb13d58c54f2ee9661c9bcc4c6616a285696241f",
+      "taille" : 1159
+    },
+    {
+      "chemin" : "pieces-routeurs.json",
+      "sha256" : "6c6570f8c2b46820c9f7dedcaff7b9f568fc016061b32a0590f34708b9bbce4c",
+      "taille" : 177
+    },
+    {
+      "chemin" : "positions-pieces.json",
+      "sha256" : "251d1edfc4c0d374f25d749f7645d7d1a1f7b6b3d409894d1a7c086c0a458ff9",
+      "taille" : 403
+    },
+    {
+      "chemin" : "releve-maison.json",
+      "sha256" : "5b45cfbef1906ae0f7aa45859f065f83aefd10fdb5270c203cc551c79010d719",
+      "taille" : 491
+    },
+    {
+      "chemin" : "surnoms.json",
+      "sha256" : "48904a70884501188b30c05a52f3c9cd6ca7873e06c7a207ee751c6ebd6905a9",
+      "taille" : 72
+    },
+    {
+      "chemin" : "reglages.json",
+      "sha256" : "05b18620db04bc3ec5df3543b8cb8055cdf7fd31546a71701f5d5b90d9d0dfb4",
+      "taille" : 2038
+    }
+  ],
+  "fichiersNonRepris" : [
+    {
+      "chemin" : ".DS_Store",
+      "raison" : "exclu"
+    },
+    {
+      "chemin" : "ancien-signet.txt",
+      "raison" : "horsContrat"
+    },
+    {
+      "chemin" : "surnoms.illisible-20261001-120000.json",
+      "raison" : "exclu"
+    }
+  ],
+  "format" : 1,
+  "identifiant" : "5E0F0000-0000-4000-8000-00000000A001",
+  "versionApp" : "1.2.0"
+}

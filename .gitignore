@@ -41,3 +41,7 @@ xcuserdata/
 noms-pont.json
 releve-maison.json
 appariements-maison.json
+# ... sauf l'export d'exemple anonymise (docs/export-exemple, ecrit par ExportExempleTests : valeurs inventees)
+!docs/export-exemple/noms-pont.json
+!docs/export-exemple/releve-maison.json
+!docs/export-exemple/appariements-maison.json

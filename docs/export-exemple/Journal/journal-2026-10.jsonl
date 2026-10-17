@@ -1,0 +1,4 @@
+{"constate":false,"date":"2026-10-01T08:00:00.000Z","details":{"appareils":"5","routeurs":"3"},"gravite":"info","type":"surveillanceDemarree"}
+{"apres":"Passerelle","avant":"Lampe A","constate":false,"date":"2026-10-09T14:00:00.000Z","details":{},"gravite":"info","sujet":{"id":"0000000000000003","nom":"Routeur Pièce 2"},"type":"cheminChange"}
+{"apres":"Routeur Pièce 2","avant":"Lampe A","constate":false,"date":"2026-10-12T09:00:00.000Z","details":{},"gravite":"info","sujet":{"id":"0000000000000004","nom":"Capteur B"},"type":"parentChange"}
+{"constate":false,"date":"2026-10-15T22:00:00.000Z","details":{},"gravite":"info","periode":{"duration":32400,"start":"2026-10-15T22:00:00.000Z"},"type":"veille"}

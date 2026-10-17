@@ -1,0 +1,97 @@
+{
+  "app" : "zigbee",
+  "format" : 1,
+  "nonRepris" : {
+    "NSWindow Frame graphe" : "horsContrat",
+    "SUHasLaunchedBefore" : "horsContrat",
+    "SUUpdateGroupIdentifier" : "horsContrat",
+    "dossierNoms" : "horsContrat",
+    "reglages.onglet" : "horsContrat"
+  },
+  "valeurs" : {
+    "AppleLanguages" : {
+      "type" : "listeTextes",
+      "valeur" : [
+        "fr"
+      ]
+    },
+    "etagesEnGrille" : {
+      "type" : "bool",
+      "valeur" : false
+    },
+    "grapheDejaOuvert" : {
+      "type" : "bool",
+      "valeur" : true
+    },
+    "legendeRepliee" : {
+      "type" : "bool",
+      "valeur" : true
+    },
+    "liensMontres" : {
+      "type" : "texte",
+      "valeur" : "tous"
+    },
+    "notification.informations" : {
+      "type" : "bool",
+      "valeur" : true
+    },
+    "notification.pertes" : {
+      "type" : "bool",
+      "valeur" : false
+    },
+    "notification.routeurDisparu" : {
+      "type" : "bool",
+      "valeur" : true
+    },
+    "ouvertureSessionProposee" : {
+      "type" : "bool",
+      "valeur" : true
+    },
+    "pont.hue" : {
+      "type" : "donnees",
+      "valeur" : "eyJhZHJlc3NlIjoiMTkyLjAuMi4xMCIsImlkZW50aWZpYW50IjoiMDAwMDAwMDAwMDAwMDAwMSIsIm1hbnVlbCI6ZmFsc2UsIm1vZGVsZSI6IkJTQjAwMiJ9"
+    },
+    "sondeChemin" : {
+      "type" : "texte",
+      "valeur" : "usb"
+    },
+    "sondeIeee" : {
+      "type" : "texte",
+      "valeur" : "0000000000000011"
+    },
+    "sondeJournalPages" : {
+      "type" : "listeEntiers",
+      "valeur" : [
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
+    },
+    "sondeNom" : {
+      "type" : "texte",
+      "valeur" : "SONDE-Z1"
+    },
+    "sondeNomWifi" : {
+      "type" : "texte",
+      "valeur" : "RESEAU-1"
+    },
+    "sondePagesTables" : {
+      "type" : "entier",
+      "valeur" : 4
+    },
+    "sondeSerieUSB" : {
+      "type" : "texte",
+      "valeur" : "SERIE-0001"
+    },
+    "voisinsALaSelection" : {
+      "type" : "bool",
+      "valeur" : false
+    },
+    "vuePieces3D" : {
+      "type" : "bool",
+      "valeur" : true
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "maisons" : {
+    "Maison 1" : {
+      "aCote" : {
+        "Étage 2" : {
+          "dehors" : false,
+          "etage" : "Étage 1"
+        }
+      },
+      "etages" : {
+        "Étage 1" : {
+          "piece:Pièce 1" : {
+            "x" : 2.5,
+            "z" : -3
+          }
+        }
+      },
+      "ordreEtages" : [
+        "Étage 1",
+        "Étage 2"
+      ]
+    }
+  },
+  "version" : 1
+}

@@ -1,0 +1,50 @@
+{
+  "accessoires" : [
+    {
+      "categorie" : "light",
+      "connexion" : "connected",
+      "fabricant" : "Fabricant 1",
+      "firmware" : "1.0.0",
+      "idHue" : "00000000-0000-4000-8000-0000000000B1",
+      "idMaison" : "00000000-0000-4000-8000-0000000000C1",
+      "idModele" : "MOD001",
+      "ieee" : "0000000000000002",
+      "modele" : "Modèle 1",
+      "nom" : "Lampe A",
+      "origine" : "maison",
+      "piece" : "Pièce 1"
+    },
+    {
+      "batterie" : {
+        "charge" : "nonRechargeable",
+        "niveau" : 80
+      },
+      "categorie" : "sensor",
+      "connexion" : "connected",
+      "fabricant" : "Fabricant 1",
+      "firmware" : "1.0.0",
+      "idHue" : "00000000-0000-4000-8000-0000000000B2",
+      "ieee" : "0000000000000004",
+      "modele" : "Modèle 2",
+      "nom" : "Capteur B",
+      "origine" : "pont",
+      "piece" : "Pièce 2"
+    }
+  ],
+  "date" : "2026-10-17T11:45:00.000Z",
+  "domicile" : "Maison 1",
+  "reseau" : {
+    "canal" : 15,
+    "epid" : "0000000000000099"
+  },
+  "version" : 1,
+  "zones" : [
+    {
+      "nom" : "Étage 1",
+      "pieces" : [
+        "Pièce 1",
+        "Pièce 2"
+      ]
+    }
+  ]
+}

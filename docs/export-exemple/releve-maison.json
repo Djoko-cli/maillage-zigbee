@@ -1,0 +1,26 @@
+{
+  "accessoires" : [
+    {
+      "categorie" : "Lampe",
+      "fabricant" : "Fabricant 1",
+      "firmware" : "1.0.0",
+      "id" : "00000000-0000-4000-8000-0000000000C1",
+      "modele" : "Modèle 1",
+      "nom" : "Lampe A",
+      "piece" : "Pièce 1"
+    }
+  ],
+  "date" : "2026-10-17T11:45:00.000Z",
+  "domicile" : "Maison 1",
+  "statut" : "ok",
+  "version" : 2,
+  "zones" : [
+    {
+      "nom" : "Étage 1",
+      "pieces" : [
+        "Pièce 1",
+        "Pièce 2"
+      ]
+    }
+  ]
+}
