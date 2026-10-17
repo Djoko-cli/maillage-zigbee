@@ -6,7 +6,9 @@
     "SUHasLaunchedBefore" : "horsContrat",
     "SUUpdateGroupIdentifier" : "horsContrat",
     "dossierNoms" : "horsContrat",
-    "reglages.onglet" : "horsContrat"
+    "etagesEnGrille" : "typeInattendu",
+    "reglages.onglet" : "horsContrat",
+    "sondeJournalPages" : "transitoire"
   },
   "valeurs" : {
     "AppleLanguages" : {
@@ -14,10 +16,6 @@
       "valeur" : [
         "fr"
       ]
-    },
-    "etagesEnGrille" : {
-      "type" : "bool",
-      "valeur" : false
     },
     "grapheDejaOuvert" : {
       "type" : "bool",
@@ -58,16 +56,6 @@
     "sondeIeee" : {
       "type" : "texte",
       "valeur" : "0000000000000011"
-    },
-    "sondeJournalPages" : {
-      "type" : "listeEntiers",
-      "valeur" : [
-        12,
-        13,
-        14,
-        15,
-        16
-      ]
     },
     "sondeNom" : {
       "type" : "texte",

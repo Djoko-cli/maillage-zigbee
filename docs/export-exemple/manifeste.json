@@ -69,8 +69,8 @@
     },
     {
       "chemin" : "reglages.json",
-      "sha256" : "05b18620db04bc3ec5df3543b8cb8055cdf7fd31546a71701f5d5b90d9d0dfb4",
-      "taille" : 2038
+      "sha256" : "2ed8cd782959419b2ec02e58874dded1f773e3dfc871e3723dde3043395eb70a",
+      "taille" : 1889
     }
   ],
   "fichiersNonRepris" : [

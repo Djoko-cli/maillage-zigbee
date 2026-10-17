@@ -199,6 +199,9 @@ public enum ContratExport {
         /// Reglage connu mais d'un autre type que celui de l'inventaire (un `1` entier pour un booleen) : cite, jamais
         /// converti ni perdu en silence. Ne s'applique qu'aux reglages.
         case typeInattendu
+        /// Reglage connu mais sans sens apres coup (la fenetre glissante de 10 minutes du budget de la tournee,
+        /// `transitoires(de:)`) : cite, sans valeur, quel que soit son type. Ne s'applique qu'aux reglages.
+        case transitoire
     }
 
     /// Un fichier vu dans `Application Support/<app>/` et non copie dans l'export, avec la raison (`horsContrat` ou
@@ -359,8 +362,9 @@ public enum ContratExport {
         /// L'app dont ils viennent : le manifeste dit la meme.
         public let app: AppSource
         public let valeurs: [String: Valeur]
-        /// Les cles non reprises : leur nom et la raison (`horsContrat` ou `typeInattendu`), jamais la valeur (elle peut
-        /// etre personnelle). Obligatoire (dictionnaire vide s'il n'y en a pas) ; aucune cle n'est aussi dans `valeurs`.
+        /// Les cles non reprises : leur nom et la raison (`horsContrat`, `typeInattendu` ou `transitoire`), jamais la
+        /// valeur (elle peut etre personnelle). Obligatoire (dictionnaire vide s'il n'y en a pas) ; aucune cle n'est
+        /// aussi dans `valeurs`.
         public let nonRepris: [String: RaisonNonRepris]
 
         public init(app: AppSource, valeurs: [String: Valeur], nonRepris: [String: RaisonNonRepris]) {
@@ -588,8 +592,9 @@ public enum ContratExport {
             return [
                 ReglageConnu("sondeSerieUSB", .texte), ReglageConnu("sondeNom", .texte), ReglageConnu("sondeIeee", .texte),
                 ReglageConnu("sondeNomWifi", .texte),
-                // Le budget de la tournee de la sonde (spec 4.2).
-                ReglageConnu("sondeJournalPages", .listeEntiers), ReglageConnu("sondePagesTables", .entier),
+                // Les pages de la derniere lecture des tables (spec 4.2). Le journal des pages de la tournee
+                // (`sondeJournalPages`, liste de Double) est transitoire : `transitoires(de:)`.
+                ReglageConnu("sondePagesTables", .entier),
                 ReglageConnu("sondeChemin", .texte),
                 // JSON du pont retenu (adresse, identifiant, modele ; jamais sa cle) : donnee personnelle.
                 ReglageConnu("pont.hue", .donnees),
@@ -597,6 +602,16 @@ public enum ContratExport {
                 ReglageConnu("notification.routeurDisparu", .bool), ReglageConnu("notification.pertes", .bool),
                 ReglageConnu("notification.informations", .bool),
             ] + communs
+        }
+    }
+
+    /// Les cles que l'app ecrit mais que l'export ne reprend jamais, car sans sens apres coup : `reglages(depuis:app:)`
+    /// les cite `transitoire`, sans valeur ni controle de type. `sondeJournalPages` de Maillage Zigbee : le journal des
+    /// pages envoyees a la sonde dans les 10 dernieres minutes (`[Double]` : instant, pages...).
+    public static func transitoires(de app: AppSource) -> Set<String> {
+        switch app {
+        case .maillageThread: []
+        case .maillageZigbee: ["sondeJournalPages"]
         }
     }
 
@@ -636,9 +651,9 @@ public enum ContratExport {
 
     /// Les reglages repris du domaine persistant d'une ancienne app (`domaine`, ce que rend
     /// `UserDefaults.persistentDomain(forName: app.identifiantBundle)`). Chaque cle de `reglagesConnus(de:)` presente
-    /// va dans `valeurs` sous son type ; toute autre cle va dans `nonRepris` : `typeInattendu` si la cle est connue mais
-    /// d'un autre type, `horsContrat` sinon. Lecture stricte : un booleen n'est pas un nombre (`1` n'est jamais `true`,
-    /// `true` jamais `1`), un entier n'est pas un decimal, les listes sont entierement du bon type. Une cle connue
+    /// va dans `valeurs` sous son type ; toute autre cle va dans `nonRepris` : `transitoire` pour `transitoires(de:)`,
+    /// `typeInattendu` si la cle est connue mais d'un autre type, `horsContrat` sinon. Lecture stricte : un booleen
+    /// n'est pas un nombre (`1` n'est jamais `true`, `true` jamais `1`), un entier n'est pas un decimal, les listes sont entierement du bon type. Une cle connue
     /// absente reste absente (aucun defaut) ; une cle vide est ignoree.
     ///
     /// Piege : ne jamais lire `UserDefaults.standard.array(forKey: "AppleLanguages")` ni `dictionaryRepresentation()` :
@@ -647,7 +662,9 @@ public enum ContratExport {
         var valeurs: [String: Valeur] = [:]
         var nonRepris: [String: RaisonNonRepris] = [:]
         for (cle, brut) in domaine where !cle.isEmpty {
-            if let type = typeAttendu(cle: cle, de: app) {
+            if transitoires(de: app).contains(cle) {
+                nonRepris[cle] = .transitoire
+            } else if let type = typeAttendu(cle: cle, de: app) {
                 if let valeur = convertir(brut, en: type) { valeurs[cle] = valeur } else { nonRepris[cle] = .typeInattendu }
             } else {
                 nonRepris[cle] = .horsContrat

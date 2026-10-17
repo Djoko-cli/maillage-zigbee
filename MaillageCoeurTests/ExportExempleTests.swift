@@ -136,18 +136,23 @@ struct ExportExempleTests {
 
     // MARK: Les reglages
 
-    /// Les 19 reglages de l'inventaire de Maillage Zigbee, un de chaque, et ceux qui n'en sont pas.
+    /// Les 18 reglages de l'inventaire de Maillage Zigbee, un de chaque (sauf `etagesEnGrille`, d'un type inattendu), le
+    /// journal des pages (transitoire), et ceux qui n'en sont pas.
     static func domaine() -> [String: Any] {
         let pont = #"{"adresse":"192.0.2.10","identifiant":"0000000000000001","manuel":false,"modele":"BSB002"}"#
         return [
             // Sonde
             "sondeSerieUSB": "SERIE-0001", "sondeNom": "SONDE-Z1", "sondeIeee": sonde, "sondeNomWifi": "RESEAU-1",
-            "sondeJournalPages": [12, 13, 14, 15, 16], "sondePagesTables": 4, "sondeChemin": "usb",
+            "sondePagesTables": 4,
+            // Transitoire : le journal des pages (instant, pages), cite sans valeur.
+            "sondeJournalPages": [1_792_237_800.0, 12.0, 1_792_238_000.0, 15.0], "sondeChemin": "usb",
             // Pont Hue : l'adresse et l'identifiant, jamais la cle.
             "pont.hue": Data(pont.utf8),
             // Vue par pieces
             "liensMontres": "tous", "voisinsALaSelection": false,
-            "vuePieces3D": true, "etagesEnGrille": false, "legendeRepliee": true,
+            "vuePieces3D": true, "legendeRepliee": true,
+            // Type inattendu : un entier pour un booleen, cite sans valeur.
+            "etagesEnGrille": 1,
             // Notifications
             "notification.routeurDisparu": true, "notification.pertes": false, "notification.informations": true,
             // Commun
@@ -213,14 +218,16 @@ struct ExportExempleTests {
 
         // Chaque reglage de l'inventaire y est, sous son type ; les autres sont cites, sans valeur.
         let attendus = ContratExport.reglagesConnus(de: .maillageZigbee)
-        #expect(attendus.count == 19)
-        for a in attendus {
+        #expect(attendus.count == 18)
+        let repris = attendus.filter { $0.cle != "etagesEnGrille" }
+        for a in repris {
             #expect(r.reglages.valeurs[a.cle]?.type == a.type, "\(a.cle)")
         }
-        #expect(Set(r.reglages.valeurs.keys) == Set(attendus.map(\.cle)))
+        #expect(Set(r.reglages.valeurs.keys) == Set(repris.map(\.cle)))
         #expect(r.reglages.nonRepris == ["SUHasLaunchedBefore": .horsContrat, "SUUpdateGroupIdentifier": .horsContrat,
                                          "NSWindow Frame graphe": .horsContrat, "reglages.onglet": .horsContrat,
-                                         "dossierNoms": .horsContrat])
+                                         "dossierNoms": .horsContrat, "sondeJournalPages": .transitoire,
+                                         "etagesEnGrille": .typeInattendu])
     }
 
     /// Les fichiers de l'exemple se relisent avec les lecteurs de l'app : l'exemple est un vrai export.

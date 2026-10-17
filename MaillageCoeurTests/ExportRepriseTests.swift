@@ -331,7 +331,7 @@ struct ExportRepriseTests {
             let source = tmp.appendingPathComponent("source")
             try Self.fabriquerSource(source)
             let domaine: [String: Any] = [
-                "sondeNom": "SONDE-Z1", "sondeJournalPages": [1, 2, 3], "sondePagesTables": 4,
+                "sondeNom": "SONDE-Z1", "sondeJournalPages": [1_792_237_800.0, 12.0, 1_792_238_000.0, 15.0], "sondePagesTables": 4,
                 "pont.hue": Data("{\"adresse\":\"192.0.2.10\"}".utf8), "voisinsALaSelection": true,
                 "AppleLanguages": ["fr"],
                 // Non repris : Sparkle, fenetre, onglet, ancien signet.
@@ -345,7 +345,8 @@ struct ExportRepriseTests {
             let relus = try ContratExport.lireReglages(Data(contentsOf: tmp.appendingPathComponent("Export/reglages.json")))
             #expect(relus == r.reglages)
             #expect(relus.valeurs["sondeNom"] == .texte("SONDE-Z1"))
-            #expect(relus.valeurs["sondeJournalPages"] == .listeEntiers([1, 2, 3]))
+            // Le journal des pages est transitoire : cite, jamais repris.
+            #expect(relus.valeurs["sondeJournalPages"] == nil)
             #expect(relus.valeurs["sondePagesTables"] == .entier(4))
             #expect(relus.valeurs["pont.hue"] == .donnees(Data("{\"adresse\":\"192.0.2.10\"}".utf8)))
             #expect(relus.valeurs["voisinsALaSelection"] == .bool(true))
@@ -353,11 +354,22 @@ struct ExportRepriseTests {
             #expect(relus.nonRepris == [
                 "SUHasLaunchedBefore": .horsContrat, "NSWindow Frame graphe": .horsContrat,
                 "reglages.onglet": .horsContrat, "dossierNoms": .horsContrat, "vuePieces3D": .typeInattendu,
+                "sondeJournalPages": .transitoire,
             ])
             // Une cle absente de l'app reste absente : aucun defaut.
             #expect(relus.valeurs["legendeRepliee"] == nil)
             #expect(relus.valeurs["sondeChemin"] == nil)
         }
+    }
+
+    @Test func leJournalDesPagesEstTransitoireQuelQueSoitSonType() throws {
+        for brut: Any in [[1_792_237_800.0, 12.0], [1, 2, 3], "texte", true, 7, Data([1])] {
+            let r = ContratExport.reglages(depuis: ["sondeJournalPages": brut, "sondePagesTables": 4], app: .maillageZigbee)
+            #expect(r.nonRepris == ["sondeJournalPages": .transitoire])
+            #expect(r.valeurs == ["sondePagesTables": .entier(4)])
+        }
+        // Maillage Thread n'a pas de reglage transitoire.
+        #expect(ContratExport.transitoires(de: .maillageThread).isEmpty)
     }
 
     @Test func lesReglagesViennentDuDomaineDeLAppEtPasDesReglagesGlobaux() throws {
