@@ -12,6 +12,7 @@ struct MaillageZigbeeApp: App {
     @State private var sonde: SondeMaillage
     @State private var reglages: ControleurReglages
     @State private var misesAJour: MisesAJour
+    @State private var exporteur: ExporteurReprise
     private let notifications = Notifications()
     /// Bonjour `_hue._tcp`, demarre hors demo et hors tests.
     private let decouverte = DecouvertePont()
@@ -48,6 +49,7 @@ struct MaillageZigbeeApp: App {
         // compilation de travail.
         let m = MisesAJour(demarrer: MisesAJour.demarrerAuLancement(demo: Self.demo))
         _misesAJour = State(initialValue: m)
+        _exporteur = State(initialValue: ExporteurReprise(ouverture: o))
         _reglages = State(initialValue: ControleurReglages(surveillance: s, ouverture: o, nomsPont: d,
                                                            nomsPasseur: np, sonde: sm, misesAJour: m))
         let premier = !UserDefaults.standard.bool(forKey: Self.clePremierGraphe)
@@ -97,6 +99,7 @@ struct MaillageZigbeeApp: App {
                 .environment(sonde)
                 .environment(reglages)
                 .environment(misesAJour)
+                .environment(exporteur)
         } label: {
             IconeBarre(ouvrirGraphe: ouvrirGraphe)
                 .environment(surveillance)

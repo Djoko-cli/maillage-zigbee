@@ -1233,6 +1233,22 @@
         }
       }
     },
+    "Afficher dans le Finder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher dans le Finder"
+          }
+        }
+      }
+    },
     "Afficher la liste" : {
       "localizations" : {
         "en" : {
@@ -1761,6 +1777,38 @@
         }
       }
     },
+    "Choisissez où écrire le dossier d'export. Maillage IoT le lira pour reprendre vos données." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where to write the export folder. Maillage IoT will read it to take over your data."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez où écrire le dossier d'export. Maillage IoT le lira pour reprendre vos données."
+          }
+        }
+      }
+    },
+    "Choisissez un autre emplacement : celui-ci contient les données de l'app, ou en fait partie." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another location: this one contains the app's data, or is part of it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez un autre emplacement : celui-ci contient les données de l'app, ou en fait partie."
+          }
+        }
+      }
+    },
     "Clé absente de ce Mac pour le pont %@ : liez le pont depuis les Réglages." : {
       "localizations" : {
         "en" : {
@@ -1969,6 +2017,22 @@
         }
       }
     },
+    "Dossier : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier : %@"
+          }
+        }
+      }
+    },
     "Dépendants" : {
       "localizations" : {
         "en" : {
@@ -2129,6 +2193,102 @@
         }
       }
     },
+    "Export Maillage Zigbee" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee export"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Maillage Zigbee"
+          }
+        }
+      }
+    },
+    "Export en cours…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporting…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export en cours…"
+          }
+        }
+      }
+    },
+    "Export terminé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export complete"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export terminé"
+          }
+        }
+      }
+    },
+    "Exporter" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter"
+          }
+        }
+      }
+    },
+    "Exporter pour Maillage IoT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export for Maillage IoT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter pour Maillage IoT"
+          }
+        }
+      }
+    },
+    "Exporter pour Maillage IoT…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export for Maillage IoT…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter pour Maillage IoT…"
+          }
+        }
+      }
+    },
     "Fait clignoter l'appareil, par Maison (Passeur Noms), pour le repérer" : {
       "localizations" : {
         "en" : {
@@ -2193,6 +2353,22 @@
         }
       }
     },
+    "Fichiers copiés : %lld · réglages repris : %lld · non repris : %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files copied: %1$lld · settings kept: %2$lld · not kept: %3$lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichiers copiés : %1$lld · réglages repris : %2$lld · non repris : %3$lld"
+          }
+        }
+      }
+    },
     "Firmware" : {
       "localizations" : {
         "en" : {
@@ -2205,6 +2381,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Firmware"
+          }
+        }
+      }
+    },
+    "Garder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder"
           }
         }
       }
@@ -2461,6 +2653,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'API répond pour un autre pont (%@)."
+          }
+        }
+      }
+    },
+    "L'export n'a pas abouti" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The export failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'export n'a pas abouti"
+          }
+        }
+      }
+    },
+    "L'export n'a pas passé sa relecture : il n'a pas été écrit, et ce qui se trouvait à l'emplacement choisi n'a pas été touché (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The export failed its re-read: it was not written, and what was at the chosen location was left untouched (%@)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'export n'a pas passé sa relecture : il n'a pas été écrit, et ce qui se trouvait à l'emplacement choisi n'a pas été touché (%@)."
+          }
+        }
+      }
+    },
+    "L'export n'a pas passé sa relecture et l'ancien dossier n'a pas pu être remis en place. Il est conservé ici : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The export failed its re-read and the old folder could not be put back. It is kept here: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'export n'a pas passé sa relecture et l'ancien dossier n'a pas pu être remis en place. Il est conservé ici : %@"
+          }
+        }
+      }
+    },
+    "L'export n'a pas pu être assemblé, rien n'a été écrit à l'emplacement choisi (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The export could not be assembled, and nothing was written at the chosen location (%@)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'export n'a pas pu être assemblé, rien n'a été écrit à l'emplacement choisi (%@)."
+          }
+        }
+      }
+    },
+    "L'ouverture à la session n'a pas été retirée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at login was not removed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ouverture à la session n'a pas été retirée"
           }
         }
       }
@@ -2897,6 +3169,22 @@
         }
       }
     },
+    "Maillage IoT et Maillage Zigbee se disputeraient la sonde USB au démarrage du Mac. Vous pouvez le rétablir dans les Réglages, onglet Général." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage IoT and Maillage Zigbee would compete for the USB probe when the Mac starts. You can turn it back on in Settings, General tab."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage IoT et Maillage Zigbee se disputeraient la sonde USB au démarrage du Mac. Vous pouvez le rétablir dans les Réglages, onglet Général."
+          }
+        }
+      }
+    },
     "Maillage incomplet" : {
       "localizations" : {
         "en" : {
@@ -2941,6 +3229,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maillage Zigbee"
+          }
+        }
+      }
+    },
+    "Maillage Zigbee devient Maillage IoT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee becomes Maillage IoT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee devient Maillage IoT"
+          }
+        }
+      }
+    },
+    "Maillage Zigbee s'ouvrira encore à l'ouverture de session. Vous pouvez le retirer dans les Réglages, onglet Général, ou dans les Réglages Système." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee will still open at login. You can remove it in Settings, General tab, or in System Settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maillage Zigbee s'ouvrira encore à l'ouverture de session. Vous pouvez le retirer dans les Réglages, onglet Général, ou dans les Réglages Système."
           }
         }
       }
@@ -3153,6 +3473,38 @@
         }
       }
     },
+    "Ne plus ouvrir" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop opening"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne plus ouvrir"
+          }
+        }
+      }
+    },
+    "Ne plus ouvrir Maillage Zigbee à l'ouverture de session ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop opening Maillage Zigbee at login?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne plus ouvrir Maillage Zigbee à l'ouverture de session ?"
+          }
+        }
+      }
+    },
     "Nom du Wi-Fi (2,4 GHz)" : {
       "localizations" : {
         "en" : {
@@ -3245,6 +3597,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nœuds"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
@@ -4849,6 +5217,22 @@
         }
       }
     },
+    "Télécharger Maillage IoT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Maillage IoT"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger Maillage IoT"
+          }
+        }
+      }
+    },
     "Un autre pont (%@) est déjà lié : oubliez-le d'abord." : {
       "localizations" : {
         "en" : {
@@ -5569,6 +5953,22 @@
         }
       }
     },
+    "deux fichiers portent le même nom, à la casse près : « %@ »" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "two files have the same name, apart from letter case: “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "deux fichiers portent le même nom, à la casse près : « %@ »"
+          }
+        }
+      }
+    },
     "disparu" : {
       "localizations" : {
         "en" : {
@@ -5873,6 +6273,38 @@
         }
       }
     },
+    "l'app source « %@ » n'est pas connue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the source app “%@” is not known"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "l'app source « %@ » n'est pas connue"
+          }
+        }
+      }
+    },
+    "l'empreinte du fichier « %@ » est mal formée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the fingerprint of the file “%@” is malformed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "l'empreinte du fichier « %@ » est mal formée"
+          }
+        }
+      }
+    },
     "la sonde" : {
       "localizations" : {
         "en" : {
@@ -5953,6 +6385,214 @@
         }
       }
     },
+    "la taille du fichier « %@ » est invalide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the size of the file “%@” is invalid"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la taille du fichier « %@ » est invalide"
+          }
+        }
+      }
+    },
+    "la taille du fichier « %@ » n'est pas celle du manifeste" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the size of the file “%@” is not the one in the manifest"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "la taille du fichier « %@ » n'est pas celle du manifeste"
+          }
+        }
+      }
+    },
+    "le contenu du fichier « %@ » n'a pas l'empreinte du manifeste" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the content of the file “%@” does not have the fingerprint in the manifest"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le contenu du fichier « %@ » n'a pas l'empreinte du manifeste"
+          }
+        }
+      }
+    },
+    "le fichier « %@ » est dans le dossier mais pas listé au manifeste" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the file “%@” is in the folder but not listed in the manifest"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le fichier « %@ » est dans le dossier mais pas listé au manifeste"
+          }
+        }
+      }
+    },
+    "le fichier « %@ » est listé au manifeste mais absent du dossier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the file “%@” is listed in the manifest but missing from the folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le fichier « %@ » est listé au manifeste mais absent du dossier"
+          }
+        }
+      }
+    },
+    "le fichier « %@ » n'est pas un fichier connu de l'app" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the file “%@” is not a file the app knows"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le fichier « %@ » n'est pas un fichier connu de l'app"
+          }
+        }
+      }
+    },
+    "le format %lld du dossier d'export n'est pas connu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the export folder format %lld is not known"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le format %lld du dossier d'export n'est pas connu"
+          }
+        }
+      }
+    },
+    "le manifeste de l'export est absent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the export manifest is missing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le manifeste de l'export est absent"
+          }
+        }
+      }
+    },
+    "le manifeste de l'export ne liste pas les réglages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the export manifest does not list the settings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le manifeste de l'export ne liste pas les réglages"
+          }
+        }
+      }
+    },
+    "le nom « %@ » est réservé à l'export" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the name “%@” is reserved for the export"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le nom « %@ » est réservé à l'export"
+          }
+        }
+      }
+    },
+    "le nom « %@ » ne convient pas à un export (chemin absolu, vide, trop long, ou avec un caractère de contrôle)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the name “%@” is not valid in an export (absolute path, empty, too long, or with a control character)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le nom « %@ » ne convient pas à un export (chemin absolu, vide, trop long, ou avec un caractère de contrôle)"
+          }
+        }
+      }
+    },
+    "le réglage « %@ » a un type inconnu (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the setting “%@” has an unknown type (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le réglage « %@ » a un type inconnu (%@)"
+          }
+        }
+      }
+    },
+    "le réglage « %@ » apparaît deux fois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the setting “%@” appears twice"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "le réglage « %@ » apparaît deux fois"
+          }
+        }
+      }
+    },
     "lecture de DTR et RTS (TIOCMGET)" : {
       "localizations" : {
         "en" : {
@@ -5997,6 +6637,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "lecture impossible : %@"
+          }
+        }
+      }
+    },
+    "les réglages et le manifeste viennent de deux apps différentes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the settings and the manifest come from two different apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "les réglages et le manifeste viennent de deux apps différentes"
           }
         }
       }
@@ -6769,6 +7425,38 @@
         }
       }
     },
+    "un fichier d'export est illisible : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "an export file is unreadable: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un fichier d'export est illisible : %@"
+          }
+        }
+      }
+    },
+    "un réglage a une clé vide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a setting has an empty key"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un réglage a une clé vide"
+          }
+        }
+      }
+    },
     "vers le pont : direct" : {
       "localizations" : {
         "en" : {
@@ -6845,6 +7533,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "voisin entendu (à la sélection)"
+          }
+        }
+      }
+    },
+    "« %@ » passe par un lien symbolique, qu'un export n'accepte pas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” goes through a symbolic link, which an export does not accept"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« %@ » passe par un lien symbolique, qu'un export n'accepte pas"
+          }
+        }
+      }
+    },
+    "« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Export for Maillage IoT…” keeps your data for the new app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app."
           }
         }
       }

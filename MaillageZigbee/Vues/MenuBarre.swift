@@ -69,6 +69,7 @@ struct MenuBarre: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(ControleurReglages.self) private var reglages
     @Environment(MisesAJour.self) private var misesAJour
+    @Environment(ExporteurReprise.self) private var exporteur
     /// Fenetre du menu, pour le fermer apres « Ouvrir le graphe », « Journal… » et « Reglages… ».
     @State private var fenetreMenu = RefFenetre()
 
@@ -83,6 +84,8 @@ struct MenuBarre: View {
                 }
             }
             Divider()
+            BandeauMaillageIoT()
+            Divider()
             // Actions : comme les articles d'un menu natif (texte en couleur primaire, taille standard,
             // surlignees au survol) ; la marge negative aligne leur texte sur le reste du menu.
             VStack(alignment: .leading, spacing: 0) {
@@ -95,6 +98,17 @@ struct MenuBarre: View {
                 .disabled(passeur.inerte || passeur.releveEnCours)
                 Button("Rechercher les mises à jour…") { rechercherMisesAJour() }
                     .disabled(!misesAJour.peutRechercher)
+                Button { exporterPourMaillageIoT() } label: {
+                    if exporteur.enCours {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Export en cours…")
+                        }
+                    } else {
+                        Text("Exporter pour Maillage IoT…")
+                    }
+                }
+                .disabled(exporteur.enCours)
                 Button("Réglages…") { ouvrirReglages() }
                 Button("Quitter Maillage Zigbee") { NSApp.terminate(nil) }
             }
@@ -196,10 +210,34 @@ struct MenuBarre: View {
         fenetreMenu.fenetre?.close()
     }
 
+    /// Le panneau d'enregistrement prend la place du menu, comme la fenetre des reglages.
+    private func exporterPourMaillageIoT() {
+        fenetreMenu.fenetre?.close()
+        exporteur.exporter()
+    }
+
     /// La fenetre de Sparkle prend la place du menu, comme celle des reglages.
     private func rechercherMisesAJour() {
         misesAJour.rechercher()
         fenetreMenu.fenetre?.close()
+    }
+}
+
+/// L'annonce du menu : Maillage Zigbee devient Maillage IoT. Le lien de telechargement vient d'une constante
+/// (`AnnonceMaillageIoT`), vide jusqu'a la publication de Maillage IoT.
+struct BandeauMaillageIoT: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Maillage Zigbee devient Maillage IoT").font(.callout.weight(.semibold))
+            Text("« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let url = AnnonceMaillageIoT.url {
+                Link("Télécharger Maillage IoT", destination: url).font(.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
