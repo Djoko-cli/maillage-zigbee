@@ -1,6 +1,14 @@
 [English](README.md) · **Français**
 
+> [!IMPORTANT]
+> **Ce projet continue sous le nom de [Maillage IoT](https://github.com/Djoko-cli/maillage-iot).**
+
 # Maillage Zigbee
+
+> **Maillage Zigbee devient [Maillage IoT](https://github.com/Djoko-cli/maillage-iot)**, une seule app pour les
+> réseaux Thread et Zigbee. La version 1.2.0 est la dernière. « Exporter pour Maillage IoT… » (dans le bandeau en
+> haut du menu) écrit un dossier que Maillage IoT importe : historique, journal, surnoms, pièces, noms du pont Hue,
+> associations avec Maison et réglages, sans aucun mot de passe ni clé.
 
 <p align="center"><img src="docs/images/vue-3d.png" alt="La vue par pièces en 3D : les pièces, le pont, les routeurs, les appareils finaux et les chemins vers le pont" width="100%"></p>
 

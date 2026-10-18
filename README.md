@@ -1,6 +1,14 @@
 **English** · [Français](README.fr.md)
 
+> [!IMPORTANT]
+> **This project continues as [Maillage IoT](https://github.com/Djoko-cli/maillage-iot).**
+
 # Maillage Zigbee
+
+> **Maillage Zigbee becomes [Maillage IoT](https://github.com/Djoko-cli/maillage-iot)**, one app for Thread and
+> Zigbee networks. Version 1.2.0 is the last one. "Export for Maillage IoT…" (in the banner at the top of the menu)
+> writes a folder that Maillage IoT imports: history, log, nicknames, rooms, Hue bridge names, Home pairings and
+> settings, with no password or key.
 
 <p align="center"><img src="docs/images/vue-3d.png" alt="The room view in 3D: the rooms, the bridge, the routers, the end devices and the paths to the bridge" width="100%"></p>
 
