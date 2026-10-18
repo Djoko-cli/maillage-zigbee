@@ -75,6 +75,7 @@ struct MenuBarre: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            BandeauMaillageIoT(exporteur: exporteur) { exporterPourMaillageIoT() }
             entete
             Divider()
             ForEach(surveillance.lignesJournal.prefix(3)) { l in
@@ -83,8 +84,6 @@ struct MenuBarre: View {
                     Text(l.evenements.first.map(TexteEvenement.quand) ?? "").font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Divider()
-            BandeauMaillageIoT()
             Divider()
             // Actions : comme les articles d'un menu natif (texte en couleur primaire, taille standard,
             // surlignees au survol) ; la marge negative aligne leur texte sur le reste du menu.
@@ -98,17 +97,6 @@ struct MenuBarre: View {
                 .disabled(passeur.inerte || passeur.releveEnCours)
                 Button("Rechercher les mises à jour…") { rechercherMisesAJour() }
                     .disabled(!misesAJour.peutRechercher)
-                Button { exporterPourMaillageIoT() } label: {
-                    if exporteur.enCours {
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.small)
-                            Text("Export en cours…")
-                        }
-                    } else {
-                        Text("Exporter pour Maillage IoT…")
-                    }
-                }
-                .disabled(exporteur.enCours)
                 Button("Réglages…") { ouvrirReglages() }
                 Button("Quitter Maillage Zigbee") { NSApp.terminate(nil) }
             }
@@ -223,21 +211,40 @@ struct MenuBarre: View {
     }
 }
 
-/// L'annonce du menu : Maillage Zigbee devient Maillage IoT. Le lien de telechargement vient d'une constante
-/// (`AnnonceMaillageIoT`), vide jusqu'a la publication de Maillage IoT.
+/// « Maillage Zigbee devient Maillage IoT », en haut du menu de la barre, comme dans Maillage Thread : le lien de
+/// telechargement de Maillage IoT (une constante, `AnnonceMaillageIoT`, vide jusqu'a la publication de Maillage IoT :
+/// vide, pas de lien) et « Exporter pour Maillage IoT… », remplace par « Export en cours… » pendant un export.
 struct BandeauMaillageIoT: View {
+    let exporteur: ExporteurReprise
+    let exporter: () -> Void
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("Maillage Zigbee devient Maillage IoT").font(.callout.weight(.semibold))
-            Text("« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app.")
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Maillage Zigbee devient Maillage IoT", systemImage: "arrow.triangle.merge")
+                .font(.callout.weight(.semibold))
+            Text("Une seule app pour Maillage Thread et Maillage Zigbee. L'export reprend l'historique, le journal, les surnoms, les pièces et les réglages.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if let url = AnnonceMaillageIoT.url {
-                Link("Télécharger Maillage IoT", destination: url).font(.caption)
+            HStack(spacing: 12) {
+                if let url = AnnonceMaillageIoT.url {
+                    Link("Télécharger Maillage IoT", destination: url)
+                }
+                if exporteur.enCours {
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.mini)
+                        Text("Export en cours…").foregroundStyle(.secondary)
+                    }
+                } else {
+                    Button("Exporter pour Maillage IoT…", action: exporter)
+                        .buttonStyle(.link)
+                }
             }
+            .font(.caption)
         }
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

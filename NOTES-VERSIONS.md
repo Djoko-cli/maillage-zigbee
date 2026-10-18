@@ -11,8 +11,8 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
 **English**
 
 - Maillage Zigbee is becoming Maillage IoT, a single app that brings Maillage Thread and Maillage Zigbee together.
-  The menu now carries a notice saying so, with a download link once Maillage IoT is published.
-- New menu entry, "Export for Maillage IoT…": a save panel asks where to write an export folder, which Maillage IoT
+  The menu now opens with a notice saying so, with a download link once Maillage IoT is published.
+- New link in that notice, "Export for Maillage IoT…": a save panel asks where to write an export folder, which Maillage IoT
   reads to take over your data. The folder holds a manifest (with the size and SHA-256 of every file), a copy of the
   app's data (the journal and the whole mesh history included), and the settings worth keeping (probe, Hue bridge
   choice, notifications, views, and the page counts of the probe's last tables).
@@ -25,9 +25,9 @@ notes de la version publiée sur GitHub et celles de la fenêtre de mise à jour
 
 **Français**
 
-- Maillage Zigbee devient Maillage IoT, une seule app qui réunit Maillage Thread et Maillage Zigbee. Le menu porte
-  désormais une annonce en ce sens, avec un lien de téléchargement dès que Maillage IoT est publiée.
-- Nouvelle entrée de menu, « Exporter pour Maillage IoT… » : un panneau d'enregistrement demande où écrire un dossier
+- Maillage Zigbee devient Maillage IoT, une seule app qui réunit Maillage Thread et Maillage Zigbee. Le menu
+  s'ouvre désormais sur une annonce en ce sens, avec un lien de téléchargement dès que Maillage IoT est publiée.
+- Nouveau lien dans cette annonce, « Exporter pour Maillage IoT… » : un panneau d'enregistrement demande où écrire un dossier
   d'export, que Maillage IoT lit pour reprendre vos données. Le dossier contient un manifeste (avec la taille et le
   SHA-256 de chaque fichier), une copie des données de l'app (le journal et tout l'historique du maillage compris) et
   les réglages utiles (sonde, choix du pont Hue, notifications, vues, et le nombre de pages des dernières tables de la sonde).

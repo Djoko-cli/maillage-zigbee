@@ -454,7 +454,7 @@
   "Ne plus ouvrir Maillage Zigbee à l'ouverture de session ?": "Stop opening Maillage Zigbee at login?",
   "OK": "OK",
   "Télécharger Maillage IoT": "Download Maillage IoT",
-  "« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app.": "“Export for Maillage IoT…” keeps your data for the new app.",
+  "Une seule app pour Maillage Thread et Maillage Zigbee. L'export reprend l'historique, le journal, les surnoms, les pièces et les réglages.": "One app for Maillage Thread and Maillage Zigbee. The export includes the history, the log, the nicknames, the rooms and the settings.",
   "Choisissez un autre emplacement : celui-ci contient les données de l'app, ou en fait partie.": "Choose another location: this one contains the app's data, or is part of it.",
   "Export en cours…": "Exporting…",
   "L'export n'a pas passé sa relecture : il n'a pas été écrit, et ce qui se trouvait à l'emplacement choisi n'a pas été touché (%@).": "The export failed its re-read: it was not written, and what was at the chosen location was left untouched (%@).",

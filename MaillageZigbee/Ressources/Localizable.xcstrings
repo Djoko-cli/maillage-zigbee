@@ -5249,6 +5249,22 @@
         }
       }
     },
+    "Une seule app pour Maillage Thread et Maillage Zigbee. L'export reprend l'historique, le journal, les surnoms, les pièces et les réglages." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One app for Maillage Thread and Maillage Zigbee. The export includes the history, the log, the nicknames, the rooms and the settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une seule app pour Maillage Thread et Maillage Zigbee. L'export reprend l'historique, le journal, les surnoms, les pièces et les réglages."
+          }
+        }
+      }
+    },
     "USB" : {
       "localizations" : {
         "en" : {
@@ -7549,22 +7565,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "« %@ » passe par un lien symbolique, qu'un export n'accepte pas"
-          }
-        }
-      }
-    },
-    "« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“Export for Maillage IoT…” keeps your data for the new app."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "« Exporter pour Maillage IoT… » garde vos données pour la nouvelle app."
           }
         }
       }
