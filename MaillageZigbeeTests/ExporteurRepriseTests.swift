@@ -27,9 +27,9 @@ struct ExporteurRepriseTests {
     }
 
     @Test func leLienDeTelechargementEstUneConstanteUnique() {
-        // Vide jusqu'a la publication de Maillage IoT (phase 5) : pas de lien dans le bandeau.
-        #expect(AnnonceMaillageIoT.adresseTelechargement.isEmpty)
-        #expect(AnnonceMaillageIoT.url == nil)
+        // La derniere version publiee de Maillage IoT, comme dans Maillage Thread.
+        #expect(AnnonceMaillageIoT.adresseTelechargement == "https://github.com/Djoko-cli/maillage-iot/releases/latest")
+        #expect(AnnonceMaillageIoT.url?.host == "github.com")
     }
 
     @Test func lesErreursSeDisentEnMots() {

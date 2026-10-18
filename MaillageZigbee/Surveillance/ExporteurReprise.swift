@@ -5,10 +5,10 @@ import Observation
 import ServiceManagement
 
 /// Ce que dit l'app de son avenir : Maillage Zigbee devient Maillage IoT. L'adresse de telechargement est une
-/// constante unique, vide jusqu'a la publication de Maillage IoT 1.0.0 (phase 5 de la fusion) : vide, le bandeau du
-/// menu ne propose pas de lien.
+/// constante unique, la derniere version publiee de Maillage IoT, comme dans Maillage Thread ; vide, le bandeau du
+/// menu ne proposerait pas de lien.
 enum AnnonceMaillageIoT {
-    static let adresseTelechargement = ""
+    static let adresseTelechargement = "https://github.com/Djoko-cli/maillage-iot/releases/latest"
 
     static var url: URL? {
         adresseTelechargement.isEmpty ? nil : URL(string: adresseTelechargement)
