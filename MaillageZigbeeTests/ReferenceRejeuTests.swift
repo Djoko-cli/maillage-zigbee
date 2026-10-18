@@ -97,7 +97,12 @@ struct ReferenceRejeuTests {
         #expect(try Self.json(Self.reference()) == Self.json(Self.reference()))
     }
 
-    @Test func egaleALaReference() throws {
+    /// La reference est la scene en francais (les libelles traduits changent avec la langue) : la comparaison ne
+    /// tourne que quand l'app est en francais (les tests de publication repassent en anglais), comme chez Thread.
+    nonisolated static var enFrancais: Bool { Bundle.main.preferredLocalizations.first == "fr" }
+
+    @Test(.enabled(if: ReferenceRejeuTests.enFrancais, "la reference est la scene en francais"))
+    func egaleALaReference() throws {
         let calcule = try Self.json(Self.reference())
         guard let garde = try? Data(contentsOf: Self.fichier) else {
             // L'app hote est en bac a sable : elle lit le depot mais n'y ecrit pas. La reference part dans son
