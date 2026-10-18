@@ -2,13 +2,13 @@
   "maisons" : {
     "Maison 1" : {
       "aCote" : {
-        "Étage 2" : {
+        "zone:Jardin" : {
           "dehors" : false,
-          "etage" : "Étage 1"
+          "etage" : "zone:Étage 1"
         }
       },
       "etages" : {
-        "Étage 1" : {
+        "zone:Étage 1" : {
           "piece:Pièce 1" : {
             "x" : 2.5,
             "z" : -3
@@ -16,8 +16,8 @@
         }
       },
       "ordreEtages" : [
-        "Étage 1",
-        "Étage 2"
+        "zone:Étage 1",
+        "zone:Étage 2"
       ]
     }
   },

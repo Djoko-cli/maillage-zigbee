@@ -105,9 +105,9 @@ struct ExportExempleTests {
         try pieces.ecrire(dans: fichier("pieces-routeurs.json"))
         var places = PlacesGardees()
         places.maisons["Maison 1"] = PlacesGardees.Maison(
-            ordreEtages: ["Étage 1", "Étage 2"],
-            etages: ["Étage 1": ["piece:Pièce 1": .init(x: 2.5, z: -3)]],
-            aCote: ["Étage 2": .init(etage: "Étage 1")])
+            ordreEtages: ["zone:Étage 1", "zone:Étage 2"],
+            etages: ["zone:Étage 1": ["piece:Pièce 1": .init(x: 2.5, z: -3)]],
+            aCote: ["zone:Jardin": .init(etage: "zone:Étage 1")])
         try places.ecrire(dans: fichier("positions-pieces.json"))
 
         // L'historique du maillage et le journal : le mois en cours, et des mois de plus de 90 jours.
@@ -282,6 +282,29 @@ struct ExportExempleTests {
             try FileManager.default.copyItem(at: aJour, to: ecrit)
             Issue.record("docs/export-exemple n'est plus l'export que le code ecrit : le nouveau est dans \(ecrit.path)")
         }
+    }
+
+    /// Les cles d'etage de `positions-pieces.json` ont la forme que l'app ecrit (`ScenePieces.NomEtage.cle`) :
+    /// `zone:<nom>`, `autres-pieces` ou `maison` ; les cles de piece, `piece:<nom>`.
+    @Test func lesClesDEtageDeLExempleSontCellesDeLApp() throws {
+        let destination = Self.dossierEcrit.appendingPathComponent("etages-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: destination) }
+        try Self.assembler(vers: destination)
+        let places = PlacesGardees.lire(destination.appendingPathComponent("positions-pieces.json"))
+        func valide(_ cle: String) -> Bool {
+            (cle.hasPrefix("zone:") && cle.count > "zone:".count)
+                || cle == ScenePieces.NomEtage.autresPieces.cle || cle == ScenePieces.NomEtage.maison.cle
+        }
+        let maison = try #require(places.maisons["Maison 1"])
+        var cles = maison.ordreEtages + Array(maison.etages.keys) + Array(maison.aCote.keys) + maison.aCote.values.map(\.etage)
+        #expect(!cles.isEmpty)
+        for cle in cles { #expect(valide(cle), "cle d'etage invalide : \(cle)") }
+        cles = maison.etages.values.flatMap { $0.keys }
+        #expect(!cles.isEmpty)
+        for cle in cles { #expect(cle.hasPrefix("piece:"), "cle de piece invalide : \(cle)") }
+        // Et la cle d'un etage de la scene est bien celle de l'exemple.
+        #expect(ScenePieces.NomEtage.zone("Étage 1").cle == "zone:Étage 1")
     }
 
     /// Deux ecritures donnent les memes octets (identifiant et date fixes).

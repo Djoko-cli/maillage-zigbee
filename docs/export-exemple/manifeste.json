@@ -54,8 +54,8 @@
     },
     {
       "chemin" : "positions-pieces.json",
-      "sha256" : "251d1edfc4c0d374f25d749f7645d7d1a1f7b6b3d409894d1a7c086c0a458ff9",
-      "taille" : 403
+      "sha256" : "0b3e7cac2a2fbe312ad36bbfd5a80b2f89d38b072957928647e912bdb9dd465a",
+      "taille" : 426
     },
     {
       "chemin" : "releve-maison.json",
