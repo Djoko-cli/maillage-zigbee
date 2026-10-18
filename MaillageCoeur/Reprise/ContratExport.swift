@@ -16,6 +16,8 @@ import Foundation
 /// - une copie des fichiers de `Application Support/<app>/` (`fichiersConnus(de:)`), sous le meme chemin relatif
 ///   (`Journal/journal-AAAA-MM.jsonl`), sans changement de contenu. Aucun secret du trousseau n'y figure.
 /// Rien n'est perdu en silence : ce que l'export ne reprend pas est cite, pour que l'import le dise au resume.
+/// Les fichiers que macOS pose de lui-meme sont toleres, a n'importe quelle profondeur, sans etre listes ni lus : le
+/// `.DS_Store` du Finder et les compagnons AppleDouble `._<nom>` d'une copie sur cle FAT ou exFAT (`estFichierDeSysteme`).
 ///
 /// Ecrire (dans chaque ancienne app) : `classerFichiers` partage les fichiers vus, `reglagesPersistants` lit les
 /// reglages ; chaque fichier se decrit sur sa COPIE, dans le dossier d'export, jamais sur l'original que l'app continue
@@ -74,7 +76,8 @@ public enum ContratExport {
         case reglagesAbsents
         /// Un fichier liste au manifeste n'est pas dans le dossier (le chemin).
         case fichierManquant(String)
-        /// Un fichier du dossier n'est pas liste au manifeste (le chemin ; `manifeste.json` et `.DS_Store` exceptes).
+        /// Un fichier du dossier n'est pas liste au manifeste (le chemin ; `manifeste.json`, `.DS_Store` et les fichiers
+        /// AppleDouble `._*` exceptes : `estFichierDeSysteme`).
         case fichierEnTrop(String)
         /// Un fichier liste n'est ni un fichier connu de l'app (`fichiersConnus`) ni `reglages.json` (le chemin).
         case fichierInconnu(String)
@@ -194,7 +197,7 @@ public enum ContratExport {
         /// Ni connu de l'app (`fichiersConnus`, `reglagesConnus`) ni reserve au contrat : Sparkle, fenetres, onglet des
         /// reglages, ancien dossier des noms, ou tout ce qu'une version future aurait ajoute.
         case horsContrat
-        /// Fichier que l'export ne copie jamais (`estExcluDeLExport` : `.DS_Store`, `*.illisible-*.json`).
+        /// Fichier que l'export ne copie jamais (`estExcluDeLExport` : `.DS_Store`, `._*`, `*.illisible-*.json`).
         case exclu
         /// Reglage connu mais d'un autre type que celui de l'inventaire (un `1` entier pour un booleen) : cite, jamais
         /// converti ni perdu en silence. Ne s'applique qu'aux reglages.
@@ -549,11 +552,22 @@ public enum ContratExport {
         return nil
     }
 
-    /// Ce que l'export ne copie jamais : `.DS_Store` et les fichiers mis de cote par l'app quand ils etaient illisibles
-    /// (`*.illisible-*.json`), a n'importe quelle profondeur.
+    /// Ce que l'export ne copie jamais : les fichiers de systeme (`estFichierDeSysteme`) et les fichiers mis de cote par
+    /// l'app quand ils etaient illisibles (`*.illisible-*.json`), a n'importe quelle profondeur.
     public static func estExcluDeLExport(_ chemin: String) -> Bool {
         let nom = chemin.split(separator: "/", omittingEmptySubsequences: false).last.map(String.init) ?? chemin
-        return nom == ".DS_Store" || (nom.hasSuffix(".json") && nom.contains(".illisible-"))
+        return estFichierDeSysteme(chemin) || (nom.hasSuffix(".json") && nom.contains(".illisible-"))
+    }
+
+    /// Ce que macOS pose de lui-meme dans un dossier : `.DS_Store` (le Finder) et les compagnons AppleDouble `._<nom>`
+    /// que macOS ecrit a cote de chaque fichier (attributs etendus comme `com.apple.quarantine`) quand le dossier est
+    /// copie sur un volume FAT ou exFAT (une cle USB), a n'importe quelle profondeur. Seul le NOM compte : il est
+    /// exactement `.DS_Store` ou COMMENCE par `._` (`_x.json`, `x._json` n'en sont pas). Un tel fichier n'a pas a etre
+    /// liste au manifeste, n'est jamais lu ni copie, et ne fait pas refuser le dossier (`verifierDossier`). Un export
+    /// ecrit par l'app n'en produit jamais : elle n'ecrit pas sur ces volumes, c'est la copie du Finder qui les ajoute.
+    static func estFichierDeSysteme(_ chemin: String) -> Bool {
+        let nom = chemin.split(separator: "/", omittingEmptySubsequences: false).last.map(String.init) ?? chemin
+        return nom == ".DS_Store" || nom.hasPrefix("._")
     }
 
     /// Un reglage repris : sa cle dans les UserDefaults de l'ancienne app, et son type.
@@ -729,7 +743,8 @@ public enum ContratExport {
     /// - `reglagesAbsents` : `reglages.json` n'est pas liste ;
     /// - `fichierInconnu` : un fichier liste n'est ni `reglages.json` ni connu de l'app (`fichiersConnus`) ;
     /// - `lienSymbolique` : un lien dans le dossier, liste ou non ; `fichierEnTrop` : un fichier non liste (hors
-    ///   `manifeste.json` et `.DS_Store`, que le Finder peut poser) ;
+    ///   `manifeste.json`, `.DS_Store` et les fichiers AppleDouble `._*`, que le Finder ou une copie sur cle FAT ou
+    ///   exFAT peuvent poser : `estFichierDeSysteme`, jamais lus) ;
     /// - `fichierManquant`, `tailleFausse`, `empreinteFausse` : un fichier liste absent, ou dont la taille ou le SHA-256
     ///   n'est pas celui du manifeste (`Fichier.decrire`, un passage) ;
     /// - pour `reglages.json` : octets lus une seule fois, verifies puis decodes (`lireReglages`) ; `appDifferente` si
@@ -748,8 +763,7 @@ public enum ContratExport {
         }
         let listes = Set(manifeste.fichiers.map { cle($0.chemin) })
         for chemin in try fichiersPresents(dans: dossier, prefixe: "") {
-            let nom = chemin.split(separator: "/").last.map(String.init) ?? chemin
-            if cle(chemin) == nomManifeste || nom == ".DS_Store" { continue }
+            if cle(chemin) == nomManifeste || estFichierDeSysteme(chemin) { continue }
             guard listes.contains(cle(chemin)) else { throw Erreur.fichierEnTrop(chemin) }
         }
         for f in manifeste.fichiers where f.chemin != nomReglages {
