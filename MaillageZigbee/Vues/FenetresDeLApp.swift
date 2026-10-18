@@ -9,13 +9,15 @@ enum PolitiqueActivation {
 
     static func ouverte() {
         ouvertes += 1
+        // Sous les tests, pas de politique ni d'activation : icones fantomes dans le Dock apres les essais.
+        guard !Surveillance.sousTests else { return }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
     }
 
     static func fermee() {
         ouvertes = max(0, ouvertes - 1)
-        if ouvertes == 0 { NSApp.setActivationPolicy(.accessory) }
+        if ouvertes == 0, !Surveillance.sousTests { NSApp.setActivationPolicy(.accessory) }
     }
 }
 
